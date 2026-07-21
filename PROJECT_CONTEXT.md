@@ -4,6 +4,25 @@
 > 프로젝트 요구사항과 현재 진행 상황을 파악할 수 있도록 정리한 문서입니다.
 > 새 세션에서 작업을 시작할 때 이 파일을 먼저 읽어주세요.
 
+## 0. 작업 원칙 (사용자 지시사항 — 반드시 준수)
+
+프로젝트 시작 시 사용자가 명시적으로 정한 작업 방침입니다. 이후 어떤 세션에서
+작업하든 아래 원칙을 벗어나지 않아야 합니다.
+
+1. **로컬 우선 진행**: 항상 로컬에서 먼저 세팅하고 동작을 완전히 확인한 뒤에만
+   서버(AWS Lightsail)에 배포한다. 검증 안 된 상태로 바로 서버에 올리지 않는다.
+2. **DB 테이블은 전체 서비스 관점에서 설계**: 과제 명세서의 필수 요건(JSON 파일 저장)에
+   머무르지 않고, 서비스 전체 맥락을 고려해 DB 테이블 항목을 판단해서 추가한다.
+   → 이 판단에 따라 SQLite 3테이블(users/health_records/goals) 구조로 이미 설계함 (4번 항목 참고).
+3. **고도화 기능은 Claude가 자율적으로 추천·구현**: "너무 무겁지 않은 선"이라는 제약 안에서,
+   매번 사용자에게 어떤 기능을 넣을지 묻지 않고 판단해서 추천하고 구현해나간다.
+   → 이미 3개 기능(사용자 구분/목표관리/주간리포트 + 걸음수·수면 자동분류) 선정해 구현 완료 (4번 항목 참고).
+   → 추가로 넣을 만한 여지가 있다면(예: HTML 간단 화면 등) 무겁지 않은 선에서 계속 자율적으로 판단해 제안 가능.
+4. **인프라는 이미 준비되어 있음, 처음부터 만들지 않음**:
+   - GitHub 계정 + 저장소 이미 생성됨 → https://github.com/goldmireu-source/healthcare (연결 완료, push까지 완료)
+   - AWS 계정 + Lightsail 테스트 서버 이미 생성됨 → 배포 단계에서 새로 만들지 말고 기존 서버 사용
+   - 즉, "계정 생성"이나 "저장소 최초 생성" 같은 처음 단계는 스킵하고 바로 실제 구현/배포 작업으로 들어간다.
+
 ## 1. 과제 개요
 
 **과제명**: 마이 헬스 로그 API (FastAPI & Docker 미니 프로젝트, 개인 과제)
@@ -48,10 +67,12 @@
   - `users` — 사용자 구분 (username, 기본값 "default")
   - `health_records` — 건강 기록 원본 값 + 서버 계산 결과(bmi/분류/경고/활동량등급/수면상태)
   - `goals` — 사용자별 목표 체중/혈압/혈당
-- **고도화 기능 3종** (과제 "추가 도전" 목록 중 가볍게 선택):
+- **고도화 기능** (과제 "추가 도전" 목록 중 선택, 사용자 요청으로 웹 화면 추가됨):
   1. 사용자 구분 (`username` 필드)
   2. 목표 관리 (`POST/GET /goals` — 목표 대비 최신 기록 달성 여부)
   3. 주간 리포트 (`GET /reports/weekly` — 최근 7일 vs 지난주 평균 비교)
+  4. **사용자용 웹 화면** (`/app`) — 순수 HTML/CSS/JS 단일 파일(`static/index.html`), 별도 빌드 없이 기존 REST API 호출. 기록 입력/조회/수정/삭제, 검색, 통계, 목표, 주간 리포트를 한 화면에서 사용 가능. 루트(`/`)는 `/app`으로 자동 리다이렉트, API 상태 확인용 JSON은 `/api`로 이동.
+     (※ 처음엔 "무겁지 않게"라는 기준으로 스킵했으나, 실제 서비스처럼 보이려면 `/docs`만으로는 부족하다는 사용자 피드백을 받아 추가함)
   - 걸음 수 등급(`activity_level`)·수면 분석(`sleep_status`)은 별도 엔드포인트 없이 모든 기록 응답에 자동 포함
 
 ## 5. 파일 구조
@@ -63,6 +84,8 @@ healthcare/
 ├── schemas.py         # Pydantic 요청/응답 모델
 ├── database.py        # DB 연결/세션 설정 (SQLite, data/health_log.db)
 ├── health_logic.py     # BMI/혈압/혈당 계산·분류·경고·활동량·수면 로직
+├── static/
+│   └── index.html      # 사용자용 웹 화면 (/app 에 마운트됨)
 ├── requirements.txt
 ├── Dockerfile
 ├── .dockerignore
@@ -72,7 +95,7 @@ healthcare/
 
 ## 6. 진행 상황 (지금까지 완료된 것)
 
-- [x] Day1~3: 핵심 로직 + DB 설계 + 필수 엔드포인트 7개 + 고도화 3종 구현 완료
+- [x] Day1~3: 핵심 로직 + DB 설계 + 필수 엔드포인트 7개 + 고도화 4종(사용자구분/목표관리/주간리포트/웹화면) 구현 완료
 - [x] 로컬 uvicorn 실행 테스트 완료 — `/docs`에서 정상 동작 확인
   - 비만/고혈압/당뇨의심 케이스 경고 메시지까지 정확히 계산됨을 확인
   - 서버 재시작 후 데이터 유지 확인 (SQLite 파일 기반)
@@ -80,20 +103,13 @@ healthcare/
 - [x] GitHub 저장소 연결 및 push 완료
   - repo: https://github.com/goldmireu-source/healthcare (main 브랜치)
 - [x] VS Code + Claude Code 확장 설치 완료, 가상환경(venv) 활성화됨
-- [x] Day4: Docker 빌드/실행 완료
-  - `docker build -t health-log-api .` 빌드 성공
-  - `docker run -d -p 8000:8000 -v ... --name health-log-api health-log-api` 로 컨테이너 실행 중
-    - 주의: Windows Git Bash에서 `-v F:\healthcare\data:/app/data` (백슬래시)는
-      `Error response from daemon: The system cannot find the file specified.` 로 실패함.
-      반드시 슬래시 경로 `-v "F:/healthcare/data:/app/data"` 사용할 것.
-  - 컨테이너 기준 `http://localhost:8000/docs` 정상 응답(200) 확인
-  - `POST /records`, `GET /records` 컨테이너에서 정상 동작 확인 (BMI/혈압/혈당 분류 정상)
-  - 볼륨 마운트로 로컬 테스트 때 쌓인 기존 기록이 컨테이너 재실행 후에도 유지됨을 확인 (데이터 영속성 검증 완료)
-  - `docker logs health-log-api` 에러 없음
 
-## 7. 다음 작업
+## 7. 다음 작업 (Day 4 — 진행 중)
 
-- Day4 Docker 단계는 완료. 다음은 8번 항목(AWS Lightsail 배포)으로 진행
+1. `docker build -t health-log-api .` 로 이미지 빌드
+2. `docker run -d -p 8000:8000 -v F:\healthcare\data:/app/data --name health-log-api health-log-api` 로 컨테이너 실행
+3. http://localhost:8000/docs 에서 컨테이너 기준으로 재테스트
+4. 문제 있으면 `docker logs health-log-api`로 원인 파악 후 수정
 
 ## 8. 이후 계획 (미착수)
 

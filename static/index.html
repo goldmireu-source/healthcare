@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>마이 헬스 로그</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=IBM+Plex+Sans+KR:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#1B2430;
+    --paper:#EFF2F1;
+    --card:#FFFFFF;
+    --line:#D8DDD9;
+    --teal:#2F6F5E;
+    --teal-soft:#E4EEEB;
+    --amber:#C98A2E;
+    --amber-soft:#F6EADA;
+    --brick:#C1443D;
+    --brick-soft:#F5E1DF;
+    --muted:#6B7680;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'IBM Plex Sans KR', sans-serif;
+    line-height:1.5;
+  }
+  .wrap{max-width:1040px;margin:0 auto;padding:32px 20px 80px;}
+
+  header.top{
+    display:flex;justify-content:space-between;align-items:flex-end;
+    margin-bottom:28px;flex-wrap:wrap;gap:12px;
+  }
+  header.top h1{
+    font-family:'Fraunces', serif;font-weight:600;font-size:34px;margin:0 0 4px;
+    letter-spacing:-0.01em;
+  }
+  header.top p{margin:0;color:var(--muted);font-size:14px;}
+  .user-switch{display:flex;align-items:center;gap:8px;}
+  .user-switch label{font-size:12px;color:var(--muted);}
+  .user-switch input{
+    font-family:'IBM Plex Mono', monospace;font-size:13px;
+    padding:7px 10px;border:1px solid var(--line);border-radius:6px;
+    background:var(--card);width:120px;
+  }
+  .user-switch button{
+    font-size:13px;padding:7px 12px;border-radius:6px;border:1px solid var(--ink);
+    background:var(--ink);color:#fff;cursor:pointer;
+  }
+
+  section{margin-bottom:28px;}
+  .card{
+    background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:22px 24px;
+  }
+  .card h2{
+    font-family:'Fraunces', serif;font-weight:600;font-size:18px;margin:0 0 16px;
+    display:flex;align-items:baseline;gap:8px;
+  }
+  .card h2 .eyebrow{
+    font-family:'IBM Plex Mono', monospace;font-size:11px;color:var(--muted);
+    letter-spacing:0.06em;text-transform:uppercase;
+  }
+
+  /* 입력 폼 */
+  form.entry{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;}
+  form.entry .full{grid-column:1 / -1;}
+  form.entry label{display:block;font-size:12px;color:var(--muted);margin-bottom:5px;}
+  form.entry input{
+    width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:7px;
+    font-size:14px;font-family:'IBM Plex Mono', monospace;background:#FBFCFB;
+  }
+  form.entry input[type="text"]{font-family:'IBM Plex Sans KR', sans-serif;}
+  form.entry .actions{grid-column:1 / -1;display:flex;gap:10px;align-items:center;margin-top:4px;}
+  .btn{
+    padding:10px 18px;border-radius:7px;border:none;cursor:pointer;font-size:14px;
+    font-weight:500;font-family:'IBM Plex Sans KR', sans-serif;
+  }
+  .btn-primary{background:var(--teal);color:#fff;}
+  .btn-primary:hover{background:#265b4d;}
+  .btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--line);}
+  .btn-ghost:hover{border-color:var(--muted);}
+  #editing-flag{font-size:12px;color:var(--amber);display:none;}
+
+  /* 바이탈 스트립 (시그니처 요소) */
+  .vitals-strip{display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:var(--line);
+    border:1px solid var(--line);border-radius:12px;overflow:hidden;}
+  .vital{background:var(--card);padding:16px 14px;text-align:center;}
+  .vital .label{font-size:11px;color:var(--muted);letter-spacing:0.04em;text-transform:uppercase;margin-bottom:8px;}
+  .vital .value{font-family:'IBM Plex Mono', monospace;font-size:22px;font-weight:600;margin-bottom:6px;}
+  .dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:6px;vertical-align:middle;}
+  .status-tag{font-size:12px;font-weight:500;}
+  .good .dot{background:var(--teal);} .good .status-tag{color:var(--teal);}
+  .warn .dot{background:var(--amber);} .warn .status-tag{color:var(--amber);}
+  .bad .dot{background:var(--brick);} .bad .status-tag{color:var(--brick);}
+  .neutral .dot{background:var(--muted);} .neutral .status-tag{color:var(--muted);}
+  .empty-note{color:var(--muted);font-size:13px;padding:18px 4px;}
+
+  /* 검색/통계 */
+  .row-2{display:grid;grid-template-columns:1.3fr 1fr;gap:20px;}
+  .search-bar{display:flex;gap:10px;align-items:flex-end;margin-bottom:16px;flex-wrap:wrap;}
+  .search-bar div{display:flex;flex-direction:column;gap:5px;}
+  .search-bar label{font-size:12px;color:var(--muted);}
+  .search-bar input{padding:8px 9px;border:1px solid var(--line);border-radius:7px;font-family:'IBM Plex Mono', monospace;font-size:13px;}
+
+  table{width:100%;border-collapse:collapse;font-size:13px;}
+  thead th{
+    text-align:left;font-size:11px;color:var(--muted);text-transform:uppercase;
+    letter-spacing:0.03em;border-bottom:1px solid var(--line);padding:8px 6px;font-weight:500;
+  }
+  tbody td{padding:10px 6px;border-bottom:1px solid var(--line);vertical-align:middle;}
+  tbody tr:last-child td{border-bottom:none;}
+  .badge{
+    display:inline-block;padding:3px 8px;border-radius:20px;font-size:11px;font-weight:500;
+  }
+  .badge.good{background:var(--teal-soft);color:var(--teal);}
+  .badge.warn{background:var(--amber-soft);color:var(--amber);}
+  .badge.bad{background:var(--brick-soft);color:var(--brick);}
+  .warn-msg{font-size:11px;color:var(--brick);margin-top:2px;}
+  .row-actions button{
+    font-size:11px;padding:4px 9px;border-radius:5px;border:1px solid var(--line);
+    background:#fff;cursor:pointer;margin-right:4px;color:var(--muted);
+  }
+  .row-actions button:hover{border-color:var(--ink);color:var(--ink);}
+
+  .stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .stat-item{padding:12px 0;border-bottom:1px dashed var(--line);}
+  .stat-item .n{font-family:'IBM Plex Mono', monospace;font-size:20px;font-weight:600;}
+  .stat-item .l{font-size:11px;color:var(--muted);}
+  .dist-row{display:flex;align-items:center;gap:8px;margin-top:6px;font-size:12px;}
+  .dist-bar{flex:1;height:6px;background:var(--paper);border-radius:4px;overflow:hidden;}
+  .dist-bar span{display:block;height:100%;background:var(--teal);}
+
+  /* 목표 / 주간 리포트 */
+  .goal-form{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px;}
+  .goal-form input{padding:8px 9px;border:1px solid var(--line);border-radius:7px;font-family:'IBM Plex Mono', monospace;font-size:13px;width:100%;}
+  .goal-form label{font-size:11px;color:var(--muted);display:block;margin-bottom:4px;}
+  .achv{display:flex;gap:10px;flex-wrap:wrap;margin-top:4px;}
+  .achv .chip{font-size:12px;padding:5px 10px;border-radius:20px;background:var(--paper);}
+  .achv .chip.yes{background:var(--teal-soft);color:var(--teal);}
+  .achv .chip.no{background:var(--brick-soft);color:var(--brick);}
+
+  .week-compare{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;font-size:13px;}
+  .week-compare div.h{font-size:11px;color:var(--muted);text-transform:uppercase;padding-bottom:8px;border-bottom:1px solid var(--line);margin-bottom:8px;}
+  .week-compare .metric{padding:6px 0;font-family:'IBM Plex Mono', monospace;}
+  .delta.up{color:var(--brick);} .delta.down{color:var(--teal);} .delta.flat{color:var(--muted);}
+
+  footer{text-align:center;color:var(--muted);font-size:12px;margin-top:40px;}
+  @media (max-width:720px){
+    form.entry, .goal-form{grid-template-columns:1fr 1fr;}
+    .vitals-strip{grid-template-columns:repeat(2,1fr);}
+    .row-2{grid-template-columns:1fr;}
+    .week-compare{grid-template-columns:1fr;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div>
+      <h1>마이 헬스 로그</h1>
+      <p>매일의 숫자를 기록하면, 여기서 몸 상태를 읽어드립니다</p>
+    </div>
+    <div class="user-switch">
+      <div>
+        <label for="username-input">사용자</label><br/>
+        <input id="username-input" type="text" value="default" />
+      </div>
+      <button onclick="switchUser()">전환</button>
+    </div>
+  </header>
+
+  <section>
+    <div class="card">
+      <h2><span class="eyebrow">Entry</span> 오늘의 기록</h2>
+      <form class="entry" id="record-form" onsubmit="submitRecord(event)">
+        <input type="hidden" id="record-id" />
+        <div>
+          <label>측정일</label>
+          <input type="date" id="f-date" required />
+        </div>
+        <div>
+          <label>몸무게 (kg)</label>
+          <input type="number" step="0.1" id="f-weight" required />
+        </div>
+        <div>
+          <label>키 (cm)</label>
+          <input type="number" step="0.1" id="f-height" required />
+        </div>
+        <div>
+          <label>걸음 수</label>
+          <input type="number" id="f-steps" value="0" />
+        </div>
+        <div>
+          <label>수축기 혈압</label>
+          <input type="number" id="f-systolic" required />
+        </div>
+        <div>
+          <label>이완기 혈압</label>
+          <input type="number" id="f-diastolic" required />
+        </div>
+        <div>
+          <label>공복 혈당 (mg/dL)</label>
+          <input type="number" id="f-sugar" required />
+        </div>
+        <div>
+          <label>수면 시간</label>
+          <input type="number" step="0.1" id="f-sleep" value="0" />
+        </div>
+        <div class="full">
+          <label>메모</label>
+          <input type="text" id="f-memo" placeholder="선택 입력" />
+        </div>
+        <div class="actions">
+          <button type="submit" class="btn btn-primary" id="submit-btn">기록 추가</button>
+          <button type="button" class="btn btn-ghost" onclick="resetForm()">초기화</button>
+          <span id="editing-flag">✎ 수정 중인 기록이 있습니다</span>
+        </div>
+      </form>
+    </div>
+  </section>
+
+  <section>
+    <h2 style="font-family:'Fraunces',serif;font-size:16px;margin:0 0 10px;color:var(--muted);font-weight:500;">최신 측정값</h2>
+    <div id="vitals-strip" class="vitals-strip"></div>
+  </section>
+
+  <section class="row-2">
+    <div class="card">
+      <h2><span class="eyebrow">Records</span> 전체 기록</h2>
+      <div class="search-bar">
+        <div>
+          <label>시작일</label>
+          <input type="date" id="s-start" />
+        </div>
+        <div>
+          <label>종료일</label>
+          <input type="date" id="s-end" />
+        </div>
+        <button class="btn btn-ghost" onclick="searchRecords()">검색</button>
+        <button class="btn btn-ghost" onclick="loadRecords()">전체보기</button>
+      </div>
+      <div style="overflow-x:auto;">
+        <table>
+          <thead>
+            <tr><th>날짜</th><th>체중/BMI</th><th>혈압</th><th>혈당</th><th>활동/수면</th><th></th></tr>
+          </thead>
+          <tbody id="records-body"></tbody>
+        </table>
+      </div>
+      <div id="records-empty" class="empty-note" style="display:none;">아직 기록이 없습니다. 위에서 첫 기록을 추가해보세요.</div>
+    </div>
+
+    <div class="card">
+      <h2><span class="eyebrow">Stats</span> 통계 요약</h2>
+      <div id="stats-body"></div>
+    </div>
+  </section>
+
+  <section class="row-2">
+    <div class="card">
+      <h2><span class="eyebrow">Goals</span> 목표 관리</h2>
+      <form class="goal-form" onsubmit="saveGoal(event)">
+        <div><label>목표 체중</label><input type="number" step="0.1" id="g-weight" /></div>
+        <div><label>목표 수축기</label><input type="number" id="g-systolic" /></div>
+        <div><label>목표 이완기</label><input type="number" id="g-diastolic" /></div>
+        <div><label>목표 혈당</label><input type="number" id="g-sugar" /></div>
+        <div class="full" style="grid-column:1/-1;margin-top:4px;">
+          <button type="submit" class="btn btn-primary">목표 저장</button>
+        </div>
+      </form>
+      <div id="goal-result" class="achv"></div>
+    </div>
+
+    <div class="card">
+      <h2><span class="eyebrow">Weekly</span> 주간 리포트</h2>
+      <div id="weekly-body"></div>
+    </div>
+  </section>
+
+  <footer>마이 헬스 로그 · 학습용 프로젝트 · 건강 기준은 단순화된 값이며 의학적 진단이 아닙니다</footer>
+</div>
+
+<script>
+let username = 'default';
+let editingId = null;
+let recordsCache = {};
+
+function statusClass(cat){
+  const good = ['정상','적정','우수'];
+  const warn = ['주의','과체중','공복혈당장애','부족','과다','저체중'];
+  const bad = ['고혈압','비만','당뇨 의심'];
+  if(good.includes(cat)) return 'good';
+  if(warn.includes(cat)) return 'warn';
+  if(bad.includes(cat)) return 'bad';
+  return 'neutral';
+}
+
+function switchUser(){
+  const v = document.getElementById('username-input').value.trim();
+  username = v || 'default';
+  refreshAll();
+}
+
+function refreshAll(){
+  loadRecords();
+  loadStats();
+  loadGoal();
+  loadWeeklyReport();
+}
+
+async function apiGet(path){
+  const res = await fetch(path);
+  if(!res.ok){ throw new Error((await res.json()).detail || res.statusText); }
+  return res.json();
+}
+async function apiSend(path, method, body){
+  const res = await fetch(path, {method, headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+  if(!res.ok){ throw new Error((await res.json()).detail || res.statusText); }
+  return res.json();
+}
+
+function renderVitals(latest){
+  const el = document.getElementById('vitals-strip');
+  if(!latest){
+    el.innerHTML = '<div class="empty-note" style="grid-column:1/-1;">기록을 추가하면 최신 측정값이 여기 표시됩니다</div>';
+    return;
+  }
+  const items = [
+    {label:'BMI', value: latest.bmi, cat: latest.bmi_category},
+    {label:'혈압', value: `${latest.systolic}/${latest.diastolic}`, cat: latest.bp_category},
+    {label:'공복혈당', value: latest.blood_sugar, cat: latest.sugar_category},
+    {label:'활동량', value: `${latest.steps} 보`, cat: latest.activity_level},
+    {label:'수면', value: `${latest.sleep_hours}h`, cat: latest.sleep_status},
+  ];
+  el.innerHTML = items.map(it => `
+    <div class="vital ${statusClass(it.cat)}">
+      <div class="label">${it.label}</div>
+      <div class="value">${it.value}</div>
+      <div class="status-tag"><span class="dot"></span>${it.cat}</div>
+    </div>`).join('');
+}
+
+function renderRecordsTable(records){
+  const body = document.getElementById('records-body');
+  const empty = document.getElementById('records-empty');
+  if(records.length === 0){
+    body.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+  const sorted = [...records].sort((a,b) => b.date.localeCompare(a.date));
+  recordsCache = {};
+  sorted.forEach(r => { recordsCache[r.id] = r; });
+  body.innerHTML = sorted.map(r => `
+    <tr>
+      <td>${r.date}</td>
+      <td>${r.weight}kg<br/><span class="badge ${statusClass(r.bmi_category)}">${r.bmi} · ${r.bmi_category}</span></td>
+      <td>${r.systolic}/${r.diastolic}<br/><span class="badge ${statusClass(r.bp_category)}">${r.bp_category}</span></td>
+      <td>${r.blood_sugar}<br/><span class="badge ${statusClass(r.sugar_category)}">${r.sugar_category}</span></td>
+      <td><span class="badge ${statusClass(r.activity_level)}">${r.activity_level}</span> <span class="badge ${statusClass(r.sleep_status)}">${r.sleep_status}</span>
+        ${r.warnings.length ? `<div class="warn-msg">⚠ ${r.warnings.length}건 경고</div>` : ''}</td>
+      <td class="row-actions">
+        <button onclick="editRecord(${r.id})">수정</button>
+        <button onclick="deleteRecord(${r.id})">삭제</button>
+      </td>
+    </tr>`).join('');
+}
+
+async function loadRecords(){
+  try{
+    const data = await apiGet(`/records?username=${encodeURIComponent(username)}`);
+    renderRecordsTable(data.records);
+    const sorted = [...data.records].sort((a,b) => a.date.localeCompare(b.date));
+    renderVitals(sorted[sorted.length - 1]);
+  }catch(e){ console.error(e); }
+}
+
+async function searchRecords(){
+  const start = document.getElementById('s-start').value;
+  const end = document.getElementById('s-end').value;
+  if(!start || !end){ alert('시작일과 종료일을 모두 선택해주세요.'); return; }
+  try{
+    const data = await apiGet(`/search?start=${start}&end=${end}&username=${encodeURIComponent(username)}`);
+    renderRecordsTable(data.records);
+  }catch(e){ alert(e.message); }
+}
+
+async function loadStats(){
+  try{
+    const s = await apiGet(`/stats?username=${encodeURIComponent(username)}`);
+    const el = document.getElementById('stats-body');
+    if(s.count === 0){
+      el.innerHTML = '<div class="empty-note">통계를 보려면 기록이 필요합니다</div>';
+      return;
+    }
+    const distHtml = (title, dist) => {
+      const total = Object.values(dist).reduce((a,b)=>a+b,0) || 1;
+      return `<div style="margin-top:14px;"><div class="l">${title}</div>` +
+        Object.entries(dist).map(([k,v]) => `
+          <div class="dist-row">
+            <span style="width:64px;flex-shrink:0;">${k}</span>
+            <div class="dist-bar"><span style="width:${(v/total*100).toFixed(0)}%"></span></div>
+            <span style="color:var(--muted);width:18px;text-align:right;">${v}</span>
+          </div>`).join('') + '</div>';
+    };
+    el.innerHTML = `
+      <div class="stat-grid">
+        <div class="stat-item"><div class="n">${s.count}</div><div class="l">총 기록 수</div></div>
+        <div class="stat-item"><div class="n">${s.avg_bmi ?? '-'}</div><div class="l">평균 BMI</div></div>
+        <div class="stat-item"><div class="n">${s.avg_weight ?? '-'}</div><div class="l">평균 체중(kg)</div></div>
+        <div class="stat-item"><div class="n">${s.avg_systolic ?? '-'}/${s.avg_diastolic ?? '-'}</div><div class="l">평균 혈압</div></div>
+        <div class="stat-item"><div class="n">${s.avg_blood_sugar ?? '-'}</div><div class="l">평균 혈당</div></div>
+        <div class="stat-item"><div class="n">${s.avg_steps ?? '-'}</div><div class="l">평균 걸음 수</div></div>
+      </div>
+      ${distHtml('BMI 분류 분포', s.bmi_category_distribution)}
+      ${distHtml('혈압 분류 분포', s.bp_category_distribution)}
+    `;
+  }catch(e){ console.error(e); }
+}
+
+function editRecord(id){
+  const r = recordsCache[id];
+  if(!r) return;
+  editingId = r.id;
+  document.getElementById('f-date').value = r.date;
+  document.getElementById('f-weight').value = r.weight;
+  document.getElementById('f-height').value = r.height;
+  document.getElementById('f-systolic').value = r.systolic;
+  document.getElementById('f-diastolic').value = r.diastolic;
+  document.getElementById('f-sugar').value = r.blood_sugar;
+  document.getElementById('f-steps').value = r.steps;
+  document.getElementById('f-sleep').value = r.sleep_hours;
+  document.getElementById('f-memo').value = r.memo || '';
+  document.getElementById('submit-btn').textContent = '수정 완료';
+  document.getElementById('editing-flag').style.display = 'inline';
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+function resetForm(){
+  editingId = null;
+  document.getElementById('record-form').reset();
+  document.getElementById('submit-btn').textContent = '기록 추가';
+  document.getElementById('editing-flag').style.display = 'none';
+}
+
+async function submitRecord(ev){
+  ev.preventDefault();
+  const payload = {
+    date: document.getElementById('f-date').value,
+    weight: parseFloat(document.getElementById('f-weight').value),
+    height: parseFloat(document.getElementById('f-height').value),
+    systolic: parseInt(document.getElementById('f-systolic').value),
+    diastolic: parseInt(document.getElementById('f-diastolic').value),
+    blood_sugar: parseInt(document.getElementById('f-sugar').value),
+    steps: parseInt(document.getElementById('f-steps').value || 0),
+    sleep_hours: parseFloat(document.getElementById('f-sleep').value || 0),
+    memo: document.getElementById('f-memo').value,
+  };
+  try{
+    if(editingId){
+      await apiSend(`/records/${editingId}`, 'PUT', payload);
+    }else{
+      payload.username = username;
+      await apiSend('/records', 'POST', payload);
+    }
+    resetForm();
+    refreshAll();
+  }catch(e){ alert('저장 실패: ' + e.message); }
+}
+
+async function deleteRecord(id){
+  if(!confirm('이 기록을 삭제할까요?')) return;
+  try{
+    await fetch(`/records/${id}`, {method:'DELETE'});
+    refreshAll();
+  }catch(e){ alert('삭제 실패: ' + e.message); }
+}
+
+async function loadGoal(){
+  const el = document.getElementById('goal-result');
+  try{
+    const g = await apiGet(`/goals?username=${encodeURIComponent(username)}`);
+    document.getElementById('g-weight').value = g.target_weight ?? '';
+    document.getElementById('g-systolic').value = g.target_systolic ?? '';
+    document.getElementById('g-diastolic').value = g.target_diastolic ?? '';
+    document.getElementById('g-sugar').value = g.target_blood_sugar ?? '';
+    renderGoalAchievement(g.achievement);
+  }catch(e){
+    el.innerHTML = '<span style="color:var(--muted);font-size:12px;">설정된 목표가 없습니다. 아래에서 설정해보세요.</span>';
+  }
+}
+
+function renderGoalAchievement(a){
+  const el = document.getElementById('goal-result');
+  if(!a || a.message){ el.innerHTML = `<span style="color:var(--muted);font-size:12px;">${a && a.message ? a.message : ''}</span>`; return; }
+  const chips = [];
+  if('weight_achieved' in a) chips.push(`<span class="chip ${a.weight_achieved ? 'yes':'no'}">체중 ${a.weight_achieved ? '달성':'미달'} (차이 ${a.weight_diff}kg)</span>`);
+  if('systolic_achieved' in a) chips.push(`<span class="chip ${a.systolic_achieved ? 'yes':'no'}">수축기 ${a.systolic_achieved ? '달성':'미달'}</span>`);
+  if('diastolic_achieved' in a) chips.push(`<span class="chip ${a.diastolic_achieved ? 'yes':'no'}">이완기 ${a.diastolic_achieved ? '달성':'미달'}</span>`);
+  if('blood_sugar_achieved' in a) chips.push(`<span class="chip ${a.blood_sugar_achieved ? 'yes':'no'}">혈당 ${a.blood_sugar_achieved ? '달성':'미달'}</span>`);
+  el.innerHTML = chips.join('');
+}
+
+async function saveGoal(ev){
+  ev.preventDefault();
+  const payload = {
+    username,
+    target_weight: parseFloat(document.getElementById('g-weight').value) || null,
+    target_systolic: parseInt(document.getElementById('g-systolic').value) || null,
+    target_diastolic: parseInt(document.getElementById('g-diastolic').value) || null,
+    target_blood_sugar: parseInt(document.getElementById('g-sugar').value) || null,
+  };
+  try{
+    const g = await apiSend('/goals', 'POST', payload);
+    renderGoalAchievement(g.achievement);
+  }catch(e){ alert('목표 저장 실패: ' + e.message); }
+}
+
+function deltaHtml(v, higherIsWorse=true){
+  if(v === undefined || v === null) return '<span class="delta flat">-</span>';
+  const arrow = v > 0 ? '▲' : v < 0 ? '▼' : '–';
+  const dir = v === 0 ? 'flat' : ((v > 0) === higherIsWorse ? 'up' : 'down');
+  return `<span class="delta ${dir}">${arrow} ${Math.abs(v)}</span>`;
+}
+
+async function loadWeeklyReport(){
+  const el = document.getElementById('weekly-body');
+  try{
+    const r = await apiGet(`/reports/weekly?username=${encodeURIComponent(username)}`);
+    if(!r.this_week.record_count && !r.last_week.record_count){
+      el.innerHTML = '<div class="empty-note">최근 2주간 기록이 없습니다.</div>';
+      return;
+    }
+    const rows = [
+      ['평균 체중', 'avg_weight', true],
+      ['평균 수축기', 'avg_systolic', true],
+      ['평균 이완기', 'avg_diastolic', true],
+      ['평균 혈당', 'avg_blood_sugar', true],
+      ['평균 걸음 수', 'avg_steps', false],
+      ['평균 수면', 'avg_sleep_hours', false],
+    ];
+    el.innerHTML = `
+      <div class="week-compare">
+        <div class="h">지표</div><div class="h">이번 주</div><div class="h">지난 주 대비</div>
+        ${rows.map(([label,key,worse]) => `
+          <div class="metric">${label}</div>
+          <div class="metric">${r.this_week[key] ?? '-'}</div>
+          <div class="metric">${deltaHtml(r.change[key], worse)}</div>
+        `).join('')}
+      </div>
+      <div style="margin-top:10px;font-size:11px;color:var(--muted);">
+        이번 주 ${r.this_week.record_count || 0}건 · 지난 주 ${r.last_week.record_count || 0}건 기록 기준
+      </div>`;
+  }catch(e){ el.innerHTML = '<div class="empty-note">리포트를 불러올 수 없습니다.</div>'; }
+}
+
+// 초기 로드: 오늘 날짜 기본 세팅 + 데이터 로드
+document.getElementById('f-date').valueAsDate = new Date();
+refreshAll();
+</script>
+</body>
+</html>
