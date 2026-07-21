@@ -39,7 +39,9 @@ class AdminUserOut(BaseModel):
 
 
 class AdminUsersOut(BaseModel):
-    count: int
+    count: int  # 검색 조건에 맞는 전체 사용자 수 (페이지네이션 기준)
+    page: int
+    page_size: int
     users: List[AdminUserOut]
 
 
@@ -49,6 +51,23 @@ class AdminStatsOut(BaseModel):
     bmi_category_distribution: Dict[str, int] = {}
     bp_category_distribution: Dict[str, int] = {}
     sugar_category_distribution: Dict[str, int] = {}
+
+
+class AuditLogOut(BaseModel):
+    id: int
+    admin_username: str
+    action: str
+    target_username: Optional[str] = None
+    detail: str
+    created_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
+class AuditLogsOut(BaseModel):
+    count: int
+    logs: List[AuditLogOut]
 
 
 # ---------- Records ----------

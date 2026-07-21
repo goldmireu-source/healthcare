@@ -443,12 +443,44 @@ def weekly_report(
 # 회원가입으로는 절대 admin이 될 수 없음 (role은 항상 "user"로 생성됨).
 # 계정을 관리자로 승격하려면 로컬에서 promote_admin.py를 직접 실행해야 함.
 
+def _log_admin_action(
+    db: Session,
+    admin_user: models.User,
+    action: str,
+    target_username: Optional[str] = None,
+    detail: str = "",
+) -> None:
+    db.add(
+        models.AuditLog(
+            admin_username=admin_user.username,
+            action=action,
+            target_username=target_username,
+            detail=detail,
+        )
+    )
+    db.commit()
+
+
 @app.get("/admin/users", response_model=schemas.AdminUsersOut, tags=["Admin"])
 def admin_list_users(
+    search: Optional[str] = Query(None, description="아이디 부분 검색"),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(10, ge=1, le=100),
     current_admin: models.User = Depends(auth.get_current_admin),
     db: Session = Depends(get_db),
 ):
-    users = db.query(models.User).order_by(models.User.id.asc()).all()
+    query = db.query(models.User)
+    if search:
+        query = query.filter(models.User.username.ilike(f"%{search}%"))
+
+    total = query.count()
+    users = (
+        query.order_by(models.User.id.asc())
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+        .all()
+    )
+
     items = []
     for u in users:
         record_count = (
@@ -465,7 +497,7 @@ def admin_list_users(
                 record_count=record_count,
             )
         )
-    return schemas.AdminUsersOut(count=len(items), users=items)
+    return schemas.AdminUsersOut(count=total, page=page, page_size=page_size, users=items)
 
 
 @app.get("/admin/stats", response_model=schemas.AdminStatsOut, tags=["Admin"])
@@ -515,10 +547,53 @@ def admin_delete_user(
     current_admin: models.User = Depends(auth.get_current_admin),
     db: Session = Depends(get_db),
 ):
+    if user_id == current_admin.id:
+        raise HTTPException(status_code=400, detail="자기 자신의 계정은 삭제할 수 없습니다.")
     user = db.query(models.User).filter(models.User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="사용자를 찾을 수 없습니다.")
     username = user.username
     db.delete(user)
     db.commit()
+    _log_admin_action(db, current_admin, "delete_user", target_username=username)
     return {"message": f"'{username}' 계정이 삭제되었습니다."}
+
+
+@app.post("/admin/users/{user_id}/force-logout", tags=["Admin"])
+def admin_force_logout(
+    user_id: int,
+    current_admin: models.User = Depends(auth.get_current_admin),
+    db: Session = Depends(get_db),
+):
+    if user_id == current_admin.id:
+        raise HTTPException(status_code=400, detail="자기 자신의 세션은 이 기능으로 무효화할 수 없습니다. 로그아웃 버튼을 이용하세요.")
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="사용자를 찾을 수 없습니다.")
+    invalidated = (
+        db.query(models.Session).filter(models.Session.user_id == user_id).delete()
+    )
+    db.commit()
+    _log_admin_action(
+        db, current_admin, "force_logout", target_username=user.username,
+        detail=f"세션 {invalidated}개 무효화",
+    )
+    return {
+        "message": f"'{user.username}'의 모든 세션을 무효화했습니다.",
+        "sessions_invalidated": invalidated,
+    }
+
+
+@app.get("/admin/audit-log", response_model=schemas.AuditLogsOut, tags=["Admin"])
+def admin_audit_log(
+    limit: int = Query(50, ge=1, le=200),
+    current_admin: models.User = Depends(auth.get_current_admin),
+    db: Session = Depends(get_db),
+):
+    logs = (
+        db.query(models.AuditLog)
+        .order_by(models.AuditLog.created_at.desc())
+        .limit(limit)
+        .all()
+    )
+    return schemas.AuditLogsOut(count=len(logs), logs=logs)

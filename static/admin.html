@@ -95,6 +95,12 @@
   .dist-bar{flex:1;height:6px;background:var(--paper);border-radius:4px;overflow:hidden;}
   .dist-bar span{display:block;height:100%;background:var(--teal);}
 
+  .search-bar{display:flex;gap:10px;align-items:flex-end;margin-bottom:16px;flex-wrap:wrap;}
+  .search-bar div{display:flex;flex-direction:column;gap:5px;}
+  .search-bar label{font-size:12px;color:var(--muted);}
+  .search-bar input{padding:8px 9px;border:1px solid var(--line);border-radius:7px;font-family:'IBM Plex Mono', monospace;font-size:13px;min-width:180px;}
+  .pagination{display:flex;align-items:center;gap:12px;margin-top:14px;font-size:12px;color:var(--muted);}
+
   footer{text-align:center;color:var(--muted);font-size:12px;margin-top:40px;}
 
   #toast-box{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:999;display:flex;flex-direction:column;gap:8px;align-items:center;}
@@ -122,6 +128,7 @@
       <p>전체 사용자와 시스템 통계를 확인합니다</p>
     </div>
     <div class="user-switch" id="whoami-box" style="display:none;">
+      <span id="server-status" class="badge neutral">서버 상태 확인 중</span>
       <span id="whoami-text"></span>
       <a href="/app/" class="btn btn-ghost" style="text-decoration:none;">유저 페이지로</a>
       <button class="btn btn-ghost" onclick="logout()">로그아웃</button>
@@ -138,6 +145,13 @@
   <section>
     <div class="card">
       <h2><span class="eyebrow">Users</span> 전체 사용자</h2>
+      <div class="search-bar">
+        <div>
+          <label>아이디 검색</label>
+          <input type="text" id="user-search" placeholder="아이디 일부 입력" oninput="onSearchInput()" />
+        </div>
+        <button class="btn btn-ghost" onclick="resetSearch()">초기화</button>
+      </div>
       <div style="overflow-x:auto;">
         <table>
           <thead>
@@ -146,7 +160,43 @@
           <tbody id="users-body"></tbody>
         </table>
       </div>
-      <div id="users-empty" class="empty-note" style="display:none;">등록된 사용자가 없습니다.</div>
+      <div id="users-empty" class="empty-note" style="display:none;">조건에 맞는 사용자가 없습니다.</div>
+      <div class="pagination" id="pagination-box" style="display:none;">
+        <button class="btn btn-ghost" onclick="prevPage()">← 이전</button>
+        <span id="page-indicator"></span>
+        <button class="btn btn-ghost" onclick="nextPage()">다음 →</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="user-records-section" style="display:none;">
+    <div class="card">
+      <h2><span class="eyebrow">Records</span> <span id="user-records-title"></span></h2>
+      <div style="overflow-x:auto;">
+        <table>
+          <thead>
+            <tr><th>날짜</th><th>체중/BMI</th><th>혈압</th><th>혈당</th><th>활동/수면</th></tr>
+          </thead>
+          <tbody id="user-records-body"></tbody>
+        </table>
+      </div>
+      <div id="user-records-empty" class="empty-note" style="display:none;">기록이 없습니다.</div>
+      <button class="btn btn-ghost" style="margin-top:12px;" onclick="closeUserRecords()">닫기</button>
+    </div>
+  </section>
+
+  <section>
+    <div class="card">
+      <h2><span class="eyebrow">Audit</span> 관리자 활동 로그</h2>
+      <div style="overflow-x:auto;">
+        <table>
+          <thead>
+            <tr><th>시각</th><th>관리자</th><th>조치</th><th>대상</th><th>비고</th></tr>
+          </thead>
+          <tbody id="audit-body"></tbody>
+        </table>
+      </div>
+      <div id="audit-empty" class="empty-note" style="display:none;">아직 활동 로그가 없습니다.</div>
     </div>
   </section>
 
@@ -154,6 +204,12 @@
 </div>
 
 <script>
+let adminUsername = null;
+let currentPage = 1;
+const PAGE_SIZE = 10;
+let currentSearch = '';
+let searchDebounce = null;
+
 function toast(message, type){
   const box = document.getElementById('toast-box');
   const el = document.createElement('div');
@@ -163,18 +219,52 @@ function toast(message, type){
   setTimeout(() => el.remove(), 3200);
 }
 
+function statusClass(cat){
+  const good = ['정상','적정','우수'];
+  const warn = ['주의','과체중','공복혈당장애','부족','과다','저체중'];
+  const bad = ['고혈압','비만','당뇨 의심'];
+  if(good.includes(cat)) return 'good';
+  if(warn.includes(cat)) return 'warn';
+  if(bad.includes(cat)) return 'bad';
+  return 'neutral';
+}
+
+function escapeAttr(s){
+  return String(s).replace(/'/g, "\\'");
+}
+
 async function checkAdmin(){
   try{
     const res = await fetch('/auth/me', {credentials:'same-origin'});
     if(!res.ok){ location.replace('/app/'); return; }
     const user = await res.json();
     if(user.role !== 'admin'){ location.replace('/app/'); return; }
+    adminUsername = user.username;
     document.getElementById('whoami-box').style.display = 'flex';
     document.getElementById('whoami-text').textContent = `${user.username}님 (관리자)`;
+    loadHealthStatus();
     loadStats();
     loadUsers();
+    loadAuditLog();
   }catch(e){
     location.replace('/app/');
+  }
+}
+
+async function loadHealthStatus(){
+  const el = document.getElementById('server-status');
+  try{
+    const res = await fetch('/health');
+    if(res.ok){
+      el.textContent = '● 서버 정상';
+      el.className = 'badge good';
+    }else{
+      el.textContent = '● 서버 응답 이상';
+      el.className = 'badge bad';
+    }
+  }catch(e){
+    el.textContent = '● 서버 응답 없음';
+    el.className = 'badge bad';
   }
 }
 
@@ -222,30 +312,115 @@ function roleBadgeClass(role){
   return role === 'admin' ? 'good' : 'neutral';
 }
 
-async function loadUsers(){
+async function loadUsers(page = currentPage){
+  currentPage = page;
   const body = document.getElementById('users-body');
   const empty = document.getElementById('users-empty');
+  const paginationBox = document.getElementById('pagination-box');
   try{
-    const res = await fetch('/admin/users', {credentials:'same-origin'});
+    const params = new URLSearchParams({page: currentPage, page_size: PAGE_SIZE});
+    if(currentSearch) params.set('search', currentSearch);
+    const res = await fetch(`/admin/users?${params}`, {credentials:'same-origin'});
     if(!res.ok) throw new Error((await res.json()).detail || '사용자 목록을 불러올 수 없습니다.');
     const data = await res.json();
     if(data.users.length === 0){
       body.innerHTML = '';
       empty.style.display = 'block';
-      return;
-    }
-    empty.style.display = 'none';
-    body.innerHTML = data.users.map(u => `
+    }else{
+      empty.style.display = 'none';
+      body.innerHTML = data.users.map(u => {
+        const isSelf = u.username === adminUsername;
+        const actions = isSelf
+          ? `<button onclick="viewUserRecords(${u.id}, '${escapeAttr(u.username)}')">기록 보기</button>`
+          : `<button onclick="viewUserRecords(${u.id}, '${escapeAttr(u.username)}')">기록 보기</button>
+             <button onclick="forceLogout(${u.id}, '${escapeAttr(u.username)}')">강제 로그아웃</button>
+             <button onclick="deleteUser(${u.id}, '${escapeAttr(u.username)}')">계정 삭제</button>`;
+        return `
       <tr>
         <td>${u.id}</td>
-        <td>${u.username}</td>
+        <td>${u.username}${isSelf ? ' <span style="color:var(--muted);font-size:11px;">(나)</span>' : ''}</td>
         <td><span class="badge ${roleBadgeClass(u.role)}">${u.role}</span></td>
         <td>${u.created_at ? u.created_at.slice(0,10) : '-'}</td>
         <td>${u.record_count}</td>
-        <td class="row-actions"><button onclick="deleteUser(${u.id}, '${u.username.replace(/'/g, "\\'")}')">계정 삭제</button></td>
+        <td class="row-actions">${actions}</td>
+      </tr>`;
+      }).join('');
+    }
+
+    const totalPages = Math.max(1, Math.ceil(data.count / data.page_size));
+    if(totalPages > 1){
+      paginationBox.style.display = 'flex';
+      document.getElementById('page-indicator').textContent = `${data.page} / ${totalPages} 페이지 · 총 ${data.count}명`;
+    }else{
+      paginationBox.style.display = 'none';
+    }
+  }catch(e){
+    toast(e.message, 'error');
+  }
+}
+
+function onSearchInput(){
+  clearTimeout(searchDebounce);
+  searchDebounce = setTimeout(() => {
+    currentSearch = document.getElementById('user-search').value.trim();
+    loadUsers(1);
+  }, 300);
+}
+
+function resetSearch(){
+  document.getElementById('user-search').value = '';
+  currentSearch = '';
+  loadUsers(1);
+}
+
+function prevPage(){ if(currentPage > 1) loadUsers(currentPage - 1); }
+function nextPage(){ loadUsers(currentPage + 1); }
+
+async function viewUserRecords(id, username){
+  const section = document.getElementById('user-records-section');
+  const body = document.getElementById('user-records-body');
+  const empty = document.getElementById('user-records-empty');
+  document.getElementById('user-records-title').textContent = `${username}님의 건강기록`;
+  section.style.display = 'block';
+  section.scrollIntoView({behavior:'smooth'});
+  try{
+    const res = await fetch(`/admin/users/${id}/records`, {credentials:'same-origin'});
+    if(!res.ok) throw new Error((await res.json()).detail || '기록을 불러올 수 없습니다.');
+    const data = await res.json();
+    if(data.records.length === 0){
+      body.innerHTML = '';
+      empty.style.display = 'block';
+      return;
+    }
+    empty.style.display = 'none';
+    const sorted = [...data.records].sort((a,b) => b.date.localeCompare(a.date));
+    body.innerHTML = sorted.map(r => `
+      <tr>
+        <td>${r.date}</td>
+        <td>${r.weight}kg<br/><span class="badge ${statusClass(r.bmi_category)}">${r.bmi} · ${r.bmi_category}</span></td>
+        <td>${r.systolic}/${r.diastolic}<br/><span class="badge ${statusClass(r.bp_category)}">${r.bp_category}</span></td>
+        <td>${r.blood_sugar}<br/><span class="badge ${statusClass(r.sugar_category)}">${r.sugar_category}</span></td>
+        <td><span class="badge ${statusClass(r.activity_level)}">${r.activity_level}</span> <span class="badge ${statusClass(r.sleep_status)}">${r.sleep_status}</span></td>
       </tr>`).join('');
   }catch(e){
     toast(e.message, 'error');
+  }
+}
+
+function closeUserRecords(){
+  document.getElementById('user-records-section').style.display = 'none';
+}
+
+async function forceLogout(id, username){
+  if(!confirm(`'${username}'의 모든 로그인 세션을 무효화할까요? 계정은 삭제되지 않고, 다음 요청부터 다시 로그인해야 합니다.`)) return;
+  try{
+    const res = await fetch(`/admin/users/${id}/force-logout`, {method:'POST', credentials:'same-origin'});
+    if(!res.ok) throw new Error((await res.json()).detail || '강제 로그아웃 실패');
+    const data = await res.json();
+    toast(data.message, 'success');
+    loadAuditLog();
+  }catch(e){
+    toast('강제 로그아웃 실패: ' + e.message, 'error');
   }
 }
 
@@ -257,8 +432,44 @@ async function deleteUser(id, username){
     toast('계정을 삭제했습니다.', 'success');
     loadUsers();
     loadStats();
+    loadAuditLog();
   }catch(e){
     toast('삭제 실패: ' + e.message, 'error');
+  }
+}
+
+function actionLabel(action){
+  const map = {delete_user: '계정 삭제', force_logout: '강제 로그아웃'};
+  return map[action] || action;
+}
+
+function actionBadgeClass(action){
+  return action === 'delete_user' ? 'bad' : 'warn';
+}
+
+async function loadAuditLog(){
+  const body = document.getElementById('audit-body');
+  const empty = document.getElementById('audit-empty');
+  try{
+    const res = await fetch('/admin/audit-log', {credentials:'same-origin'});
+    if(!res.ok) throw new Error((await res.json()).detail || '활동 로그를 불러올 수 없습니다.');
+    const data = await res.json();
+    if(data.logs.length === 0){
+      body.innerHTML = '';
+      empty.style.display = 'block';
+      return;
+    }
+    empty.style.display = 'none';
+    body.innerHTML = data.logs.map(l => `
+      <tr>
+        <td>${l.created_at ? l.created_at.replace('T',' ').slice(0,19) : '-'}</td>
+        <td>${l.admin_username}</td>
+        <td><span class="badge ${actionBadgeClass(l.action)}">${actionLabel(l.action)}</span></td>
+        <td>${l.target_username || '-'}</td>
+        <td style="color:var(--muted);font-size:12px;">${l.detail || ''}</td>
+      </tr>`).join('');
+  }catch(e){
+    toast(e.message, 'error');
   }
 }
 

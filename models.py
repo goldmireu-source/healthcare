@@ -42,6 +42,20 @@ class Session(Base):
     user = relationship("User", back_populates="sessions")
 
 
+class AuditLog(Base):
+    """관리자 조치 이력 (계정 삭제/강제 로그아웃 등). 대상 계정이 삭제돼도 이력은 남아야
+    하므로 외래키 대신 username을 문자열로 저장한다."""
+
+    __tablename__ = "audit_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    admin_username = Column(String(50), nullable=False)
+    action = Column(String(50), nullable=False)  # "delete_user" | "force_logout"
+    target_username = Column(String(50), nullable=True)
+    detail = Column(String(500), default="")
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
 class HealthRecord(Base):
     """건강 기록 + 서버가 계산한 분류/경고 결과를 함께 저장."""
 
