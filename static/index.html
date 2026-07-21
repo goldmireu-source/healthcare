@@ -150,6 +150,32 @@
   .delta.up{color:var(--brick);} .delta.down{color:var(--teal);} .delta.flat{color:var(--muted);}
 
   footer{text-align:center;color:var(--muted);font-size:12px;margin-top:40px;}
+
+  /* 인증 화면 */
+  #auth-screen .auth-tabs{display:flex;gap:4px;margin-bottom:20px;border-bottom:1px solid var(--line);}
+  #auth-screen .auth-tab{
+    flex:1;padding:10px;border:none;background:none;cursor:pointer;font-size:14px;
+    color:var(--muted);border-bottom:2px solid transparent;font-family:'IBM Plex Sans KR', sans-serif;
+  }
+  #auth-screen .auth-tab.active{color:var(--ink);border-bottom-color:var(--teal);font-weight:600;}
+  #auth-screen label{display:block;font-size:12px;color:var(--muted);margin-bottom:5px;}
+  #auth-screen input{
+    width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:7px;font-size:14px;
+    font-family:'IBM Plex Sans KR', sans-serif;
+  }
+  .auth-error{color:var(--brick);font-size:12px;margin-top:12px;min-height:14px;}
+
+  /* 토스트 */
+  #toast-box{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:999;display:flex;flex-direction:column;gap:8px;align-items:center;}
+  .toast{
+    padding:10px 18px;border-radius:8px;font-size:13px;color:#fff;background:var(--ink);
+    box-shadow:0 6px 20px rgba(0,0,0,0.15);opacity:0;transform:translateY(8px);
+    animation:toast-in 0.2s ease forwards;
+  }
+  .toast.success{background:var(--teal);}
+  .toast.error{background:var(--brick);}
+  @keyframes toast-in{ to{opacity:1;transform:translateY(0);} }
+
   @media (max-width:720px){
     form.entry, .goal-form{grid-template-columns:1fr 1fr;}
     .vitals-strip{grid-template-columns:repeat(2,1fr);}
@@ -159,6 +185,7 @@
 </style>
 </head>
 <body>
+<div id="toast-box"></div>
 <div class="wrap">
 
   <header class="top">
@@ -166,14 +193,53 @@
       <h1>마이 헬스 로그</h1>
       <p>매일의 숫자를 기록하면, 여기서 몸 상태를 읽어드립니다</p>
     </div>
-    <div class="user-switch">
-      <div>
-        <label for="username-input">사용자</label><br/>
-        <input id="username-input" type="text" value="default" />
-      </div>
-      <button onclick="switchUser()">전환</button>
+    <div class="user-switch" id="whoami-box" style="display:none;">
+      <span id="whoami-text"></span>
+      <button onclick="logout()">로그아웃</button>
     </div>
   </header>
+
+  <!-- 로그인 / 회원가입 화면 -->
+  <section id="auth-screen">
+    <div class="card" style="max-width:380px;margin:40px auto;">
+      <div class="auth-tabs">
+        <button type="button" class="auth-tab active" id="tab-login" onclick="switchAuthTab('login')">로그인</button>
+        <button type="button" class="auth-tab" id="tab-signup" onclick="switchAuthTab('signup')">회원가입</button>
+      </div>
+
+      <form id="login-form" onsubmit="doLogin(event)">
+        <div style="margin-bottom:12px;">
+          <label>아이디</label>
+          <input type="text" id="login-username" required autocomplete="username" />
+        </div>
+        <div style="margin-bottom:16px;">
+          <label>비밀번호</label>
+          <input type="password" id="login-password" required autocomplete="current-password" />
+        </div>
+        <button type="submit" class="btn btn-primary" style="width:100%;">로그인</button>
+      </form>
+
+      <form id="signup-form" onsubmit="doSignup(event)" style="display:none;">
+        <div style="margin-bottom:12px;">
+          <label>아이디 (영문/숫자/밑줄, 3자 이상)</label>
+          <input type="text" id="signup-username" required pattern="^[a-zA-Z0-9_]{3,30}$" autocomplete="username" />
+        </div>
+        <div style="margin-bottom:12px;">
+          <label>비밀번호 (6자 이상)</label>
+          <input type="password" id="signup-password" required minlength="6" autocomplete="new-password" />
+        </div>
+        <div style="margin-bottom:16px;">
+          <label>비밀번호 확인</label>
+          <input type="password" id="signup-password2" required minlength="6" autocomplete="new-password" />
+        </div>
+        <button type="submit" class="btn btn-primary" style="width:100%;">회원가입</button>
+      </form>
+
+      <div id="auth-error" class="auth-error"></div>
+    </div>
+  </section>
+
+  <div id="app-content" style="display:none;">
 
   <section>
     <div class="card">
@@ -283,11 +349,13 @@
     </div>
   </section>
 
+  </div>
+
   <footer>마이 헬스 로그 · 학습용 프로젝트 · 건강 기준은 단순화된 값이며 의학적 진단이 아닙니다</footer>
 </div>
 
 <script>
-let username = 'default';
+let username = null;
 let editingId = null;
 let recordsCache = {};
 
@@ -301,10 +369,101 @@ function statusClass(cat){
   return 'neutral';
 }
 
-function switchUser(){
-  const v = document.getElementById('username-input').value.trim();
-  username = v || 'default';
+// ---------- 토스트 알림 ----------
+function toast(message, type){
+  const box = document.getElementById('toast-box');
+  const el = document.createElement('div');
+  el.className = 'toast' + (type ? ' ' + type : '');
+  el.textContent = message;
+  box.appendChild(el);
+  setTimeout(() => el.remove(), 3200);
+}
+
+// ---------- 인증 ----------
+function switchAuthTab(which){
+  document.getElementById('tab-login').classList.toggle('active', which === 'login');
+  document.getElementById('tab-signup').classList.toggle('active', which === 'signup');
+  document.getElementById('login-form').style.display = which === 'login' ? 'block' : 'none';
+  document.getElementById('signup-form').style.display = which === 'signup' ? 'block' : 'none';
+  document.getElementById('auth-error').textContent = '';
+}
+
+function showAuthScreen(){
+  document.getElementById('auth-screen').style.display = 'block';
+  document.getElementById('app-content').style.display = 'none';
+  document.getElementById('whoami-box').style.display = 'none';
+  username = null;
+}
+
+function showApp(user){
+  username = user.username;
+  document.getElementById('auth-screen').style.display = 'none';
+  document.getElementById('app-content').style.display = 'block';
+  document.getElementById('whoami-box').style.display = 'flex';
+  document.getElementById('whoami-text').textContent = `${user.username}님`;
   refreshAll();
+}
+
+async function checkAuth(){
+  try{
+    const res = await fetch('/auth/me', {credentials:'same-origin'});
+    if(res.ok){
+      const user = await res.json();
+      showApp(user);
+    }else{
+      showAuthScreen();
+    }
+  }catch(e){
+    showAuthScreen();
+  }
+}
+
+async function doLogin(ev){
+  ev.preventDefault();
+  const payload = {
+    username: document.getElementById('login-username').value.trim(),
+    password: document.getElementById('login-password').value,
+  };
+  const errEl = document.getElementById('auth-error');
+  errEl.textContent = '';
+  try{
+    const res = await fetch('/auth/login', {
+      method:'POST', credentials:'same-origin',
+      headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.detail || '로그인에 실패했습니다.');
+    toast(`${data.username}님, 환영합니다`, 'success');
+    showApp(data);
+  }catch(e){ errEl.textContent = e.message; }
+}
+
+async function doSignup(ev){
+  ev.preventDefault();
+  const p1 = document.getElementById('signup-password').value;
+  const p2 = document.getElementById('signup-password2').value;
+  const errEl = document.getElementById('auth-error');
+  errEl.textContent = '';
+  if(p1 !== p2){ errEl.textContent = '비밀번호가 서로 일치하지 않습니다.'; return; }
+  const payload = { username: document.getElementById('signup-username').value.trim(), password: p1 };
+  try{
+    const res = await fetch('/auth/signup', {
+      method:'POST', credentials:'same-origin',
+      headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.detail || '회원가입에 실패했습니다.');
+    toast(`${data.username}님, 가입을 환영합니다`, 'success');
+    showApp(data);
+  }catch(e){ errEl.textContent = e.message; }
+}
+
+async function logout(){
+  try{
+    await fetch('/auth/logout', {method:'POST', credentials:'same-origin'});
+  }catch(e){ /* 무시 */ }
+  toast('로그아웃되었습니다.');
+  showAuthScreen();
 }
 
 function refreshAll(){
@@ -315,12 +474,14 @@ function refreshAll(){
 }
 
 async function apiGet(path){
-  const res = await fetch(path);
+  const res = await fetch(path, {credentials:'same-origin'});
+  if(res.status === 401){ showAuthScreen(); throw new Error('세션이 만료되었습니다. 다시 로그인해주세요.'); }
   if(!res.ok){ throw new Error((await res.json()).detail || res.statusText); }
   return res.json();
 }
 async function apiSend(path, method, body){
-  const res = await fetch(path, {method, headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+  const res = await fetch(path, {method, credentials:'same-origin', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+  if(res.status === 401){ showAuthScreen(); throw new Error('세션이 만료되었습니다. 다시 로그인해주세요.'); }
   if(!res.ok){ throw new Error((await res.json()).detail || res.statusText); }
   return res.json();
 }
@@ -375,7 +536,7 @@ function renderRecordsTable(records){
 
 async function loadRecords(){
   try{
-    const data = await apiGet(`/records?username=${encodeURIComponent(username)}`);
+    const data = await apiGet('/records');
     renderRecordsTable(data.records);
     const sorted = [...data.records].sort((a,b) => a.date.localeCompare(b.date));
     renderVitals(sorted[sorted.length - 1]);
@@ -385,16 +546,16 @@ async function loadRecords(){
 async function searchRecords(){
   const start = document.getElementById('s-start').value;
   const end = document.getElementById('s-end').value;
-  if(!start || !end){ alert('시작일과 종료일을 모두 선택해주세요.'); return; }
+  if(!start || !end){ toast('시작일과 종료일을 모두 선택해주세요.', 'error'); return; }
   try{
-    const data = await apiGet(`/search?start=${start}&end=${end}&username=${encodeURIComponent(username)}`);
+    const data = await apiGet(`/search?start=${start}&end=${end}`);
     renderRecordsTable(data.records);
-  }catch(e){ alert(e.message); }
+  }catch(e){ toast(e.message, 'error'); }
 }
 
 async function loadStats(){
   try{
-    const s = await apiGet(`/stats?username=${encodeURIComponent(username)}`);
+    const s = await apiGet('/stats');
     const el = document.getElementById('stats-body');
     if(s.count === 0){
       el.innerHTML = '<div class="empty-note">통계를 보려면 기록이 필요합니다</div>';
@@ -466,27 +627,30 @@ async function submitRecord(ev){
   try{
     if(editingId){
       await apiSend(`/records/${editingId}`, 'PUT', payload);
+      toast('기록을 수정했습니다.', 'success');
     }else{
-      payload.username = username;
       await apiSend('/records', 'POST', payload);
+      toast('기록을 추가했습니다.', 'success');
     }
     resetForm();
     refreshAll();
-  }catch(e){ alert('저장 실패: ' + e.message); }
+  }catch(e){ toast('저장 실패: ' + e.message, 'error'); }
 }
 
 async function deleteRecord(id){
   if(!confirm('이 기록을 삭제할까요?')) return;
   try{
-    await fetch(`/records/${id}`, {method:'DELETE'});
+    const res = await fetch(`/records/${id}`, {method:'DELETE', credentials:'same-origin'});
+    if(!res.ok) throw new Error((await res.json()).detail || '삭제 실패');
+    toast('기록을 삭제했습니다.');
     refreshAll();
-  }catch(e){ alert('삭제 실패: ' + e.message); }
+  }catch(e){ toast('삭제 실패: ' + e.message, 'error'); }
 }
 
 async function loadGoal(){
   const el = document.getElementById('goal-result');
   try{
-    const g = await apiGet(`/goals?username=${encodeURIComponent(username)}`);
+    const g = await apiGet('/goals');
     document.getElementById('g-weight').value = g.target_weight ?? '';
     document.getElementById('g-systolic').value = g.target_systolic ?? '';
     document.getElementById('g-diastolic').value = g.target_diastolic ?? '';
@@ -511,7 +675,6 @@ function renderGoalAchievement(a){
 async function saveGoal(ev){
   ev.preventDefault();
   const payload = {
-    username,
     target_weight: parseFloat(document.getElementById('g-weight').value) || null,
     target_systolic: parseInt(document.getElementById('g-systolic').value) || null,
     target_diastolic: parseInt(document.getElementById('g-diastolic').value) || null,
@@ -520,7 +683,8 @@ async function saveGoal(ev){
   try{
     const g = await apiSend('/goals', 'POST', payload);
     renderGoalAchievement(g.achievement);
-  }catch(e){ alert('목표 저장 실패: ' + e.message); }
+    toast('목표를 저장했습니다.', 'success');
+  }catch(e){ toast('목표 저장 실패: ' + e.message, 'error'); }
 }
 
 function deltaHtml(v, higherIsWorse=true){
@@ -533,7 +697,7 @@ function deltaHtml(v, higherIsWorse=true){
 async function loadWeeklyReport(){
   const el = document.getElementById('weekly-body');
   try{
-    const r = await apiGet(`/reports/weekly?username=${encodeURIComponent(username)}`);
+    const r = await apiGet('/reports/weekly');
     if(!r.this_week.record_count && !r.last_week.record_count){
       el.innerHTML = '<div class="empty-note">최근 2주간 기록이 없습니다.</div>';
       return;
@@ -561,9 +725,10 @@ async function loadWeeklyReport(){
   }catch(e){ el.innerHTML = '<div class="empty-note">리포트를 불러올 수 없습니다.</div>'; }
 }
 
-// 초기 로드: 오늘 날짜 기본 세팅 + 데이터 로드
+// 초기 로드: 오늘 날짜 기본 세팅 + 로그인 상태 확인
 document.getElementById('f-date').valueAsDate = new Date();
-refreshAll();
+switchAuthTab('login');
+checkAuth();
 </script>
 </body>
 </html>

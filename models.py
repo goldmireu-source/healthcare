@@ -6,12 +6,14 @@ from database import Base
 
 
 class User(Base):
-    """사용자 구분용 테이블. username 미지정 시 'default' 사용자로 자동 생성."""
+    """사용자 계정. 회원가입 시 비밀번호는 해시로만 저장."""
 
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, index=True)
     username = Column(String(50), unique=True, index=True, nullable=False)
+    password_hash = Column(String(200), nullable=False)
+    password_salt = Column(String(64), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     records = relationship(
@@ -20,6 +22,23 @@ class User(Base):
     goals = relationship(
         "Goal", back_populates="user", cascade="all, delete-orphan"
     )
+    sessions = relationship(
+        "Session", back_populates="user", cascade="all, delete-orphan"
+    )
+
+
+class Session(Base):
+    """로그인 세션. 쿠키에는 이 테이블의 token만 저장하고, 실제 정보는 서버에 보관."""
+
+    __tablename__ = "sessions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    token = Column(String(64), unique=True, index=True, nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+
+    user = relationship("User", back_populates="sessions")
 
 
 class HealthRecord(Base):

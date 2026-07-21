@@ -4,6 +4,26 @@ from typing import Optional, List, Dict
 from pydantic import BaseModel, Field
 
 
+# ---------- Auth ----------
+
+class UserSignup(BaseModel):
+    username: str = Field(..., min_length=3, max_length=30, pattern=r"^[a-zA-Z0-9_]+$")
+    password: str = Field(..., min_length=6, max_length=100)
+
+
+class UserLogin(BaseModel):
+    username: str
+    password: str
+
+
+class UserOut(BaseModel):
+    id: int
+    username: str
+
+    class Config:
+        from_attributes = True
+
+
 # ---------- Records ----------
 
 class RecordIn(BaseModel):
@@ -16,7 +36,6 @@ class RecordIn(BaseModel):
     steps: int = Field(0, ge=0, description="걸음 수")
     sleep_hours: float = Field(0.0, ge=0, description="수면 시간")
     memo: str = ""
-    username: str = Field("default", description="사용자 구분 (미지정 시 default)")
 
 
 class RecordUpdate(BaseModel):
@@ -83,7 +102,6 @@ class GoalIn(BaseModel):
     target_systolic: Optional[int] = Field(None, gt=0)
     target_diastolic: Optional[int] = Field(None, gt=0)
     target_blood_sugar: Optional[int] = Field(None, gt=0)
-    username: str = "default"
 
 
 class GoalOut(BaseModel):

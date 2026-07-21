@@ -3,13 +3,15 @@ import logging
 from datetime import date as date_cls, timedelta
 from typing import Optional
 
-from fastapi import FastAPI, HTTPException, Depends, Query
-from fastapi.responses import JSONResponse
+from fastapi import FastAPI, HTTPException, Depends, Query, Response, Request
+from fastapi.responses import JSONResponse, RedirectResponse
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 
 from database import Base, engine, get_db
 import models
 import schemas
+import auth
 from health_logic import evaluate_record
 
 logging.basicConfig(level=logging.INFO)
@@ -21,9 +23,10 @@ app = FastAPI(
     title="마이 헬스 로그 API",
     description=(
         "매일의 건강 수치(몸무게·키·혈압·혈당 등)를 기록하면 BMI를 자동 계산하고 "
-        "건강 상태를 분류하며, 쌓인 기록으로 통계·목표 달성률·주간 리포트를 제공하는 API입니다."
+        "건강 상태를 분류하며, 쌓인 기록으로 통계·목표 달성률·주간 리포트를 제공하는 API입니다. "
+        "회원가입/로그인 후 본인 기록만 조회·관리할 수 있습니다."
     ),
-    version="1.0.0",
+    version="2.0.0",
 )
 
 
@@ -35,16 +38,6 @@ async def unhandled_exception_handler(request, exc):
         status_code=500,
         content={"detail": f"예상치 못한 오류가 발생했습니다: {str(exc)}"},
     )
-
-
-def get_or_create_user(db: Session, username: str) -> models.User:
-    user = db.query(models.User).filter(models.User.username == username).first()
-    if not user:
-        user = models.User(username=username)
-        db.add(user)
-        db.commit()
-        db.refresh(user)
-    return user
 
 
 def record_to_out(r: models.HealthRecord) -> schemas.RecordOut:
@@ -93,16 +86,93 @@ def apply_evaluation(record: models.HealthRecord) -> None:
 
 @app.get("/", tags=["Root"])
 def read_root():
-    return {"message": "마이 헬스 로그 API", "docs": "/docs"}
+    # 실제 사용자용 화면으로 이동 (API 문서는 /docs 에서 계속 확인 가능)
+    return RedirectResponse(url="/app/")
 
 
-# ---------- 필수 엔드포인트 ----------
+@app.get("/api", tags=["Root"])
+def api_info():
+    return {"message": "마이 헬스 로그 API", "docs": "/docs", "web_app": "/app/"}
+
+
+@app.get("/health", tags=["Root"])
+def health_check():
+    """배포 환경(Lightsail 등)의 헬스체크용 엔드포인트."""
+    return {"status": "ok"}
+
+
+# 사용자용 웹 화면 (정적 HTML/CSS/JS, 별도 빌드 없이 REST API를 그대로 호출)
+app.mount("/app", StaticFiles(directory="static", html=True), name="web_app")
+
+
+# ---------- 인증 ----------
+
+@app.post("/auth/signup", response_model=schemas.UserOut, tags=["Auth"])
+def signup(payload: schemas.UserSignup, response: Response, db: Session = Depends(get_db)):
+    existing = db.query(models.User).filter(models.User.username == payload.username).first()
+    if existing:
+        raise HTTPException(status_code=409, detail="이미 사용 중인 아이디입니다.")
+
+    password_hash, salt = auth.hash_password(payload.password)
+    user = models.User(username=payload.username, password_hash=password_hash, password_salt=salt)
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+
+    session = auth.create_session(db, user)
+    response.set_cookie(
+        key=auth.SESSION_COOKIE_NAME,
+        value=session.token,
+        httponly=True,
+        samesite="lax",
+        secure=auth.COOKIE_SECURE,
+        max_age=auth.SESSION_TTL_DAYS * 24 * 3600,
+    )
+    return user
+
+
+@app.post("/auth/login", response_model=schemas.UserOut, tags=["Auth"])
+def login(payload: schemas.UserLogin, response: Response, db: Session = Depends(get_db)):
+    user = db.query(models.User).filter(models.User.username == payload.username).first()
+    if not user or not auth.verify_password(payload.password, user.password_hash, user.password_salt):
+        raise HTTPException(status_code=401, detail="아이디 또는 비밀번호가 올바르지 않습니다.")
+
+    session = auth.create_session(db, user)
+    response.set_cookie(
+        key=auth.SESSION_COOKIE_NAME,
+        value=session.token,
+        httponly=True,
+        samesite="lax",
+        secure=auth.COOKIE_SECURE,
+        max_age=auth.SESSION_TTL_DAYS * 24 * 3600,
+    )
+    return user
+
+
+@app.post("/auth/logout", tags=["Auth"])
+def logout(request: Request, response: Response, db: Session = Depends(get_db)):
+    token = request.cookies.get(auth.SESSION_COOKIE_NAME)
+    if token:
+        auth.delete_session(db, token)
+    response.delete_cookie(auth.SESSION_COOKIE_NAME)
+    return {"message": "로그아웃되었습니다."}
+
+
+@app.get("/auth/me", response_model=schemas.UserOut, tags=["Auth"])
+def get_me(current_user: models.User = Depends(auth.get_current_user)):
+    return current_user
+
+
+# ---------- 필수 엔드포인트 (모두 로그인 필요, 본인 기록만 대상) ----------
 
 @app.post("/records", response_model=schemas.RecordOut, tags=["Records"])
-def create_record(payload: schemas.RecordIn, db: Session = Depends(get_db)):
-    user = get_or_create_user(db, payload.username)
+def create_record(
+    payload: schemas.RecordIn,
+    current_user: models.User = Depends(auth.get_current_user),
+    db: Session = Depends(get_db),
+):
     record = models.HealthRecord(
-        user_id=user.id,
+        user_id=current_user.id,
         date=payload.date,
         weight=payload.weight,
         height=payload.height,
@@ -122,29 +192,47 @@ def create_record(payload: schemas.RecordIn, db: Session = Depends(get_db)):
 
 @app.get("/records", response_model=schemas.RecordListOut, tags=["Records"])
 def list_records(
-    username: Optional[str] = Query(None, description="지정 시 해당 사용자 기록만 조회"),
+    current_user: models.User = Depends(auth.get_current_user),
     db: Session = Depends(get_db),
 ):
-    q = db.query(models.HealthRecord)
-    if username:
-        q = q.join(models.User).filter(models.User.username == username)
-    records = q.order_by(models.HealthRecord.date.asc()).all()
+    records = (
+        db.query(models.HealthRecord)
+        .filter(models.HealthRecord.user_id == current_user.id)
+        .order_by(models.HealthRecord.date.asc())
+        .all()
+    )
     return schemas.RecordListOut(count=len(records), records=[record_to_out(r) for r in records])
 
 
-@app.get("/records/{record_id}", response_model=schemas.RecordOut, tags=["Records"])
-def get_record(record_id: int, db: Session = Depends(get_db)):
-    record = db.query(models.HealthRecord).filter(models.HealthRecord.id == record_id).first()
+def _get_owned_record(db: Session, record_id: int, current_user: models.User) -> models.HealthRecord:
+    record = (
+        db.query(models.HealthRecord)
+        .filter(models.HealthRecord.id == record_id, models.HealthRecord.user_id == current_user.id)
+        .first()
+    )
     if not record:
         raise HTTPException(status_code=404, detail="기록을 찾을 수 없습니다.")
+    return record
+
+
+@app.get("/records/{record_id}", response_model=schemas.RecordOut, tags=["Records"])
+def get_record(
+    record_id: int,
+    current_user: models.User = Depends(auth.get_current_user),
+    db: Session = Depends(get_db),
+):
+    record = _get_owned_record(db, record_id, current_user)
     return record_to_out(record)
 
 
 @app.put("/records/{record_id}", response_model=schemas.RecordOut, tags=["Records"])
-def update_record(record_id: int, payload: schemas.RecordUpdate, db: Session = Depends(get_db)):
-    record = db.query(models.HealthRecord).filter(models.HealthRecord.id == record_id).first()
-    if not record:
-        raise HTTPException(status_code=404, detail="기록을 찾을 수 없습니다.")
+def update_record(
+    record_id: int,
+    payload: schemas.RecordUpdate,
+    current_user: models.User = Depends(auth.get_current_user),
+    db: Session = Depends(get_db),
+):
+    record = _get_owned_record(db, record_id, current_user)
 
     update_data = payload.model_dump(exclude_unset=True)
     for field, value in update_data.items():
@@ -157,10 +245,12 @@ def update_record(record_id: int, payload: schemas.RecordUpdate, db: Session = D
 
 
 @app.delete("/records/{record_id}", tags=["Records"])
-def delete_record(record_id: int, db: Session = Depends(get_db)):
-    record = db.query(models.HealthRecord).filter(models.HealthRecord.id == record_id).first()
-    if not record:
-        raise HTTPException(status_code=404, detail="기록을 찾을 수 없습니다.")
+def delete_record(
+    record_id: int,
+    current_user: models.User = Depends(auth.get_current_user),
+    db: Session = Depends(get_db),
+):
+    record = _get_owned_record(db, record_id, current_user)
     db.delete(record)
     db.commit()
     return {"message": f"{record_id}번 기록이 삭제되었습니다."}
@@ -170,26 +260,34 @@ def delete_record(record_id: int, db: Session = Depends(get_db)):
 def search_records(
     start: str = Query(..., description="검색 시작일 YYYY-MM-DD"),
     end: str = Query(..., description="검색 종료일 YYYY-MM-DD"),
-    username: Optional[str] = Query(None),
+    current_user: models.User = Depends(auth.get_current_user),
     db: Session = Depends(get_db),
 ):
     if start > end:
         raise HTTPException(status_code=400, detail="start는 end보다 이전이거나 같아야 합니다.")
-    q = db.query(models.HealthRecord).filter(
-        models.HealthRecord.date >= start, models.HealthRecord.date <= end
+    records = (
+        db.query(models.HealthRecord)
+        .filter(
+            models.HealthRecord.user_id == current_user.id,
+            models.HealthRecord.date >= start,
+            models.HealthRecord.date <= end,
+        )
+        .order_by(models.HealthRecord.date.asc())
+        .all()
     )
-    if username:
-        q = q.join(models.User).filter(models.User.username == username)
-    records = q.order_by(models.HealthRecord.date.asc()).all()
     return schemas.RecordListOut(count=len(records), records=[record_to_out(r) for r in records])
 
 
 @app.get("/stats", response_model=schemas.StatsOut, tags=["Records"])
-def get_stats(username: Optional[str] = Query(None), db: Session = Depends(get_db)):
-    q = db.query(models.HealthRecord)
-    if username:
-        q = q.join(models.User).filter(models.User.username == username)
-    records = q.all()
+def get_stats(
+    current_user: models.User = Depends(auth.get_current_user),
+    db: Session = Depends(get_db),
+):
+    records = (
+        db.query(models.HealthRecord)
+        .filter(models.HealthRecord.user_id == current_user.id)
+        .all()
+    )
 
     if not records:
         return schemas.StatsOut(count=0)
@@ -254,11 +352,14 @@ def _goal_to_out(db: Session, goal: models.Goal, username: str) -> schemas.GoalO
 
 
 @app.post("/goals", response_model=schemas.GoalOut, tags=["Goals"])
-def set_goal(payload: schemas.GoalIn, db: Session = Depends(get_db)):
-    user = get_or_create_user(db, payload.username)
-    goal = db.query(models.Goal).filter(models.Goal.user_id == user.id).first()
+def set_goal(
+    payload: schemas.GoalIn,
+    current_user: models.User = Depends(auth.get_current_user),
+    db: Session = Depends(get_db),
+):
+    goal = db.query(models.Goal).filter(models.Goal.user_id == current_user.id).first()
     if not goal:
-        goal = models.Goal(user_id=user.id)
+        goal = models.Goal(user_id=current_user.id)
         db.add(goal)
 
     if payload.target_weight is not None:
@@ -272,28 +373,27 @@ def set_goal(payload: schemas.GoalIn, db: Session = Depends(get_db)):
 
     db.commit()
     db.refresh(goal)
-    return _goal_to_out(db, goal, user.username)
+    return _goal_to_out(db, goal, current_user.username)
 
 
 @app.get("/goals", response_model=schemas.GoalOut, tags=["Goals"])
-def get_goal(username: str = Query("default"), db: Session = Depends(get_db)):
-    user = db.query(models.User).filter(models.User.username == username).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="사용자를 찾을 수 없습니다.")
-    goal = db.query(models.Goal).filter(models.Goal.user_id == user.id).first()
+def get_goal(
+    current_user: models.User = Depends(auth.get_current_user),
+    db: Session = Depends(get_db),
+):
+    goal = db.query(models.Goal).filter(models.Goal.user_id == current_user.id).first()
     if not goal:
         raise HTTPException(status_code=404, detail="설정된 목표가 없습니다.")
-    return _goal_to_out(db, goal, username)
+    return _goal_to_out(db, goal, current_user.username)
 
 
 # ---------- 고도화 기능: 주간 리포트 ----------
 
 @app.get("/reports/weekly", response_model=schemas.WeeklyReportOut, tags=["Reports"])
-def weekly_report(username: str = Query("default"), db: Session = Depends(get_db)):
-    user = db.query(models.User).filter(models.User.username == username).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="사용자를 찾을 수 없습니다.")
-
+def weekly_report(
+    current_user: models.User = Depends(auth.get_current_user),
+    db: Session = Depends(get_db),
+):
     today = date_cls.today()
     this_week_start = (today - timedelta(days=6)).isoformat()
     this_week_end = today.isoformat()
@@ -304,7 +404,7 @@ def weekly_report(username: str = Query("default"), db: Session = Depends(get_db
         records = (
             db.query(models.HealthRecord)
             .filter(
-                models.HealthRecord.user_id == user.id,
+                models.HealthRecord.user_id == current_user.id,
                 models.HealthRecord.date >= start,
                 models.HealthRecord.date <= end,
             )
@@ -335,5 +435,5 @@ def weekly_report(username: str = Query("default"), db: Session = Depends(get_db
             change[key] = round(this_week[key] - last_week[key], 2)
 
     return schemas.WeeklyReportOut(
-        username=username, this_week=this_week, last_week=last_week, change=change
+        username=current_user.username, this_week=this_week, last_week=last_week, change=change
     )

@@ -14,10 +14,20 @@
 2. **DB 테이블은 전체 서비스 관점에서 설계**: 과제 명세서의 필수 요건(JSON 파일 저장)에
    머무르지 않고, 서비스 전체 맥락을 고려해 DB 테이블 항목을 판단해서 추가한다.
    → 이 판단에 따라 SQLite 3테이블(users/health_records/goals) 구조로 이미 설계함 (4번 항목 참고).
-3. **고도화 기능은 Claude가 자율적으로 추천·구현**: "너무 무겁지 않은 선"이라는 제약 안에서,
-   매번 사용자에게 어떤 기능을 넣을지 묻지 않고 판단해서 추천하고 구현해나간다.
-   → 이미 3개 기능(사용자 구분/목표관리/주간리포트 + 걸음수·수면 자동분류) 선정해 구현 완료 (4번 항목 참고).
-   → 추가로 넣을 만한 여지가 있다면(예: HTML 간단 화면 등) 무겁지 않은 선에서 계속 자율적으로 판단해 제안 가능.
+3. **고도화 기능은 Claude가 자율적으로 추천·구현**: 매번 사용자에게 어떤 기능을 넣을지 묻지 않고
+   판단해서 추천하고 구현해나간다.
+   - (2026-07-21 갱신) "너무 무겁지 않은 선"이라는 제약은 사용자 지시로 **삭제됨**. 이제는
+     첨부 PDF 명세를 넘어서 **실제 서비스와 동일한 수준**으로 화면·기능을 고도화하는 것이 목표.
+   - 고도화 로드맵 (우선순위 순):
+     1. **인증 시스템** (완료) — 회원가입/로그인, 세션 쿠키(PBKDF2 해시, 표준 라이브러리만 사용,
+        추가 의존성 없음), `sessions` 테이블. 더 이상 자유 텍스트 `username`으로 남의 데이터에
+        접근 불가. 로그인한 사용자 본인 데이터만 조회/수정. `/records`, `/search`, `/stats`,
+        `/goals`, `/reports/weekly` 전부 로그인 필요.
+     2. **데이터 시각화** (미착수) — 체중/혈압/혈당 추이를 보여주는 트렌드 차트
+     3. **UX 디테일** (부분 완료) — alert/confirm 대신 토스트 알림 적용 완료. 로딩 상태,
+        페이지네이션은 아직 미착수
+     4. **배포 관점 보강** (부분 완료) — `/health` 헬스체크 엔드포인트 추가 완료. 환경변수 기반
+        설정(`COOKIE_SECURE` 등 일부만), 보안 헤더는 미착수
 4. **인프라는 이미 준비되어 있음, 처음부터 만들지 않음**:
    - GitHub 계정 + 저장소 이미 생성됨 → https://github.com/goldmireu-source/healthcare (연결 완료, push까지 완료)
    - AWS 계정 + Lightsail 테스트 서버 이미 생성됨 → 배포 단계에서 새로 만들지 말고 기존 서버 사용
@@ -64,24 +74,26 @@
 ## 4. 설계 결정 (기존 명세 + 사용자 요청 반영)
 
 - **DB**: 단순 JSON 파일 대신 **SQLite + SQLAlchemy** 사용 (재시작해도 유지되는 요건은 동일하게 충족, 서비스 전체를 고려한 테이블 구조 요청 반영)
-  - `users` — 사용자 구분 (username, 기본값 "default")
+  - `users` — 계정 (username, password_hash, password_salt)
+  - `sessions` — 로그인 세션 토큰 (쿠키엔 토큰만, 실제 세션 정보는 서버 DB)
   - `health_records` — 건강 기록 원본 값 + 서버 계산 결과(bmi/분류/경고/활동량등급/수면상태)
   - `goals` — 사용자별 목표 체중/혈압/혈당
-- **고도화 기능** (과제 "추가 도전" 목록 중 선택, 사용자 요청으로 웹 화면 추가됨):
-  1. 사용자 구분 (`username` 필드)
+- **고도화 기능** (과제 "추가 도전" 목록을 넘어, 실제 서비스 수준으로 확장):
+  1. **인증 시스템** — 회원가입/로그인/로그아웃, PBKDF2 비밀번호 해시, DB 기반 세션 토큰(HttpOnly 쿠키). 자유 텍스트 username 대신 실제 계정으로 로그인해야 본인 데이터에 접근 가능
   2. 목표 관리 (`POST/GET /goals` — 목표 대비 최신 기록 달성 여부)
   3. 주간 리포트 (`GET /reports/weekly` — 최근 7일 vs 지난주 평균 비교)
-  4. **사용자용 웹 화면** (`/app`) — 순수 HTML/CSS/JS 단일 파일(`static/index.html`), 별도 빌드 없이 기존 REST API 호출. 기록 입력/조회/수정/삭제, 검색, 통계, 목표, 주간 리포트를 한 화면에서 사용 가능. 루트(`/`)는 `/app`으로 자동 리다이렉트, API 상태 확인용 JSON은 `/api`로 이동.
-     (※ 처음엔 "무겁지 않게"라는 기준으로 스킵했으나, 실제 서비스처럼 보이려면 `/docs`만으로는 부족하다는 사용자 피드백을 받아 추가함)
+  4. **사용자용 웹 화면** (`/app`) — 순수 HTML/CSS/JS 단일 파일(`static/index.html`), 별도 빌드 없이 기존 REST API 호출. 로그인/회원가입 화면 + 기록 입력/조회/수정/삭제, 검색, 통계, 목표, 주간 리포트, 토스트 알림. 루트(`/`)는 `/app`으로 자동 리다이렉트, API 상태 확인용 JSON은 `/api`로, 헬스체크는 `/health`로 이동.
+     (※ 처음엔 "무겁지 않게"라는 기준으로 웹 화면·인증 모두 스킵했으나, 사용자 피드백으로 원칙 0-3번이 갱신되며 순차적으로 추가함)
   - 걸음 수 등급(`activity_level`)·수면 분석(`sleep_status`)은 별도 엔드포인트 없이 모든 기록 응답에 자동 포함
 
 ## 5. 파일 구조
 
 ```
 healthcare/
-├── main.py           # FastAPI 앱, 라우트 전체
-├── models.py          # SQLAlchemy ORM (User, HealthRecord, Goal)
-├── schemas.py         # Pydantic 요청/응답 모델
+├── main.py           # FastAPI 앱, 라우트 전체 (인증 포함)
+├── auth.py            # 비밀번호 해시(PBKDF2) + 세션 토큰 관리
+├── models.py          # SQLAlchemy ORM (User, Session, HealthRecord, Goal)
+├── schemas.py         # Pydantic 요청/응답 모델 (UserSignup/UserLogin 포함)
 ├── database.py        # DB 연결/세션 설정 (SQLite, data/health_log.db)
 ├── health_logic.py     # BMI/혈압/혈당 계산·분류·경고·활동량·수면 로직
 ├── static/
@@ -95,25 +107,36 @@ healthcare/
 
 ## 6. 진행 상황 (지금까지 완료된 것)
 
-- [x] Day1~3: 핵심 로직 + DB 설계 + 필수 엔드포인트 7개 + 고도화 4종(사용자구분/목표관리/주간리포트/웹화면) 구현 완료
+- [x] Day1~3: 핵심 로직 + DB 설계 + 필수 엔드포인트 7개 구현 완료
 - [x] 로컬 uvicorn 실행 테스트 완료 — `/docs`에서 정상 동작 확인
   - 비만/고혈압/당뇨의심 케이스 경고 메시지까지 정확히 계산됨을 확인
   - 서버 재시작 후 데이터 유지 확인 (SQLite 파일 기반)
   - 404, 422 검증 오류 정상 처리 확인
-- [x] GitHub 저장소 연결 및 push 완료
-  - repo: https://github.com/goldmireu-source/healthcare (main 브랜치)
+- [x] GitHub 저장소 연결 및 push 완료 — repo: https://github.com/goldmireu-source/healthcare (main 브랜치)
 - [x] VS Code + Claude Code 확장 설치 완료, 가상환경(venv) 활성화됨
+- [x] 사용자용 웹 화면(`/app`) 추가 완료 — 순수 HTML/CSS/JS, 기록 CRUD/검색/통계/목표/주간리포트 UI로 사용 가능, 로컬 테스트 완료
+- [x] **인증 시스템 구현 완료** (2026-07-21) — `auth.py` 신설, `models.py`(User에 password_hash/salt 추가, Session 테이블 신설), `schemas.py`(UserSignup/UserLogin/UserOut 추가), `main.py`(모든 데이터 엔드포인트에 `Depends(auth.get_current_user)` 적용, username 쿼리 파라미터 전부 제거), `static/index.html`(로그인/회원가입 화면, 로그아웃 버튼, 토스트 알림 추가)
+  - curl로 전체 흐름 검증 완료: 미인증 401 / 회원가입·로그인 성공 / 사용자간 데이터 완전 분리 / 중복 아이디 409 / 오답 비밀번호 401 / 로그아웃 후 세션 무효화
+  - `/health` 헬스체크 엔드포인트 추가
+  - **⚠️ DB 스키마가 바뀌어서 기존 `data/health_log.db` 파일은 삭제하고 재생성해야 함** (마이그레이션 아님, 로컬이라 그냥 삭제 후 재시작)
 
-## 7. 다음 작업 (Day 4 — 진행 중)
+## 7. 다음 작업
 
-1. `docker build -t health-log-api .` 로 이미지 빌드
-2. `docker run -d -p 8000:8000 -v F:\healthcare\data:/app/data --name health-log-api health-log-api` 로 컨테이너 실행
-3. http://localhost:8000/docs 에서 컨테이너 기준으로 재테스트
-4. 문제 있으면 `docker logs health-log-api`로 원인 파악 후 수정
+1. **(최우선)** 로컬 F:\healthcare에 아래 변경된/신규 파일 반영 후 기존 `data/health_log.db` 삭제, 재실행하여 브라우저로 회원가입→로그인→기록 CRUD 전체 흐름 직접 확인
+   - 신규: `auth.py`
+   - 수정: `main.py`, `models.py`, `schemas.py`, `static/index.html`, `README.md`
+2. 확인되면 git add/commit/push
+3. Docker 빌드 & 실행 확인
+   - `docker build -t health-log-api .`
+   - `docker run -d -p 8000:8000 -v F:\healthcare\data:/app/data --name health-log-api health-log-api`
+   - http://localhost:8000 (자동으로 `/app`으로 이동) 에서 컨테이너 기준 재테스트
+   - 문제 있으면 `docker logs health-log-api`
+4. 이어서 고도화 로드맵 2번(데이터 시각화 차트), 3번 잔여(로딩 상태/페이지네이션) 진행
 
 ## 8. 이후 계획 (미착수)
 
 - AWS Lightsail 테스트 서버에 배포 (계정/서버는 이미 생성되어 있음, 접속 정보는 작업 시점에 확인 필요)
+  - 배포 시 `COOKIE_SECURE=true` 환경변수 설정 권장 (HTTPS 적용 시)
 - 배포 후 README.md의 "배포 접속 URL" 항목 채우기
 - 최종 git push 및 제출 체크리스트 확인 (venv/data.json 미포함, README 완성 등)
 
