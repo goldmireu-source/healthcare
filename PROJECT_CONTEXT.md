@@ -190,17 +190,16 @@ healthcare/
   - **건강기록/목표 입력값 검증** (`schemas.py`): `RecordIn`/`RecordUpdate`/`GoalIn`에 상식적인 상한선 추가 — 체중 ≤500kg, 키 ≤250cm, 수축기 ≤300, 이완기 ≤200, 혈당 ≤1000, 걸음수 ≤100,000, 수면시간 ≤24시간, 메모 ≤500자. `date` 필드는 단순 문자열 패턴이 아니라 `datetime.strptime`으로 실제 존재하는 날짜인지 확인하고, 1900-01-01~내일 범위를 벗어나면 거부 (기존엔 형식 검증이 아예 없어서 "2026-13-45" 같은 값도 그대로 저장됐음)
   - curl로 전체 테스트 완료: 5회 실패 후 계정 잠금(423) 확인, signup/security-question/reset-password 각각 정확히 설정한 횟수에서 429로 전환 확인, 약한 비밀번호·아이디=비밀번호 거부(422, rate limit보다 먼저 걸림을 확인 — Pydantic 검증은 라우트 함수 진입 전에 일어나서 rate limit 카운터를 소모하지 않음), 비정상 체중/혈압/걸음수/수면시간/미래날짜/존재하지 않는 날짜 전부 422로 거부, 정상 범위 데이터는 그대로 통과. 테스트용으로 만든 계정/기록은 전부 정리해서 데모 데이터셋(13명) 그대로 유지
   - User 테이블에 컬럼이 또 추가되어(`failed_login_attempts`/`locked_until`) DB를 재생성했고, demo 계정 재가입+재승격, `seed_demo_data.py` 재실행으로 복구함
+- [x] **새 backend/frontend 구조 기준 Docker 재빌드 & 실행 검증 완료** (2026-07-21)
+  - `docker build -t health-log-api .` 리포 루트에서 정상 빌드 (backend/requirements.txt 설치 → backend/·frontend/ 복사 → WORKDIR을 backend/로 설정)
+  - `docker run -d -p 8000:8000 -v F:/healthcare/data:/app/data --name health-log-api health-log-api` 로 실행, 로컬 dev와 동일한 `data/` 볼륨을 마운트해서 기존 데모 계정(demo 관리자 포함 14명, 실사용자 `goldmireu` 포함)이 컨테이너에서도 그대로 보이는 것까지 확인
+  - 헬스체크·루트 리다이렉트·유저/관리자 정적 페이지 서빙·관리자 통계·사용자 목록·일반 사용자 로그인/기록/주간리포트 전부 컨테이너 기준 200 확인, `docker logs`에 에러 없음
+  - 검증 후 컨테이너는 정지해두고(`docker stop health-log-api`, 이미지는 유지) 이어지는 작업 편의를 위해 로컬 uvicorn dev 서버로 다시 전환함 — 필요하면 `docker start health-log-api`로 재기동 가능
 
 ## 7. 다음 작업
 
-1. 새 폴더 구조 기준으로 Docker 재빌드 & 실행 확인 (이번 개편으로 Dockerfile 자체가 바뀌어서 반드시 재검증 필요)
-   - 리포 루트에서 `docker build -t health-log-api .`
-   - `docker run -d -p 8000:8000 -v F:/healthcare/data:/app/data --name health-log-api health-log-api`
-     (Windows Git Bash에서는 반드시 슬래시 경로 사용 — 백슬래시는 "system cannot find the file specified" 오류 발생)
-   - http://localhost:8000 (자동으로 `/app`으로 이동), http://localhost:8000/app/admin.html 둘 다 컨테이너 기준 재테스트
-   - 문제 있으면 `docker logs health-log-api`
-2. 관리자 대시보드 실제 브라우저 확인 (차트 hover, 드로어 열림/닫힘, 정렬 클릭 등 JS 상호작용은 curl로 검증 못 함)
-3. 이어서 고도화 로드맵 2번(사용자 화면 데이터 시각화 차트), 3번 잔여(로딩 상태) 진행
+1. 관리자 대시보드 실제 브라우저 확인 (차트 hover, 드로어 열림/닫힘, 정렬 클릭 등 JS 상호작용은 curl/Docker 헬스체크로는 검증 못 함)
+2. 이어서 고도화 로드맵 2번(사용자 화면 데이터 시각화 차트), 3번 잔여(로딩 상태) 진행
 
 ## 8. 이후 계획 (미착수)
 
