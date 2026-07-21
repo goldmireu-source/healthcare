@@ -84,6 +84,8 @@
   3. 주간 리포트 (`GET /reports/weekly` — 최근 7일 vs 지난주 평균 비교)
   4. **사용자용 웹 화면** (`/app`) — 순수 HTML/CSS/JS 단일 파일(`static/index.html`), 별도 빌드 없이 기존 REST API 호출. 로그인/회원가입 화면 + 기록 입력/조회/수정/삭제, 검색, 통계, 목표, 주간 리포트, 토스트 알림. 루트(`/`)는 `/app`으로 자동 리다이렉트, API 상태 확인용 JSON은 `/api`로, 헬스체크는 `/health`로 이동.
      (※ 처음엔 "무겁지 않게"라는 기준으로 웹 화면·인증 모두 스킵했으나, 사용자 피드백으로 원칙 0-3번이 갱신되며 순차적으로 추가함)
+  5. **관리자 페이지 / 유저 페이지 분리** (2026-07-21 추가) — User에 `role`("user"/"admin", 기본값 "user") 추가. 회원가입으로는 절대 관리자가 될 수 없고, 로컬 스크립트 `promote_admin.py <username>` 실행으로만 기존 계정을 승격 가능. 관리자 전용 API 4종(`GET /admin/users`, `GET /admin/stats`, `GET /admin/users/{id}/records`, `DELETE /admin/users/{id}`)은 전부 `get_current_admin` 의존성(비관리자 403)으로 보호. 화면은 `static/admin.html`을 index.html과 완전히 별도 파일로 분리 — 로드 시 `/auth/me`로 role 확인 후 관리자가 아니면 즉시 `/app/`로 리다이렉트(클라이언트 사이드 가드; 실제 보안 경계는 서버의 403). index.html 헤더에는 로그인한 사용자가 관리자일 때만 "관리자 페이지" 링크가 보임.
+     - **더미데이터 관련**: 이번 작업 범위에는 포함하지 않음. 대량 더미데이터의 규모·성격은 아직 미정이며, 다음 작업에서 별도로 논의하기로 함. 관리자 페이지 동작 확인용으로 테스트 계정(demo) 1개만 승격해 사용함.
   - 걸음 수 등급(`activity_level`)·수면 분석(`sleep_status`)은 별도 엔드포인트 없이 모든 기록 응답에 자동 포함
 
 ## 5. 파일 구조
@@ -97,7 +99,9 @@ healthcare/
 ├── database.py        # DB 연결/세션 설정 (SQLite, data/health_log.db)
 ├── health_logic.py     # BMI/혈압/혈당 계산·분류·경고·활동량·수면 로직
 ├── static/
-│   └── index.html      # 사용자용 웹 화면 (/app 에 마운트됨)
+│   ├── index.html      # 사용자용 웹 화면 (/app 에 마운트됨)
+│   └── admin.html      # 관리자 전용 화면 (/app/admin.html, index.html과 완전 분리)
+├── promote_admin.py    # 로컬 전용: 기존 계정을 관리자로 승격 (API로는 노출 안 함)
 ├── requirements.txt
 ├── Dockerfile
 ├── .dockerignore
@@ -118,20 +122,30 @@ healthcare/
 - [x] **인증 시스템 구현 완료** (2026-07-21) — `auth.py` 신설, `models.py`(User에 password_hash/salt 추가, Session 테이블 신설), `schemas.py`(UserSignup/UserLogin/UserOut 추가), `main.py`(모든 데이터 엔드포인트에 `Depends(auth.get_current_user)` 적용, username 쿼리 파라미터 전부 제거), `static/index.html`(로그인/회원가입 화면, 로그아웃 버튼, 토스트 알림 추가)
   - curl로 전체 흐름 검증 완료: 미인증 401 / 회원가입·로그인 성공 / 사용자간 데이터 완전 분리 / 중복 아이디 409 / 오답 비밀번호 401 / 로그아웃 후 세션 무효화
   - `/health` 헬스체크 엔드포인트 추가
-  - **⚠️ DB 스키마가 바뀌어서 기존 `data/health_log.db` 파일은 삭제하고 재생성해야 함** (마이그레이션 아님, 로컬이라 그냥 삭제 후 재시작)
+  - git commit(`c9322b1`) 및 push 완료
+- [x] **관리자 페이지 / 유저 페이지 분리 구현 완료** (2026-07-21)
+  - `models.py`: User에 `role` 컬럼 추가(기본값 "user")
+  - `schemas.py`: `UserOut.role` 추가, `AdminUserOut`/`AdminUsersOut`/`AdminStatsOut` 신설
+  - `auth.py`: `get_current_admin` 의존성 추가 (비관리자 403)
+  - `main.py`: 관리자 전용 엔드포인트 4종 추가 — `GET /admin/users`, `GET /admin/stats`, `GET /admin/users/{id}/records`, `DELETE /admin/users/{id}`(cascade 삭제)
+  - `promote_admin.py` 신규 — 로컬 전용 관리자 승격 스크립트. 회원가입으로는 role이 항상 "user"로 고정 생성되어 API로는 절대 관리자가 될 수 없음
+  - `static/admin.html` 신규 — index.html과 완전 분리된 관리자 화면, 동일 디자인 톤 재사용. 로드 시 `/auth/me`로 role 확인 후 비관리자면 `/app/`로 즉시 리다이렉트
+  - `static/index.html` — 헤더에 관리자에게만 보이는 "관리자 페이지" 링크 추가
+  - **DB 스키마 변경**(role 컬럼) → 기존 `data/health_log.db` 삭제 후 재생성함
+  - 로컬 uvicorn 기준 전체 흐름 curl 테스트 완료: demo 회원가입(role=user) → `/admin/*` 403 확인 → `promote_admin.py demo` 승격 → 재로그인 시 role=admin 확인 → `GET /admin/users`/`GET /admin/stats` 정상 응답 → 임시 테스트 계정으로 기록/목표 생성 후 `DELETE /admin/users/{id}` 호출 → users/health_records/goals/sessions 전부 cascade 삭제됨을 DB에서 직접 확인 (테스트 후 더미 데이터 남기지 않음)
+  - **⚠️ 브라우저 리다이렉트는 클라이언트 JS 로직**이라 curl로는 실제 브라우저 동작까지 확인 불가 (코드 리뷰 + `/auth/me` role 응답으로 간접 검증). 실사용 전 브라우저에서 한 번 더 확인 권장
+  - **더미데이터 규모/성격은 아직 미정** — 다음 작업에서 별도로 논의 예정. 이번 작업에서는 관리자 페이지 동작 확인용 테스트 계정(demo) 1개 승격 외에는 대량 데이터를 만들지 않음
 
 ## 7. 다음 작업
 
-1. **(최우선)** 로컬 F:\healthcare에 아래 변경된/신규 파일 반영 후 기존 `data/health_log.db` 삭제, 재실행하여 브라우저로 회원가입→로그인→기록 CRUD 전체 흐름 직접 확인
-   - 신규: `auth.py`
-   - 수정: `main.py`, `models.py`, `schemas.py`, `static/index.html`, `README.md`
-2. 확인되면 git add/commit/push
-3. Docker 빌드 & 실행 확인
+1. 더미데이터 규모/성격 논의 및 필요 시 생성 (다음 작업, 아직 미정)
+2. Docker 빌드 & 실행 확인 (role/관리자 기능이 반영된 최신 코드 기준으로 재빌드 필요)
    - `docker build -t health-log-api .`
-   - `docker run -d -p 8000:8000 -v F:\healthcare\data:/app/data --name health-log-api health-log-api`
-   - http://localhost:8000 (자동으로 `/app`으로 이동) 에서 컨테이너 기준 재테스트
+   - `docker run -d -p 8000:8000 -v F:/healthcare/data:/app/data --name health-log-api health-log-api`
+     (Windows Git Bash에서는 반드시 슬래시 경로 사용 — 백슬래시는 "system cannot find the file specified" 오류 발생)
+   - http://localhost:8000 (자동으로 `/app`으로 이동) 에서 컨테이너 기준 재테스트, 관리자 계정으로 `/app/admin.html`도 확인
    - 문제 있으면 `docker logs health-log-api`
-4. 이어서 고도화 로드맵 2번(데이터 시각화 차트), 3번 잔여(로딩 상태/페이지네이션) 진행
+3. 이어서 고도화 로드맵 2번(데이터 시각화 차트), 3번 잔여(로딩 상태/페이지네이션) 진행
 
 ## 8. 이후 계획 (미착수)
 

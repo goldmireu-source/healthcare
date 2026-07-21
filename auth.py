@@ -74,3 +74,9 @@ def get_current_user(request: Request, db: DBSession = Depends(get_db)) -> model
     if not user:
         raise HTTPException(status_code=401, detail="로그인이 필요합니다.")
     return user
+
+
+def get_current_admin(current_user: models.User = Depends(get_current_user)) -> models.User:
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="관리자 권한이 필요합니다.")
+    return current_user

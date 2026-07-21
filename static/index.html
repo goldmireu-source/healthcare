@@ -195,6 +195,7 @@
     </div>
     <div class="user-switch" id="whoami-box" style="display:none;">
       <span id="whoami-text"></span>
+      <a id="admin-link" href="/app/admin.html" class="btn btn-ghost" style="display:none;text-decoration:none;">관리자 페이지</a>
       <button onclick="logout()">로그아웃</button>
     </div>
   </header>
@@ -401,6 +402,7 @@ function showApp(user){
   document.getElementById('app-content').style.display = 'block';
   document.getElementById('whoami-box').style.display = 'flex';
   document.getElementById('whoami-text').textContent = `${user.username}님`;
+  document.getElementById('admin-link').style.display = user.role === 'admin' ? 'inline-block' : 'none';
   refreshAll();
 }
 

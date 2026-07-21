@@ -437,3 +437,88 @@ def weekly_report(
     return schemas.WeeklyReportOut(
         username=current_user.username, this_week=this_week, last_week=last_week, change=change
     )
+
+
+# ---------- 관리자 전용 기능 ----------
+# 회원가입으로는 절대 admin이 될 수 없음 (role은 항상 "user"로 생성됨).
+# 계정을 관리자로 승격하려면 로컬에서 promote_admin.py를 직접 실행해야 함.
+
+@app.get("/admin/users", response_model=schemas.AdminUsersOut, tags=["Admin"])
+def admin_list_users(
+    current_admin: models.User = Depends(auth.get_current_admin),
+    db: Session = Depends(get_db),
+):
+    users = db.query(models.User).order_by(models.User.id.asc()).all()
+    items = []
+    for u in users:
+        record_count = (
+            db.query(models.HealthRecord)
+            .filter(models.HealthRecord.user_id == u.id)
+            .count()
+        )
+        items.append(
+            schemas.AdminUserOut(
+                id=u.id,
+                username=u.username,
+                role=u.role,
+                created_at=u.created_at,
+                record_count=record_count,
+            )
+        )
+    return schemas.AdminUsersOut(count=len(items), users=items)
+
+
+@app.get("/admin/stats", response_model=schemas.AdminStatsOut, tags=["Admin"])
+def admin_stats(
+    current_admin: models.User = Depends(auth.get_current_admin),
+    db: Session = Depends(get_db),
+):
+    total_users = db.query(models.User).count()
+    records = db.query(models.HealthRecord).all()
+
+    def distribution(values):
+        dist: dict = {}
+        for v in values:
+            dist[v] = dist.get(v, 0) + 1
+        return dist
+
+    return schemas.AdminStatsOut(
+        total_users=total_users,
+        total_records=len(records),
+        bmi_category_distribution=distribution([r.bmi_category for r in records]),
+        bp_category_distribution=distribution([r.bp_category for r in records]),
+        sugar_category_distribution=distribution([r.sugar_category for r in records]),
+    )
+
+
+@app.get("/admin/users/{user_id}/records", response_model=schemas.RecordListOut, tags=["Admin"])
+def admin_get_user_records(
+    user_id: int,
+    current_admin: models.User = Depends(auth.get_current_admin),
+    db: Session = Depends(get_db),
+):
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="사용자를 찾을 수 없습니다.")
+    records = (
+        db.query(models.HealthRecord)
+        .filter(models.HealthRecord.user_id == user_id)
+        .order_by(models.HealthRecord.date.asc())
+        .all()
+    )
+    return schemas.RecordListOut(count=len(records), records=[record_to_out(r) for r in records])
+
+
+@app.delete("/admin/users/{user_id}", tags=["Admin"])
+def admin_delete_user(
+    user_id: int,
+    current_admin: models.User = Depends(auth.get_current_admin),
+    db: Session = Depends(get_db),
+):
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="사용자를 찾을 수 없습니다.")
+    username = user.username
+    db.delete(user)
+    db.commit()
+    return {"message": f"'{username}' 계정이 삭제되었습니다."}

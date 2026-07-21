@@ -14,6 +14,7 @@ class User(Base):
     username = Column(String(50), unique=True, index=True, nullable=False)
     password_hash = Column(String(200), nullable=False)
     password_salt = Column(String(64), nullable=False)
+    role = Column(String(10), nullable=False, default="user")  # "user" | "admin"
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     records = relationship(

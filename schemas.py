@@ -19,9 +19,36 @@ class UserLogin(BaseModel):
 class UserOut(BaseModel):
     id: int
     username: str
+    role: str
 
     class Config:
         from_attributes = True
+
+
+# ---------- Admin ----------
+
+class AdminUserOut(BaseModel):
+    id: int
+    username: str
+    role: str
+    created_at: Optional[datetime] = None
+    record_count: int
+
+    class Config:
+        from_attributes = True
+
+
+class AdminUsersOut(BaseModel):
+    count: int
+    users: List[AdminUserOut]
+
+
+class AdminStatsOut(BaseModel):
+    total_users: int
+    total_records: int
+    bmi_category_distribution: Dict[str, int] = {}
+    bp_category_distribution: Dict[str, int] = {}
+    sugar_category_distribution: Dict[str, int] = {}
 
 
 # ---------- Records ----------

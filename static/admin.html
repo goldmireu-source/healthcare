@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>관리자 페이지 · 마이 헬스 로그</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=IBM+Plex+Sans+KR:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#1B2430;
+    --paper:#EFF2F1;
+    --card:#FFFFFF;
+    --line:#D8DDD9;
+    --teal:#2F6F5E;
+    --teal-soft:#E4EEEB;
+    --amber:#C98A2E;
+    --amber-soft:#F6EADA;
+    --brick:#C1443D;
+    --brick-soft:#F5E1DF;
+    --muted:#6B7680;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'IBM Plex Sans KR', sans-serif;
+    line-height:1.5;
+  }
+  .wrap{max-width:1040px;margin:0 auto;padding:32px 20px 80px;}
+
+  header.top{
+    display:flex;justify-content:space-between;align-items:flex-end;
+    margin-bottom:28px;flex-wrap:wrap;gap:12px;
+  }
+  header.top h1{
+    font-family:'Fraunces', serif;font-weight:600;font-size:34px;margin:0 0 4px;
+    letter-spacing:-0.01em;
+  }
+  header.top p{margin:0;color:var(--muted);font-size:14px;}
+  .user-switch{display:flex;align-items:center;gap:8px;}
+  .user-switch span{font-size:13px;color:var(--muted);}
+
+  section{margin-bottom:28px;}
+  .card{
+    background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:22px 24px;
+  }
+  .card h2{
+    font-family:'Fraunces', serif;font-weight:600;font-size:18px;margin:0 0 16px;
+    display:flex;align-items:baseline;gap:8px;
+  }
+  .card h2 .eyebrow{
+    font-family:'IBM Plex Mono', monospace;font-size:11px;color:var(--muted);
+    letter-spacing:0.06em;text-transform:uppercase;
+  }
+
+  .btn{
+    padding:8px 16px;border-radius:7px;border:none;cursor:pointer;font-size:13px;
+    font-weight:500;font-family:'IBM Plex Sans KR', sans-serif;
+  }
+  .btn-primary{background:var(--teal);color:#fff;}
+  .btn-primary:hover{background:#265b4d;}
+  .btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--line);}
+  .btn-ghost:hover{border-color:var(--muted);}
+
+  table{width:100%;border-collapse:collapse;font-size:13px;}
+  thead th{
+    text-align:left;font-size:11px;color:var(--muted);text-transform:uppercase;
+    letter-spacing:0.03em;border-bottom:1px solid var(--line);padding:8px 6px;font-weight:500;
+  }
+  tbody td{padding:10px 6px;border-bottom:1px solid var(--line);vertical-align:middle;}
+  tbody tr:last-child td{border-bottom:none;}
+  .badge{
+    display:inline-block;padding:3px 8px;border-radius:20px;font-size:11px;font-weight:500;
+  }
+  .badge.good{background:var(--teal-soft);color:var(--teal);}
+  .badge.warn{background:var(--amber-soft);color:var(--amber);}
+  .badge.bad{background:var(--brick-soft);color:var(--brick);}
+  .badge.neutral{background:var(--paper);color:var(--muted);}
+  .row-actions button{
+    font-size:11px;padding:4px 9px;border-radius:5px;border:1px solid var(--line);
+    background:#fff;cursor:pointer;color:var(--muted);
+  }
+  .row-actions button:hover{border-color:var(--brick);color:var(--brick);}
+  .empty-note{color:var(--muted);font-size:13px;padding:18px 4px;}
+
+  .stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .stat-item{padding:12px 0;border-bottom:1px dashed var(--line);}
+  .stat-item .n{font-family:'IBM Plex Mono', monospace;font-size:20px;font-weight:600;}
+  .stat-item .l{font-size:11px;color:var(--muted);}
+  .dist-row{display:flex;align-items:center;gap:8px;margin-top:6px;font-size:12px;}
+  .dist-bar{flex:1;height:6px;background:var(--paper);border-radius:4px;overflow:hidden;}
+  .dist-bar span{display:block;height:100%;background:var(--teal);}
+
+  footer{text-align:center;color:var(--muted);font-size:12px;margin-top:40px;}
+
+  #toast-box{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:999;display:flex;flex-direction:column;gap:8px;align-items:center;}
+  .toast{
+    padding:10px 18px;border-radius:8px;font-size:13px;color:#fff;background:var(--ink);
+    box-shadow:0 6px 20px rgba(0,0,0,0.15);opacity:0;transform:translateY(8px);
+    animation:toast-in 0.2s ease forwards;
+  }
+  .toast.success{background:var(--teal);}
+  .toast.error{background:var(--brick);}
+  @keyframes toast-in{ to{opacity:1;transform:translateY(0);} }
+
+  @media (max-width:720px){
+    .stat-grid{grid-template-columns:1fr;}
+  }
+</style>
+</head>
+<body>
+<div id="toast-box"></div>
+<div class="wrap">
+
+  <header class="top">
+    <div>
+      <h1>관리자 페이지</h1>
+      <p>전체 사용자와 시스템 통계를 확인합니다</p>
+    </div>
+    <div class="user-switch" id="whoami-box" style="display:none;">
+      <span id="whoami-text"></span>
+      <a href="/app/" class="btn btn-ghost" style="text-decoration:none;">유저 페이지로</a>
+      <button class="btn btn-ghost" onclick="logout()">로그아웃</button>
+    </div>
+  </header>
+
+  <section>
+    <div class="card">
+      <h2><span class="eyebrow">Overview</span> 시스템 통계</h2>
+      <div id="stats-body"><span style="color:var(--muted);font-size:13px;">불러오는 중...</span></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="card">
+      <h2><span class="eyebrow">Users</span> 전체 사용자</h2>
+      <div style="overflow-x:auto;">
+        <table>
+          <thead>
+            <tr><th>ID</th><th>아이디</th><th>권한</th><th>가입일</th><th>기록 수</th><th></th></tr>
+          </thead>
+          <tbody id="users-body"></tbody>
+        </table>
+      </div>
+      <div id="users-empty" class="empty-note" style="display:none;">등록된 사용자가 없습니다.</div>
+    </div>
+  </section>
+
+  <footer>마이 헬스 로그 · 관리자 전용 페이지 · 건강 기준은 단순화된 값이며 의학적 진단이 아닙니다</footer>
+</div>
+
+<script>
+function toast(message, type){
+  const box = document.getElementById('toast-box');
+  const el = document.createElement('div');
+  el.className = 'toast' + (type ? ' ' + type : '');
+  el.textContent = message;
+  box.appendChild(el);
+  setTimeout(() => el.remove(), 3200);
+}
+
+async function checkAdmin(){
+  try{
+    const res = await fetch('/auth/me', {credentials:'same-origin'});
+    if(!res.ok){ location.replace('/app/'); return; }
+    const user = await res.json();
+    if(user.role !== 'admin'){ location.replace('/app/'); return; }
+    document.getElementById('whoami-box').style.display = 'flex';
+    document.getElementById('whoami-text').textContent = `${user.username}님 (관리자)`;
+    loadStats();
+    loadUsers();
+  }catch(e){
+    location.replace('/app/');
+  }
+}
+
+async function logout(){
+  try{ await fetch('/auth/logout', {method:'POST', credentials:'same-origin'}); }catch(e){ /* 무시 */ }
+  location.href = '/app/';
+}
+
+function distHtml(title, dist){
+  const total = Object.values(dist).reduce((a,b)=>a+b,0) || 1;
+  const entries = Object.entries(dist);
+  if(entries.length === 0){
+    return `<div style="margin-top:14px;"><div class="l">${title}</div><span style="color:var(--muted);font-size:12px;">데이터 없음</span></div>`;
+  }
+  return `<div style="margin-top:14px;"><div class="l">${title}</div>` +
+    entries.map(([k,v]) => `
+      <div class="dist-row">
+        <span style="width:96px;flex-shrink:0;">${k}</span>
+        <div class="dist-bar"><span style="width:${(v/total*100).toFixed(0)}%"></span></div>
+        <span style="color:var(--muted);width:24px;text-align:right;">${v}</span>
+      </div>`).join('') + '</div>';
+}
+
+async function loadStats(){
+  const el = document.getElementById('stats-body');
+  try{
+    const res = await fetch('/admin/stats', {credentials:'same-origin'});
+    if(!res.ok) throw new Error((await res.json()).detail || '통계를 불러올 수 없습니다.');
+    const s = await res.json();
+    el.innerHTML = `
+      <div class="stat-grid">
+        <div class="stat-item"><div class="n">${s.total_users}</div><div class="l">총 사용자 수</div></div>
+        <div class="stat-item"><div class="n">${s.total_records}</div><div class="l">총 건강기록 수</div></div>
+      </div>
+      ${distHtml('BMI 분류 분포 (전체 사용자)', s.bmi_category_distribution)}
+      ${distHtml('혈압 분류 분포 (전체 사용자)', s.bp_category_distribution)}
+      ${distHtml('혈당 분류 분포 (전체 사용자)', s.sugar_category_distribution)}
+    `;
+  }catch(e){
+    el.innerHTML = `<span style="color:var(--brick);font-size:13px;">${e.message}</span>`;
+  }
+}
+
+function roleBadgeClass(role){
+  return role === 'admin' ? 'good' : 'neutral';
+}
+
+async function loadUsers(){
+  const body = document.getElementById('users-body');
+  const empty = document.getElementById('users-empty');
+  try{
+    const res = await fetch('/admin/users', {credentials:'same-origin'});
+    if(!res.ok) throw new Error((await res.json()).detail || '사용자 목록을 불러올 수 없습니다.');
+    const data = await res.json();
+    if(data.users.length === 0){
+      body.innerHTML = '';
+      empty.style.display = 'block';
+      return;
+    }
+    empty.style.display = 'none';
+    body.innerHTML = data.users.map(u => `
+      <tr>
+        <td>${u.id}</td>
+        <td>${u.username}</td>
+        <td><span class="badge ${roleBadgeClass(u.role)}">${u.role}</span></td>
+        <td>${u.created_at ? u.created_at.slice(0,10) : '-'}</td>
+        <td>${u.record_count}</td>
+        <td class="row-actions"><button onclick="deleteUser(${u.id}, '${u.username.replace(/'/g, "\\'")}')">계정 삭제</button></td>
+      </tr>`).join('');
+  }catch(e){
+    toast(e.message, 'error');
+  }
+}
+
+async function deleteUser(id, username){
+  if(!confirm(`'${username}' 계정을 삭제할까요? 이 사용자의 건강기록/목표/세션도 함께 삭제됩니다.`)) return;
+  try{
+    const res = await fetch(`/admin/users/${id}`, {method:'DELETE', credentials:'same-origin'});
+    if(!res.ok) throw new Error((await res.json()).detail || '삭제 실패');
+    toast('계정을 삭제했습니다.', 'success');
+    loadUsers();
+    loadStats();
+  }catch(e){
+    toast('삭제 실패: ' + e.message, 'error');
+  }
+}
+
+checkAdmin();
+</script>
+</body>
+</html>
