@@ -80,13 +80,20 @@ healthcare/
 - [x] GitHub 저장소 연결 및 push 완료
   - repo: https://github.com/goldmireu-source/healthcare (main 브랜치)
 - [x] VS Code + Claude Code 확장 설치 완료, 가상환경(venv) 활성화됨
+- [x] Day4: Docker 빌드/실행 완료
+  - `docker build -t health-log-api .` 빌드 성공
+  - `docker run -d -p 8000:8000 -v ... --name health-log-api health-log-api` 로 컨테이너 실행 중
+    - 주의: Windows Git Bash에서 `-v F:\healthcare\data:/app/data` (백슬래시)는
+      `Error response from daemon: The system cannot find the file specified.` 로 실패함.
+      반드시 슬래시 경로 `-v "F:/healthcare/data:/app/data"` 사용할 것.
+  - 컨테이너 기준 `http://localhost:8000/docs` 정상 응답(200) 확인
+  - `POST /records`, `GET /records` 컨테이너에서 정상 동작 확인 (BMI/혈압/혈당 분류 정상)
+  - 볼륨 마운트로 로컬 테스트 때 쌓인 기존 기록이 컨테이너 재실행 후에도 유지됨을 확인 (데이터 영속성 검증 완료)
+  - `docker logs health-log-api` 에러 없음
 
-## 7. 다음 작업 (Day 4 — 진행 중)
+## 7. 다음 작업
 
-1. `docker build -t health-log-api .` 로 이미지 빌드
-2. `docker run -d -p 8000:8000 -v F:\healthcare\data:/app/data --name health-log-api health-log-api` 로 컨테이너 실행
-3. http://localhost:8000/docs 에서 컨테이너 기준으로 재테스트
-4. 문제 있으면 `docker logs health-log-api`로 원인 파악 후 수정
+- Day4 Docker 단계는 완료. 다음은 8번 항목(AWS Lightsail 배포)으로 진행
 
 ## 8. 이후 계획 (미착수)
 
