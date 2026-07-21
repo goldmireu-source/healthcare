@@ -116,6 +116,28 @@
   @media (max-width:720px){
     .stat-grid{grid-template-columns:1fr;}
   }
+
+  /* 관리자 자체 로그인 화면 */
+  #admin-login-screen label{display:block;font-size:12px;color:var(--muted);margin-bottom:5px;}
+  #admin-login-screen input{
+    width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:7px;font-size:14px;
+    font-family:'IBM Plex Sans KR', sans-serif;
+  }
+  .auth-error{color:var(--brick);font-size:12px;margin-top:12px;min-height:14px;}
+
+  /* 모달 (커스텀 확인창) */
+  .modal-overlay{
+    position:fixed;inset:0;background:rgba(27,36,48,0.45);
+    display:flex;align-items:center;justify-content:center;z-index:900;padding:20px;
+  }
+  .modal-box{
+    background:var(--card);border-radius:12px;padding:24px;max-width:400px;width:100%;
+    box-shadow:0 12px 40px rgba(0,0,0,0.2);
+  }
+  .modal-box h3{font-family:'Fraunces', serif;font-weight:600;font-size:18px;margin:0 0 16px;}
+  .modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:18px;}
+  .btn-danger{background:var(--brick);color:#fff;}
+  .btn-danger:hover{background:#a3352f;}
 </style>
 </head>
 <body>
@@ -134,6 +156,29 @@
       <button class="btn btn-ghost" onclick="logout()">로그아웃</button>
     </div>
   </header>
+
+  <section id="admin-login-screen" style="display:none;">
+    <div class="card" style="max-width:380px;margin:40px auto;">
+      <h2 style="margin:0 0 20px;"><span class="eyebrow">Admin</span> 관리자 로그인</h2>
+      <form id="admin-login-form" onsubmit="doAdminLogin(event)">
+        <div style="margin-bottom:12px;">
+          <label>아이디</label>
+          <input type="text" id="admin-login-username" required autocomplete="username" />
+        </div>
+        <div style="margin-bottom:16px;">
+          <label>비밀번호</label>
+          <input type="password" id="admin-login-password" required autocomplete="current-password" />
+        </div>
+        <button type="submit" class="btn btn-primary" style="width:100%;">로그인</button>
+      </form>
+      <div id="admin-auth-error" class="auth-error"></div>
+      <div style="text-align:center;margin-top:14px;">
+        <a href="/app/" style="font-size:12px;color:var(--muted);">일반 사용자이신가요? 유저 페이지로</a>
+      </div>
+    </div>
+  </section>
+
+  <div id="admin-dashboard" style="display:none;">
 
   <section>
     <div class="card">
@@ -200,6 +245,20 @@
     </div>
   </section>
 
+  </div>
+
+  <!-- 커스텀 확인 모달 (native confirm() 대체) -->
+  <div class="modal-overlay" id="confirm-modal" style="display:none;">
+    <div class="modal-box">
+      <h3 id="confirm-modal-title">확인</h3>
+      <p id="confirm-modal-message" style="font-size:13px;color:var(--muted);margin:0;"></p>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" id="confirm-modal-cancel">취소</button>
+        <button type="button" class="btn btn-danger" id="confirm-modal-ok">확인</button>
+      </div>
+    </div>
+  </div>
+
   <footer>마이 헬스 로그 · 관리자 전용 페이지 · 건강 기준은 단순화된 값이며 의학적 진단이 아닙니다</footer>
 </div>
 
@@ -236,19 +295,80 @@ function escapeAttr(s){
 async function checkAdmin(){
   try{
     const res = await fetch('/auth/me', {credentials:'same-origin'});
-    if(!res.ok){ location.replace('/app/'); return; }
+    if(!res.ok){ showAdminLogin(); return; }
     const user = await res.json();
     if(user.role !== 'admin'){ location.replace('/app/'); return; }
-    adminUsername = user.username;
-    document.getElementById('whoami-box').style.display = 'flex';
-    document.getElementById('whoami-text').textContent = `${user.username}님 (관리자)`;
-    loadHealthStatus();
-    loadStats();
-    loadUsers();
-    loadAuditLog();
+    enterDashboard(user);
   }catch(e){
-    location.replace('/app/');
+    showAdminLogin();
   }
+}
+
+function showAdminLogin(){
+  document.getElementById('admin-login-screen').style.display = 'block';
+  document.getElementById('admin-dashboard').style.display = 'none';
+  document.getElementById('whoami-box').style.display = 'none';
+  document.getElementById('admin-login-form').reset();
+  document.getElementById('admin-auth-error').textContent = '';
+}
+
+function enterDashboard(user){
+  adminUsername = user.username;
+  document.getElementById('admin-login-screen').style.display = 'none';
+  document.getElementById('admin-dashboard').style.display = 'block';
+  document.getElementById('whoami-box').style.display = 'flex';
+  document.getElementById('whoami-text').textContent = `${user.username}님 (관리자)`;
+  loadHealthStatus();
+  loadStats();
+  loadUsers();
+  loadAuditLog();
+}
+
+async function doAdminLogin(ev){
+  ev.preventDefault();
+  const username = document.getElementById('admin-login-username').value.trim();
+  const password = document.getElementById('admin-login-password').value;
+  const errEl = document.getElementById('admin-auth-error');
+  errEl.textContent = '';
+  try{
+    const res = await fetch('/auth/login', {
+      method:'POST', credentials:'same-origin',
+      headers:{'Content-Type':'application/json'}, body: JSON.stringify({username, password}),
+    });
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.detail || '로그인에 실패했습니다.');
+    if(data.role !== 'admin'){
+      // 관리자 계정이 아니면 이 화면에서는 세션을 유지시키지 않음
+      await fetch('/auth/logout', {method:'POST', credentials:'same-origin'});
+      errEl.textContent = '관리자 계정이 아닙니다. 일반 사용자는 유저 페이지를 이용해주세요.';
+      return;
+    }
+    enterDashboard(data);
+  }catch(e){
+    errEl.textContent = e.message;
+  }
+}
+
+// ---------- 커스텀 확인 모달 (native confirm() 대체) ----------
+function customConfirm(message, title){
+  return new Promise(resolve => {
+    const modal = document.getElementById('confirm-modal');
+    document.getElementById('confirm-modal-title').textContent = title || '확인';
+    document.getElementById('confirm-modal-message').textContent = message;
+    modal.style.display = 'flex';
+    const okBtn = document.getElementById('confirm-modal-ok');
+    const cancelBtn = document.getElementById('confirm-modal-cancel');
+    function cleanup(result){
+      modal.style.display = 'none';
+      okBtn.removeEventListener('click', onOk);
+      cancelBtn.removeEventListener('click', onCancel);
+      resolve(result);
+    }
+    function onOk(){ cleanup(true); }
+    function onCancel(){ cleanup(false); }
+    okBtn.addEventListener('click', onOk);
+    cancelBtn.addEventListener('click', onCancel);
+  });
 }
 
 async function loadHealthStatus(){
@@ -270,7 +390,8 @@ async function loadHealthStatus(){
 
 async function logout(){
   try{ await fetch('/auth/logout', {method:'POST', credentials:'same-origin'}); }catch(e){ /* 무시 */ }
-  location.href = '/app/';
+  toast('로그아웃되었습니다.');
+  showAdminLogin();
 }
 
 function distHtml(title, dist){
@@ -412,7 +533,8 @@ function closeUserRecords(){
 }
 
 async function forceLogout(id, username){
-  if(!confirm(`'${username}'의 모든 로그인 세션을 무효화할까요? 계정은 삭제되지 않고, 다음 요청부터 다시 로그인해야 합니다.`)) return;
+  const ok = await customConfirm(`'${username}'의 모든 로그인 세션을 무효화할까요? 계정은 삭제되지 않고, 다음 요청부터 다시 로그인해야 합니다.`, '강제 로그아웃');
+  if(!ok) return;
   try{
     const res = await fetch(`/admin/users/${id}/force-logout`, {method:'POST', credentials:'same-origin'});
     if(!res.ok) throw new Error((await res.json()).detail || '강제 로그아웃 실패');
@@ -425,7 +547,8 @@ async function forceLogout(id, username){
 }
 
 async function deleteUser(id, username){
-  if(!confirm(`'${username}' 계정을 삭제할까요? 이 사용자의 건강기록/목표/세션도 함께 삭제됩니다.`)) return;
+  const ok = await customConfirm(`'${username}' 계정을 삭제할까요? 이 사용자의 건강기록/목표/세션도 함께 삭제됩니다.`, '계정 삭제');
+  if(!ok) return;
   try{
     const res = await fetch(`/admin/users/${id}`, {method:'DELETE', credentials:'same-origin'});
     if(!res.ok) throw new Error((await res.json()).detail || '삭제 실패');
