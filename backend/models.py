@@ -19,6 +19,9 @@ class User(Base):
     security_question = Column(String(200), nullable=False)
     security_answer_hash = Column(String(200), nullable=False)
     security_answer_salt = Column(String(64), nullable=False)
+    # 로그인 무차별 대입 방지용 계정 잠금 상태
+    failed_login_attempts = Column(Integer, nullable=False, default=0)
+    locked_until = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     records = relationship(

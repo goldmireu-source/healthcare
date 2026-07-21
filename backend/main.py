@@ -14,6 +14,7 @@ from database import Base, engine, get_db
 import models
 import schemas
 import auth
+import rate_limit
 from health_logic import evaluate_record
 
 logging.basicConfig(level=logging.INFO)
@@ -114,8 +115,31 @@ app.mount("/app", StaticFiles(directory=STATIC_DIR, html=True), name="web_app")
 
 # ---------- 인증 ----------
 
+def _client_ip(request: Request) -> str:
+    # 리버스 프록시 뒤에 배포할 경우 X-Forwarded-For를 신뢰할 수 있는 범위에서
+    # 확인해야 하지만, 이 프로젝트는 그 앞단이 없어 request.client만 사용한다.
+    return request.client.host if request.client else "unknown"
+
+
+def _enforce_rate_limit(key: str, max_attempts: int, window_seconds: int, message: str) -> None:
+    if rate_limit.is_rate_limited(key, max_attempts, window_seconds):
+        raise HTTPException(status_code=429, detail=message)
+
+
 @app.post("/auth/signup", response_model=schemas.UserOut, tags=["Auth"])
-def signup(payload: schemas.UserSignup, response: Response, db: Session = Depends(get_db)):
+def signup(
+    payload: schemas.UserSignup,
+    request: Request,
+    response: Response,
+    db: Session = Depends(get_db),
+):
+    _enforce_rate_limit(
+        f"signup:{_client_ip(request)}",
+        max_attempts=5,
+        window_seconds=600,
+        message="회원가입 시도가 너무 많습니다. 잠시 후 다시 시도해주세요.",
+    )
+
     existing = db.query(models.User).filter(models.User.username == payload.username).first()
     if existing:
         raise HTTPException(status_code=409, detail="이미 사용 중인 아이디입니다.")
@@ -149,11 +173,35 @@ def signup(payload: schemas.UserSignup, response: Response, db: Session = Depend
 
 
 @app.post("/auth/login", response_model=schemas.UserOut, tags=["Auth"])
-def login(payload: schemas.UserLogin, response: Response, db: Session = Depends(get_db)):
+def login(
+    payload: schemas.UserLogin,
+    request: Request,
+    response: Response,
+    db: Session = Depends(get_db),
+):
+    # IP 기준 속도 제한 — 서로 다른 아이디를 대량으로 시도하는 무차별 대입을 막음
+    _enforce_rate_limit(
+        f"login:{_client_ip(request)}",
+        max_attempts=15,
+        window_seconds=300,
+        message="로그인 시도가 너무 많습니다. 잠시 후 다시 시도해주세요.",
+    )
+
     user = db.query(models.User).filter(models.User.username == payload.username).first()
+
+    # 계정 단위 잠금 — 같은 계정에 대한 반복 실패를 막음 (IP를 바꿔가며 시도해도 방어됨)
+    if user and auth.is_account_locked(user):
+        raise HTTPException(
+            status_code=423,
+            detail=f"로그인 실패 횟수가 많아 계정이 잠겼습니다. {auth.LOGIN_LOCKOUT_MINUTES}분 후 다시 시도해주세요.",
+        )
+
     if not user or not auth.verify_password(payload.password, user.password_hash, user.password_salt):
+        if user:
+            auth.register_failed_login(db, user)
         raise HTTPException(status_code=401, detail="아이디 또는 비밀번호가 올바르지 않습니다.")
 
+    auth.reset_login_failures(db, user)
     session = auth.create_session(db, user)
     response.set_cookie(
         key=auth.SESSION_COOKIE_NAME,
@@ -181,7 +229,13 @@ def get_me(current_user: models.User = Depends(auth.get_current_user)):
 
 
 @app.get("/auth/security-question", response_model=schemas.SecurityQuestionOut, tags=["Auth"])
-def get_security_question(username: str = Query(...), db: Session = Depends(get_db)):
+def get_security_question(request: Request, username: str = Query(...), db: Session = Depends(get_db)):
+    _enforce_rate_limit(
+        f"secq:{_client_ip(request)}:{username}",
+        max_attempts=10,
+        window_seconds=600,
+        message="요청이 너무 많습니다. 잠시 후 다시 시도해주세요.",
+    )
     user = db.query(models.User).filter(models.User.username == username).first()
     if not user:
         raise HTTPException(status_code=404, detail="사용자를 찾을 수 없습니다.")
@@ -189,7 +243,14 @@ def get_security_question(username: str = Query(...), db: Session = Depends(get_
 
 
 @app.post("/auth/reset-password", tags=["Auth"])
-def reset_password(payload: schemas.PasswordResetIn, db: Session = Depends(get_db)):
+def reset_password(payload: schemas.PasswordResetIn, request: Request, db: Session = Depends(get_db)):
+    # 보안질문 답은 추측 가능한 값이 많아(생일, 색깔 등) 무차별 대입에 특히 취약 -> 엄격하게 제한
+    _enforce_rate_limit(
+        f"resetpw:{_client_ip(request)}:{payload.username}",
+        max_attempts=5,
+        window_seconds=900,
+        message="비밀번호 재설정 시도가 너무 많습니다. 잠시 후 다시 시도해주세요.",
+    )
     user = db.query(models.User).filter(models.User.username == payload.username).first()
     if not user:
         raise HTTPException(status_code=404, detail="사용자를 찾을 수 없습니다.")
@@ -216,6 +277,12 @@ def change_password(
     current_user: models.User = Depends(auth.get_current_user),
     db: Session = Depends(get_db),
 ):
+    _enforce_rate_limit(
+        f"changepw:{_client_ip(request)}:{current_user.id}",
+        max_attempts=10,
+        window_seconds=600,
+        message="시도가 너무 많습니다. 잠시 후 다시 시도해주세요.",
+    )
     if not auth.verify_password(
         payload.current_password, current_user.password_hash, current_user.password_salt
     ):

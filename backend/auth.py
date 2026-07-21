@@ -43,6 +43,35 @@ def normalize_security_answer(answer: str) -> str:
     return answer.strip().lower()
 
 
+# ---------- 로그인 무차별 대입 방지 (계정 단위 잠금) ----------
+LOGIN_LOCKOUT_THRESHOLD = 5
+LOGIN_LOCKOUT_MINUTES = 15
+
+
+def is_account_locked(user: models.User) -> bool:
+    if not user.locked_until:
+        return False
+    locked_until = user.locked_until
+    if locked_until.tzinfo is None:
+        locked_until = locked_until.replace(tzinfo=timezone.utc)
+    return locked_until > datetime.now(timezone.utc)
+
+
+def register_failed_login(db: DBSession, user: models.User) -> None:
+    user.failed_login_attempts += 1
+    if user.failed_login_attempts >= LOGIN_LOCKOUT_THRESHOLD:
+        user.locked_until = datetime.now(timezone.utc) + timedelta(minutes=LOGIN_LOCKOUT_MINUTES)
+        user.failed_login_attempts = 0
+    db.commit()
+
+
+def reset_login_failures(db: DBSession, user: models.User) -> None:
+    if user.failed_login_attempts or user.locked_until:
+        user.failed_login_attempts = 0
+        user.locked_until = None
+        db.commit()
+
+
 def create_session(db: DBSession, user: models.User) -> models.Session:
     token = secrets.token_urlsafe(32)
     expires_at = datetime.now(timezone.utc) + timedelta(days=SESSION_TTL_DAYS)
