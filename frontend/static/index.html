@@ -201,6 +201,24 @@
   /* 페이지네이션 */
   .pagination{display:flex;align-items:center;gap:12px;margin-top:14px;font-size:12px;color:var(--muted);}
 
+  /* 측정 추이 차트 */
+  .trend-tabs{display:flex;gap:6px;margin-bottom:14px;}
+  .trend-tab{
+    padding:6px 14px;border-radius:20px;border:1px solid var(--line);background:#fff;
+    cursor:pointer;font-size:12px;color:var(--muted);font-family:'IBM Plex Sans KR', sans-serif;
+  }
+  .trend-tab.active{background:var(--ink);color:#fff;border-color:var(--ink);}
+  .trend-legend{display:flex;gap:16px;margin-bottom:10px;font-size:11px;color:var(--muted);min-height:14px;}
+  .trend-legend .key{display:inline-flex;align-items:center;gap:6px;}
+  .trend-legend .key .line{display:inline-block;width:14px;height:2px;border-radius:1px;}
+  .line-chart-wrap{position:relative;}
+  .line-chart{width:100%;height:220px;display:block;}
+  #line-chart-tooltip{
+    position:fixed;background:var(--ink);color:#fff;font-size:11px;padding:7px 10px;border-radius:6px;
+    pointer-events:none;z-index:1000;opacity:0;transition:opacity 0.1s;white-space:nowrap;line-height:1.6;
+  }
+  #line-chart-tooltip strong{font-family:'IBM Plex Mono', monospace;}
+
   @media (max-width:720px){
     form.entry, .goal-form{grid-template-columns:1fr 1fr;}
     .vitals-strip{grid-template-columns:repeat(2,1fr);}
@@ -211,6 +229,7 @@
 </head>
 <body>
 <div id="toast-box"></div>
+<div id="line-chart-tooltip"></div>
 <div class="wrap">
 
   <header class="top">
@@ -332,8 +351,8 @@
         <h4 style="color:var(--brick);">계정 탈퇴</h4>
         <p>탈퇴하면 모든 건강기록/목표가 함께 삭제되며 되돌릴 수 없습니다.</p>
         <div style="display:flex;gap:8px;">
-          <input type="password" id="delete-account-password" placeholder="비밀번호 확인" />
-          <button type="button" class="btn btn-danger" onclick="submitDeleteAccount()">탈퇴</button>
+          <input type="password" id="delete-account-password" placeholder="비밀번호 확인" style="flex:1;min-width:0;" />
+          <button type="button" class="btn btn-danger" style="flex-shrink:0;white-space:nowrap;" onclick="submitDeleteAccount()">탈퇴</button>
         </div>
       </div>
 
@@ -412,6 +431,22 @@
     <div id="vitals-strip" class="vitals-strip"></div>
   </section>
 
+  <section>
+    <div class="card">
+      <h2><span class="eyebrow">Trend</span> 측정 추이</h2>
+      <div class="trend-tabs">
+        <button type="button" class="trend-tab active" data-metric="weight" onclick="switchTrendMetric('weight')">체중</button>
+        <button type="button" class="trend-tab" data-metric="bp" onclick="switchTrendMetric('bp')">혈압</button>
+        <button type="button" class="trend-tab" data-metric="sugar" onclick="switchTrendMetric('sugar')">혈당</button>
+      </div>
+      <div class="trend-legend" id="trend-legend"></div>
+      <div class="line-chart-wrap" id="line-chart-wrap">
+        <svg class="line-chart" id="line-chart" viewBox="0 0 700 220" preserveAspectRatio="none"></svg>
+      </div>
+      <div id="trend-empty" class="empty-note" style="display:none;">추이를 보려면 기록이 2건 이상 필요합니다.</div>
+    </div>
+  </section>
+
   <section class="row-2">
     <div class="card">
       <h2><span class="eyebrow">Records</span> 전체 기록</h2>
@@ -435,6 +470,7 @@
           <tbody id="records-body"></tbody>
         </table>
       </div>
+      <div id="records-loading" class="empty-note" style="display:none;">불러오는 중...</div>
       <div id="records-empty" class="empty-note" style="display:none;">아직 기록이 없습니다. 위에서 첫 기록을 추가해보세요.</div>
       <div class="pagination" id="records-pagination" style="display:none;">
         <button class="btn btn-ghost" onclick="recordsPrevPage()">← 이전</button>
@@ -710,7 +746,16 @@ async function logout(){
   showAuthScreen();
 }
 
+const LOADING_HTML = '<span style="color:var(--muted);font-size:13px;">불러오는 중...</span>';
+
 function refreshAll(){
+  document.getElementById('vitals-strip').innerHTML = `<div class="empty-note" style="grid-column:1/-1;">${LOADING_HTML}</div>`;
+  document.getElementById('records-body').innerHTML = '';
+  document.getElementById('records-empty').style.display = 'none';
+  document.getElementById('records-loading').style.display = 'block';
+  document.getElementById('stats-body').innerHTML = LOADING_HTML;
+  document.getElementById('goal-result').innerHTML = LOADING_HTML;
+  document.getElementById('weekly-body').innerHTML = LOADING_HTML;
   loadRecords();
   loadStats();
   loadGoal();
@@ -751,6 +796,111 @@ function renderVitals(latest){
     </div>`).join('');
 }
 
+// ---------- 측정 추이 차트 ----------
+let trendMetric = 'weight';
+
+function switchTrendMetric(metric){
+  trendMetric = metric;
+  document.querySelectorAll('.trend-tab').forEach(el => el.classList.toggle('active', el.dataset.metric === metric));
+  renderTrendChart();
+}
+
+function trendSeriesFor(metric, sorted){
+  if(metric === 'bp'){
+    return [
+      {key:'systolic', label:'수축기', color:'var(--teal)', values: sorted.map(r => r.systolic)},
+      {key:'diastolic', label:'이완기', color:'var(--amber)', values: sorted.map(r => r.diastolic)},
+    ];
+  }
+  if(metric === 'sugar'){
+    return [{key:'blood_sugar', label:'공복혈당(mg/dL)', color:'var(--teal)', values: sorted.map(r => r.blood_sugar)}];
+  }
+  return [{key:'weight', label:'체중(kg)', color:'var(--teal)', values: sorted.map(r => r.weight)}];
+}
+
+function renderTrendChart(){
+  const svgEl = document.getElementById('line-chart');
+  const emptyEl = document.getElementById('trend-empty');
+  const legendEl = document.getElementById('trend-legend');
+  const sorted = [...allRecordsCache].sort((a,b) => a.date.localeCompare(b.date));
+
+  if(sorted.length < 2){
+    svgEl.innerHTML = '';
+    legendEl.innerHTML = '';
+    emptyEl.style.display = 'block';
+    return;
+  }
+  emptyEl.style.display = 'none';
+
+  const series = trendSeriesFor(trendMetric, sorted);
+  legendEl.innerHTML = series.length > 1
+    ? series.map(s => `<span class="key"><span class="line" style="background:${s.color}"></span>${s.label}</span>`).join('')
+    : '';
+
+  const W = 700, H = 220, padTop = 16, padBottom = 12, padLeft = 8, padRight = 8;
+  const allValues = series.flatMap(s => s.values);
+  let minV = Math.min(...allValues);
+  let maxV = Math.max(...allValues);
+  // 값이 전부 동일하면(변화 없음) 기준선에 딱 붙어 안 보이지 않도록 가운데로 띄움
+  if(minV === maxV){ minV -= 1; maxV += 1; }
+  const range = maxV - minV;
+  const chartW = W - padLeft - padRight;
+  const chartH = H - padTop - padBottom;
+  const n = sorted.length;
+  const xStep = n > 1 ? chartW / (n - 1) : 0;
+
+  const xAt = (i) => padLeft + i * xStep;
+  const yAt = (v) => padTop + chartH - ((v - minV) / range) * chartH;
+  const baselineY = padTop + chartH;
+
+  let svg = `<line x1="${padLeft}" y1="${baselineY}" x2="${W - padRight}" y2="${baselineY}" style="stroke:var(--line);stroke-width:1"/>`;
+  series.forEach(s => {
+    const points = s.values.map((v, i) => `${xAt(i)},${yAt(v)}`).join(' ');
+    svg += `<polyline points="${points}" fill="none" style="stroke:${s.color};stroke-width:2" stroke-linejoin="round" stroke-linecap="round"/>`;
+  });
+  // 각 데이터 포인트의 투명 히트 밴드 (가장 가까운 지점에서 크로스헤어+툴팁)
+  sorted.forEach((r, i) => {
+    const bandW = Math.max(xStep, 10);
+    svg += `<rect x="${xAt(i) - bandW / 2}" y="${padTop}" width="${bandW}" height="${chartH}" fill="transparent" class="hit-band" data-index="${i}"/>`;
+  });
+
+  svgEl.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  svgEl.innerHTML = svg;
+  svgEl.dataset.dates = JSON.stringify(sorted.map(r => r.date));
+  svgEl.dataset.series = JSON.stringify(series.map(s => ({ label: s.label, values: s.values })));
+}
+
+document.getElementById('line-chart-wrap').addEventListener('pointermove', (e) => {
+  const svgEl = document.getElementById('line-chart');
+  const band = e.target.closest('.hit-band');
+  const tooltip = document.getElementById('line-chart-tooltip');
+  if(!band){ tooltip.style.opacity = '0'; return; }
+  const idx = parseInt(band.dataset.index, 10);
+  const dates = JSON.parse(svgEl.dataset.dates || '[]');
+  const series = JSON.parse(svgEl.dataset.series || '[]');
+  if(!dates.length){ tooltip.style.opacity = '0'; return; }
+
+  tooltip.textContent = '';
+  const dateRow = document.createElement('div');
+  dateRow.style.color = '#B7C0BC';
+  dateRow.textContent = dates[idx];
+  tooltip.appendChild(dateRow);
+  series.forEach(s => {
+    const row = document.createElement('div');
+    row.appendChild(document.createTextNode(`${s.label} `));
+    const strong = document.createElement('strong');
+    strong.textContent = String(s.values[idx]);
+    row.appendChild(strong);
+    tooltip.appendChild(row);
+  });
+  tooltip.style.left = `${e.clientX + 14}px`;
+  tooltip.style.top = `${e.clientY - 40}px`;
+  tooltip.style.opacity = '1';
+});
+document.getElementById('line-chart-wrap').addEventListener('pointerleave', () => {
+  document.getElementById('line-chart-tooltip').style.opacity = '0';
+});
+
 let allRecordsCache = [];
 let recordsPage = 1;
 const RECORDS_PAGE_SIZE = 10;
@@ -758,8 +908,10 @@ const RECORDS_PAGE_SIZE = 10;
 function renderRecordsTable(pageItems, totalCount){
   const body = document.getElementById('records-body');
   const empty = document.getElementById('records-empty');
+  document.getElementById('records-loading').style.display = 'none';
   if(totalCount === 0){
     body.innerHTML = '';
+    empty.textContent = '아직 기록이 없습니다. 위에서 첫 기록을 추가해보세요.';
     empty.style.display = 'block';
     return;
   }
@@ -788,6 +940,7 @@ function renderRecordsPage(){
   if(recordsPage > totalPages) recordsPage = totalPages;
   const start = (recordsPage - 1) * RECORDS_PAGE_SIZE;
   renderRecordsTable(sorted.slice(start, start + RECORDS_PAGE_SIZE), sorted.length);
+  renderTrendChart();
 
   const paginationEl = document.getElementById('records-pagination');
   if(totalPages > 1){
@@ -809,7 +962,13 @@ async function loadRecords(){
     renderRecordsPage();
     const sorted = [...data.records].sort((a,b) => a.date.localeCompare(b.date));
     renderVitals(sorted[sorted.length - 1]);
-  }catch(e){ console.error(e); }
+  }catch(e){
+    document.getElementById('records-loading').style.display = 'none';
+    document.getElementById('records-body').innerHTML = '';
+    document.getElementById('records-empty').textContent = '기록을 불러올 수 없습니다.';
+    document.getElementById('records-empty').style.display = 'block';
+    console.error(e);
+  }
 }
 
 async function searchRecords(){
@@ -854,7 +1013,10 @@ async function loadStats(){
       ${distHtml('BMI 분류 분포', s.bmi_category_distribution)}
       ${distHtml('혈압 분류 분포', s.bp_category_distribution)}
     `;
-  }catch(e){ console.error(e); }
+  }catch(e){
+    document.getElementById('stats-body').innerHTML = '<span style="color:var(--brick);font-size:13px;">통계를 불러올 수 없습니다.</span>';
+    console.error(e);
+  }
 }
 
 function editRecord(id){

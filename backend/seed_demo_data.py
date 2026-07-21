@@ -78,7 +78,12 @@ def get_or_create_user(db, username: str, password: str) -> models.User:
 
 
 def add_record(db, user: models.User, day: date, profile: dict, day_offset: int) -> None:
-    drift = profile["trend"] * day_offset
+    # day_offset은 "며칠 전"(13=가장 오래된 기록, 0=오늘)이므로, trend가 오늘 쪽으로
+    # 갈수록(day_offset이 작아질수록) 더 크게 반영되도록 (13 - day_offset)을 곱한다.
+    # 그래야 trend<0(예: sora)일 때 실제로 "오늘로 갈수록 체중 감소" 그래프가 나온다
+    # (day_offset을 그대로 곱하면 방향이 반대로 나오는 버그가 있었음).
+    days_elapsed = 13 - day_offset
+    drift = profile["trend"] * days_elapsed
     weight = round(profile["weight"] + drift, 1)
     steps = max(0, profile["steps"] + (day_offset % 3 - 1) * 400)
     sleep_hours = max(0.0, round(profile["sleep"] + (day_offset % 2) * 0.3 - 0.15, 1))
