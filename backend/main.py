@@ -1,11 +1,13 @@
 import json
 import logging
-from datetime import date as date_cls, timedelta
+import os
+from datetime import date as date_cls, datetime, timedelta
 from typing import Optional
 
 from fastapi import FastAPI, HTTPException, Depends, Query, Response, Request
 from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from database import Base, engine, get_db
@@ -101,8 +103,13 @@ def health_check():
     return {"status": "ok"}
 
 
+# backend/와 frontend/는 항상 형제 폴더 (로컬 저장소 구조, Dockerfile 모두 이 배치를 유지함).
+# __file__ 기준 경로라 uvicorn을 어디서 실행하든 항상 같은 정적 파일을 가리킨다.
+BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
+STATIC_DIR = os.path.join(BACKEND_DIR, "..", "frontend", "static")
+
 # 사용자용 웹 화면 (정적 HTML/CSS/JS, 별도 빌드 없이 REST API를 그대로 호출)
-app.mount("/app", StaticFiles(directory="static", html=True), name="web_app")
+app.mount("/app", StaticFiles(directory=STATIC_DIR, html=True), name="web_app")
 
 
 # ---------- 인증 ----------
@@ -545,6 +552,9 @@ def _log_admin_action(
 @app.get("/admin/users", response_model=schemas.AdminUsersOut, tags=["Admin"])
 def admin_list_users(
     search: Optional[str] = Query(None, description="아이디 부분 검색"),
+    role: Optional[str] = Query(None, description="user 또는 admin으로 필터링"),
+    sort_by: str = Query("id", description="id | username | created_at | record_count"),
+    sort_dir: str = Query("asc", description="asc | desc"),
     page: int = Query(1, ge=1),
     page_size: int = Query(10, ge=1, le=100),
     current_admin: models.User = Depends(auth.get_current_admin),
@@ -553,31 +563,43 @@ def admin_list_users(
     query = db.query(models.User)
     if search:
         query = query.filter(models.User.username.ilike(f"%{search}%"))
+    if role in ("user", "admin"):
+        query = query.filter(models.User.role == role)
 
-    total = query.count()
-    users = (
-        query.order_by(models.User.id.asc())
-        .offset((page - 1) * page_size)
-        .limit(page_size)
+    users = query.all()
+    total = len(users)
+
+    # user_id별 기록 수를 한 번의 집계 쿼리로 가져와 N+1 쿼리를 피함
+    record_counts = dict(
+        db.query(models.HealthRecord.user_id, func.count(models.HealthRecord.id))
+        .group_by(models.HealthRecord.user_id)
         .all()
     )
 
-    items = []
-    for u in users:
-        record_count = (
-            db.query(models.HealthRecord)
-            .filter(models.HealthRecord.user_id == u.id)
-            .count()
+    def sort_key(u):
+        if sort_by == "username":
+            return u.username.lower()
+        if sort_by == "created_at":
+            return u.created_at or datetime.min
+        if sort_by == "record_count":
+            return record_counts.get(u.id, 0)
+        return u.id
+
+    users.sort(key=sort_key, reverse=(sort_dir == "desc"))
+
+    start = (page - 1) * page_size
+    page_users = users[start : start + page_size]
+
+    items = [
+        schemas.AdminUserOut(
+            id=u.id,
+            username=u.username,
+            role=u.role,
+            created_at=u.created_at,
+            record_count=record_counts.get(u.id, 0),
         )
-        items.append(
-            schemas.AdminUserOut(
-                id=u.id,
-                username=u.username,
-                role=u.role,
-                created_at=u.created_at,
-                record_count=record_count,
-            )
-        )
+        for u in page_users
+    ]
     return schemas.AdminUsersOut(count=total, page=page, page_size=page_size, users=items)
 
 
@@ -586,7 +608,7 @@ def admin_stats(
     current_admin: models.User = Depends(auth.get_current_admin),
     db: Session = Depends(get_db),
 ):
-    total_users = db.query(models.User).count()
+    users = db.query(models.User).all()
     records = db.query(models.HealthRecord).all()
 
     def distribution(values):
@@ -595,9 +617,32 @@ def admin_stats(
             dist[v] = dist.get(v, 0) + 1
         return dist
 
+    role_distribution = distribution([u.role for u in users])
+
+    today = date_cls.today()
+    new_users_last_7_days = sum(
+        1 for u in users if u.created_at and u.created_at.date() >= today - timedelta(days=6)
+    )
+
+    signups_by_day: dict = {}
+    for u in users:
+        if u.created_at:
+            day = u.created_at.date().isoformat()
+            signups_by_day[day] = signups_by_day.get(day, 0) + 1
+    signup_trend = [
+        schemas.SignupTrendPoint(
+            date=(today - timedelta(days=i)).isoformat(),
+            count=signups_by_day.get((today - timedelta(days=i)).isoformat(), 0),
+        )
+        for i in range(13, -1, -1)
+    ]
+
     return schemas.AdminStatsOut(
-        total_users=total_users,
+        total_users=len(users),
         total_records=len(records),
+        role_distribution=role_distribution,
+        new_users_last_7_days=new_users_last_7_days,
+        signup_trend=signup_trend,
         bmi_category_distribution=distribution([r.bmi_category for r in records]),
         bp_category_distribution=distribution([r.bp_category for r in records]),
         sugar_category_distribution=distribution([r.sugar_category for r in records]),

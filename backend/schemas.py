@@ -66,9 +66,17 @@ class AdminUsersOut(BaseModel):
     users: List[AdminUserOut]
 
 
+class SignupTrendPoint(BaseModel):
+    date: str
+    count: int
+
+
 class AdminStatsOut(BaseModel):
     total_users: int
     total_records: int
+    role_distribution: Dict[str, int] = {}
+    new_users_last_7_days: int = 0
+    signup_trend: List[SignupTrendPoint] = []
     bmi_category_distribution: Dict[str, int] = {}
     bp_category_distribution: Dict[str, int] = {}
     sugar_category_distribution: Dict[str, int] = {}

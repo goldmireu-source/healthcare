@@ -1,6 +1,35 @@
 # 마이 헬스 로그 API
 
-매일 기록하는 몸무게·혈압·혈당 같은 건강 수치를 던져주면, 서버가 BMI를 계산하고 건강 상태를 분류하고 필요한 경고까지 알려주는 개인용 건강 기록 API입니다. 기록이 쌓이면 통계와 주간 리포트로 변화 추이도 확인할 수 있습니다.
+매일 기록하는 몸무게·혈압·혈당 같은 건강 수치를 던져주면, 서버가 BMI를 계산하고 건강 상태를 분류하고 필요한 경고까지 알려주는 개인용 건강 기록 API입니다. 기록이 쌓이면 통계와 주간 리포트로 변화 추이도 확인할 수 있고, 회원가입/로그인 기반으로 사용자별 데이터가 분리되며, 관리자 전용 대시보드도 별도로 제공됩니다.
+
+## 폴더 구조
+
+여러 사람이 각자 백엔드/프론트엔드를 나눠 맡는 상황을 가정해 폴더를 분리했습니다. **API 로직을 만질 때는 `backend/`만, 화면을 만질 때는 `frontend/`만 보면 됩니다.**
+
+```text
+healthcare/
+├── backend/                # FastAPI 서버 (Python) — API 담당자가 보는 영역
+│   ├── main.py             #   앱 진입점, 라우트 전체 (엔드포인트 목록은 아래 참고)
+│   ├── auth.py             #   비밀번호 해시(PBKDF2), 세션 발급/검증, 관리자 권한 체크
+│   ├── models.py            #   SQLAlchemy ORM (User/Session/HealthRecord/Goal/AuditLog)
+│   ├── schemas.py           #   Pydantic 요청/응답 모델
+│   ├── database.py          #   DB 연결 설정 (SQLite, ../data/health_log.db)
+│   ├── health_logic.py      #   BMI/혈압/혈당 계산·분류·경고·활동량·수면 로직
+│   ├── promote_admin.py     #   [로컬 전용] 기존 계정을 관리자로 승격하는 CLI 스크립트
+│   ├── seed_demo_data.py    #   [로컬 전용] 데모 시연용 사용자/기록 생성 스크립트
+│   ├── requirements.txt
+│   └── venv/                #   (git에 포함 안 됨, 로컬에서 생성)
+├── frontend/
+│   └── static/              # 화면 담당자가 보는 영역 — 별도 빌드 없는 순수 HTML/CSS/JS
+│       ├── index.html       #   일반 사용자 화면 (/app/)
+│       └── admin.html       #   관리자 대시보드 (/app/admin.html, index.html과 완전 분리)
+├── data/                    # sqlite 파일 저장 위치 (git에 포함 안 됨, 런타임에 생성)
+├── Dockerfile               # backend/, frontend/를 그대로 담아 이미지 빌드
+├── PROJECT_CONTEXT.md       # 작업 이력/설계 결정 기록 (세션 간 인수인계용)
+└── README.md
+```
+
+`backend/`와 `frontend/`는 항상 서로 형제 폴더이며(로컬 저장소·Docker 이미지 내부 모두 동일), `main.py`와 `database.py`는 이 배치를 `__file__` 기준 상대경로로 찾으므로 **uvicorn을 어디서 실행하든** (backend 폴더 안에서든, 다른 곳에서든) 같은 정적 파일/DB를 가리킵니다.
 
 ## 기능 목록
 
@@ -9,7 +38,7 @@
 | 메서드 · 경로 | 설명 |
 |---|---|
 | `POST /records` | 건강 기록 추가. 저장 후 BMI·분류·경고를 계산해 응답 |
-| `GET /records` | 전체 기록 조회 (개수 포함, `username` 쿼리로 필터 가능) |
+| `GET /records` | 로그인한 사용자의 전체 기록 조회 (개수 포함) |
 | `GET /records/{id}` | 기록 하나 조회. 없으면 404 |
 | `PUT /records/{id}` | 기록 수정 (수정 시 BMI/분류/경고 재계산) |
 | `DELETE /records/{id}` | 기록 삭제 |
@@ -24,32 +53,48 @@
 | `GET /goals` | 최신 기록 기준 목표 달성 여부 조회 |
 | `GET /reports/weekly` | 최근 7일 평균 vs 지난주 평균 비교 |
 
-또한 모든 기록 응답에는 걸음 수 기반 **활동량 등급**(`activity_level`: 부족/적정/우수)과 수면 시간 기반 **수면 분석**(`sleep_status`: 부족/적정/과다)이 자동으로 포함됩니다. `username` 필드로 여러 사용자의 기록을 분리해서 관리할 수 있습니다 (미지정 시 `default` 사용자로 처리).
+또한 모든 기록 응답에는 걸음 수 기반 **활동량 등급**(`activity_level`: 부족/적정/우수)과 수면 시간 기반 **수면 분석**(`sleep_status`: 부족/적정/과다)이 자동으로 포함됩니다.
 
-### 인증
+### 인증 (회원가입/로그인/비밀번호 관리)
 
-회원가입 후 로그인해야 이용할 수 있습니다. 세션은 서버 DB에 저장되는 랜덤 토큰을 HttpOnly 쿠키로 전달하는 방식이며(JWT 아님, 로그아웃 시 서버에서 즉시 폐기됨), 비밀번호는 PBKDF2-HMAC-SHA256으로 해시하여 저장합니다(평문 저장 없음).
+세션은 서버 DB에 저장되는 랜덤 토큰을 HttpOnly 쿠키로 전달하는 방식이며(JWT 아님, 로그아웃 시 서버에서 즉시 폐기됨), 비밀번호는 PBKDF2-HMAC-SHA256으로 해시하여 저장합니다(평문 저장 없음).
 
 | 메서드·경로 | 설명 |
 |---|---|
-| POST /auth/signup | 회원가입 (아이디 3자 이상 영문/숫자/`_`, 비밀번호 6자 이상) 후 자동 로그인 |
-| POST /auth/login | 로그인 |
-| POST /auth/logout | 로그아웃 (서버 세션 폐기) |
-| GET /auth/me | 현재 로그인 사용자 정보 |
+| `POST /auth/signup` | 회원가입 (아이디 3자 이상 영문/숫자/`_`, 비밀번호 6자 이상, 보안질문/답 필수) 후 자동 로그인. **role은 항상 "user"로 고정 생성** — API로는 절대 관리자가 될 수 없음 |
+| `POST /auth/login` | 로그인 |
+| `POST /auth/logout` | 로그아웃 (서버 세션 폐기) |
+| `GET /auth/me` | 현재 로그인 사용자 정보 (`role` 포함) |
+| `GET /auth/security-question?username=` | 비밀번호 찾기 1단계 — 등록된 보안질문 조회 |
+| `POST /auth/reset-password` | 비밀번호 찾기 2단계 — 보안질문 답 확인 후 재설정 (기존 세션 전부 무효화) |
+| `POST /auth/change-password` | 로그인 상태에서 비밀번호 변경 (현재 세션은 유지, 다른 기기 세션만 무효화) |
+| `DELETE /auth/me` | 본인 계정 탈퇴 (비밀번호 재확인 필요, 기록/목표/세션 cascade 삭제) |
 
 모든 `/records`, `/search`, `/stats`, `/goals`, `/reports/weekly` 요청은 로그인이 필요하며, **로그인한 사용자 본인의 데이터만** 조회·수정·삭제할 수 있습니다.
 
-### 사용자용 웹 화면
+### 관리자 기능
 
-`/docs`는 개발자용 API 테스트 도구이고, 실제 서비스처럼 사용할 수 있는 화면은 **`/app`** 에 따로 있습니다. 별도 프레임워크·빌드 과정 없이 순수 HTML/CSS/JS 한 페이지로 만들어 기존 REST API를 그대로 호출합니다.
+계정에는 `role`("user" 기본값 / "admin")이 있습니다. **회원가입으로는 절대 관리자가 될 수 없고**, 기존 계정을 관리자로 승격하려면 서버에 접근 가능한 사람이 로컬에서 `promote_admin.py <username>`을 직접 실행해야 합니다 (API로 노출되지 않음).
 
-- 기록 입력 폼 + 최신 측정값 요약(BMI/혈압/혈당/활동량/수면 상태를 색상으로 표시)
-- 전체 기록 조회·날짜 검색·수정·삭제
-- 통계 요약(평균값, 분류별 분포)
-- 목표 설정 및 달성 여부 확인
-- 주간 리포트(이번 주 vs 지난 주 비교)
+| 메서드·경로 | 설명 |
+|---|---|
+| `GET /admin/users` | 전체 사용자 목록. `search`(아이디 부분검색), `role`(user/admin 필터), `sort_by`/`sort_dir`(id·username·created_at·record_count), `page`/`page_size` 지원 |
+| `GET /admin/stats` | 시스템 전체 통계 — 총 사용자/기록 수, role 분포, 최근 7일 신규가입, 최근 14일 가입 추이, 전체 사용자 BMI/혈압/혈당 분포 |
+| `GET /admin/users/{id}/records` | 특정 사용자의 건강기록 조회 (읽기 전용, 고객지원용) |
+| `POST /admin/users/{id}/force-logout` | 계정은 유지한 채 해당 사용자의 모든 세션만 무효화 |
+| `DELETE /admin/users/{id}` | 계정 삭제 (기록/목표/세션 cascade 삭제) |
+| `GET /admin/audit-log` | 관리자 조치 이력 (계정 삭제·강제 로그아웃 — 누가/언제/누구에게) |
 
-루트(`/`)로 접속하면 자동으로 `/app`으로 이동합니다.
+위 엔드포인트는 전부 관리자 권한이 없으면 403을 반환합니다. 자기 자신을 대상으로 한 강제 로그아웃/계정 삭제는 실수 방지를 위해 400으로 막혀 있습니다.
+
+### 화면 (별도 빌드 없는 순수 HTML/CSS/JS)
+
+`/docs`는 개발자용 API 테스트 도구이고, 실제 화면은 두 개로 **완전히 분리**되어 있습니다 — 서로를 리다이렉트하거나 링크하지 않으며, 각자 독립적으로 로그인 상태를 확인합니다.
+
+- **`/app/`** — 일반 사용자 화면. 기록 입력/조회/검색/수정/삭제, 통계, 목표, 주간 리포트, 계정 설정(비밀번호 변경/탈퇴), 비밀번호 찾기
+- **`/app/admin.html`** — 관리자 대시보드. 사이드바 네비게이션(개요 / 사용자 관리 / 감사 로그), KPI 카드, 가입 추이 차트, 분류별 분포, 검색/정렬/필터가 되는 사용자 테이블, 사용자별 기록 조회 드로어, 강제 로그아웃/계정 삭제, 감사 로그. **이 화면 자체에 독립적인 로그인 폼이 있어** 유저 화면을 거치지 않고 바로 접속·로그인합니다.
+
+루트(`/`)로 접속하면 자동으로 `/app/`으로 이동합니다.
 
 ### 분류 기준 (학습용으로 단순화된 값이며 실제 의학적 진단이 아닙니다)
 
@@ -63,32 +108,41 @@
 - **SQLAlchemy + SQLite** — 파일 기반 DB (컨테이너/서버 재시작해도 데이터 유지)
 - **Pydantic v2** — 요청/응답 데이터 검증
 - **Docker** — 컨테이너 실행
-- **HTML/CSS/JS (Vanilla)** — 사용자용 웹 화면 (`/app`, 별도 빌드 불필요)
+- **HTML/CSS/JS (Vanilla)** — 사용자/관리자 화면, 별도 빌드 불필요
 
 ### DB 테이블 구조
 
-- `users` — 계정 (`username`, `password_hash`, `password_salt`)
+- `users` — 계정 (`username`, `password_hash`/`password_salt`, `role`, `security_question`/`security_answer_hash`/`security_answer_salt`)
 - `sessions` — 로그인 세션 토큰 (쿠키에는 토큰만 저장, 실제 정보는 서버 DB에)
 - `health_records` — 건강 기록 원본 값 + 서버가 계산한 BMI/분류/경고/활동량/수면 상태
 - `goals` — 사용자별 목표 체중/혈압/혈당
+- `audit_logs` — 관리자 조치 이력 (대상 계정이 삭제돼도 이력은 남도록 username을 문자열로 저장)
 
 ## 실행 방법
-
-> ⚠️ 인증 기능 추가로 `users` 테이블 구조가 바뀌었습니다. 이전 버전으로 실행해서 생긴
-> `data/health_log.db` 파일이 있다면 **삭제 후** 아래를 진행하세요 (재생성됩니다).
 
 ### 로컬 실행
 
 ```bash
+cd backend
 python3 -m venv venv
 source venv/bin/activate      # Windows: venv\Scripts\activate
 pip install -r requirements.txt
 uvicorn main:app --reload
 ```
 
-브라우저에서 http://127.0.0.1:8000 (자동으로 `/app`으로 이동, 실제 사용 화면) 또는 http://127.0.0.1:8000/docs (API 테스트) 접속 후 확인합니다.
+브라우저에서 http://127.0.0.1:8000 (자동으로 `/app/`으로 이동) · http://127.0.0.1:8000/app/admin.html (관리자) · http://127.0.0.1:8000/docs (API 테스트) 접속.
 
-### Docker 실행
+첫 관리자 계정 만들기:
+
+```bash
+# 1) /app/ 에서 회원가입으로 계정을 하나 만든 뒤
+# 2) backend/ 안에서:
+python promote_admin.py <username>
+```
+
+데모 시연용 더미데이터가 필요하면 `backend/` 안에서 `python seed_demo_data.py` 실행 (일반 사용자 12명 + 2주치 건강기록/목표 생성, 기존 계정은 건드리지 않음).
+
+### Docker 실행 (리포 루트에서)
 
 ```bash
 docker build -t health-log-api .
@@ -97,7 +151,7 @@ docker run -d -p 8000:8000 -v $(pwd)/data:/app/data --name health-log-api health
 
 http://localhost:8000 (웹 화면) 또는 http://localhost:8000/docs (API 문서) 접속.
 
-> `-v $(pwd)/data:/app/data` 로 볼륨을 연결하면 컨테이너를 재생성해도 sqlite 데이터가 유지됩니다.
+> `-v $(pwd)/data:/app/data` 로 볼륨을 연결하면 컨테이너를 재생성해도 sqlite 데이터가 유지됩니다. Windows Git Bash에서는 백슬래시 경로(`F:\...`)가 아니라 슬래시 경로(`F:/...`)를 써야 합니다.
 
 ## 배포 접속 URL
 

@@ -1,0 +1,883 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>관리자 대시보드 · 마이 헬스 로그</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=IBM+Plex+Sans+KR:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#1B2430;
+    --paper:#EFF2F1;
+    --card:#FFFFFF;
+    --line:#D8DDD9;
+    --teal:#2F6F5E;
+    --teal-soft:#E4EEEB;
+    --amber:#C98A2E;
+    --amber-soft:#F6EADA;
+    --brick:#C1443D;
+    --brick-soft:#F5E1DF;
+    --muted:#6B7680;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;height:100%;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'IBM Plex Sans KR', sans-serif;
+    line-height:1.5;
+  }
+
+  /* ---------- 로그인 화면 ---------- */
+  #admin-login-screen label{display:block;font-size:12px;color:var(--muted);margin-bottom:5px;}
+  #admin-login-screen input{
+    width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:7px;font-size:14px;
+    font-family:'IBM Plex Sans KR', sans-serif;
+  }
+  .auth-error{color:var(--brick);font-size:12px;margin-top:12px;min-height:14px;}
+
+  /* ---------- 대시보드 셸 (사이드바 + 컨텐츠) ---------- */
+  .shell{display:flex;min-height:100vh;}
+  .sidebar{
+    width:216px;flex-shrink:0;background:var(--card);border-right:1px solid var(--line);
+    display:flex;flex-direction:column;padding:24px 0;position:sticky;top:0;height:100vh;
+  }
+  .sidebar .brand{
+    font-family:'Fraunces', serif;font-weight:600;font-size:17px;padding:0 22px 20px;
+    border-bottom:1px solid var(--line);margin-bottom:14px;
+  }
+  .sidebar .brand small{
+    display:block;font-family:'IBM Plex Mono', monospace;font-size:10px;color:var(--muted);
+    text-transform:uppercase;letter-spacing:0.07em;margin-top:5px;
+  }
+  nav.side-nav{display:flex;flex-direction:column;}
+  .nav-item{
+    display:flex;align-items:center;gap:8px;width:100%;text-align:left;padding:11px 22px;
+    border:none;background:none;cursor:pointer;font-size:14px;color:var(--muted);
+    font-family:'IBM Plex Sans KR', sans-serif;border-left:3px solid transparent;
+  }
+  .nav-item:hover{color:var(--ink);background:var(--paper);}
+  .nav-item.active{color:var(--ink);font-weight:600;border-left-color:var(--teal);background:var(--paper);}
+  .sidebar-footer{margin-top:auto;padding:16px 22px 0;border-top:1px solid var(--line);}
+  .content{flex:1;padding:26px 32px 60px;min-width:0;}
+  .topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;gap:12px;flex-wrap:wrap;}
+  .topbar h1{font-family:'Fraunces', serif;font-weight:600;font-size:26px;margin:0;}
+  .user-switch{display:flex;align-items:center;gap:8px;}
+  .user-switch span{font-size:13px;color:var(--muted);}
+
+  .view{display:none;}
+  .view.active{display:block;}
+
+  .card{
+    background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:20px 22px;
+  }
+  .card h2{
+    font-family:'Fraunces', serif;font-weight:600;font-size:16px;margin:0 0 14px;
+    display:flex;align-items:baseline;gap:8px;justify-content:space-between;
+  }
+  .card h2 .title-group{display:flex;align-items:baseline;gap:8px;}
+  .card h2 .eyebrow{
+    font-family:'IBM Plex Mono', monospace;font-size:11px;color:var(--muted);
+    letter-spacing:0.06em;text-transform:uppercase;
+  }
+
+  .btn{
+    padding:8px 16px;border-radius:7px;border:none;cursor:pointer;font-size:13px;
+    font-weight:500;font-family:'IBM Plex Sans KR', sans-serif;
+  }
+  .btn-primary{background:var(--teal);color:#fff;}
+  .btn-primary:hover{background:#265b4d;}
+  .btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--line);}
+  .btn-ghost:hover{border-color:var(--muted);}
+  .btn-danger{background:var(--brick);color:#fff;}
+  .btn-danger:hover{background:#a3352f;}
+
+  table{width:100%;border-collapse:collapse;font-size:13px;}
+  thead th{
+    text-align:left;font-size:11px;color:var(--muted);text-transform:uppercase;
+    letter-spacing:0.03em;border-bottom:1px solid var(--line);padding:8px 6px;font-weight:500;
+  }
+  thead th.sortable{cursor:pointer;user-select:none;}
+  thead th.sortable:hover{color:var(--ink);}
+  .sort-indicator{margin-left:3px;font-size:9px;color:var(--teal);}
+  tbody td{padding:10px 6px;border-bottom:1px solid var(--line);vertical-align:middle;}
+  tbody tr:last-child td{border-bottom:none;}
+  .badge{display:inline-block;padding:3px 8px;border-radius:20px;font-size:11px;font-weight:500;}
+  .badge.good{background:var(--teal-soft);color:var(--teal);}
+  .badge.warn{background:var(--amber-soft);color:var(--amber);}
+  .badge.bad{background:var(--brick-soft);color:var(--brick);}
+  .badge.neutral{background:var(--paper);color:var(--muted);}
+  .row-actions button{
+    font-size:11px;padding:4px 9px;border-radius:5px;border:1px solid var(--line);
+    background:#fff;cursor:pointer;color:var(--muted);margin-right:4px;
+  }
+  .row-actions button:hover{border-color:var(--brick);color:var(--brick);}
+  .empty-note{color:var(--muted);font-size:13px;padding:16px 4px;}
+
+  .search-bar{display:flex;gap:10px;align-items:flex-end;margin-bottom:16px;flex-wrap:wrap;}
+  .search-bar div{display:flex;flex-direction:column;gap:5px;}
+  .search-bar label{font-size:12px;color:var(--muted);}
+  .search-bar input, .search-bar select{
+    padding:8px 9px;border:1px solid var(--line);border-radius:7px;font-family:'IBM Plex Mono', monospace;
+    font-size:13px;min-width:170px;background:#fff;
+  }
+  .pagination{display:flex;align-items:center;gap:12px;margin-top:14px;font-size:12px;color:var(--muted);}
+
+  /* ---------- KPI ---------- */
+  .kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px;}
+  .kpi-card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 18px;}
+  .kpi-card .l{font-size:11px;color:var(--muted);letter-spacing:0.02em;margin-bottom:8px;}
+  .kpi-card .v{font-family:'IBM Plex Mono', monospace;font-size:26px;font-weight:600;}
+  .kpi-card .d{font-size:11px;margin-top:6px;color:var(--muted);}
+
+  .panel-row{display:grid;grid-template-columns:1.6fr 1fr;gap:16px;margin-bottom:20px;align-items:stretch;}
+  .panel-row.thirds{grid-template-columns:repeat(3,1fr);}
+
+  /* ---------- 가입 추이 차트 ---------- */
+  .trend-summary{font-size:12px;color:var(--muted);margin-bottom:10px;}
+  .trend-chart-wrap{position:relative;}
+  .trend-chart{width:100%;height:130px;display:block;}
+  .trend-bar{fill:var(--teal);cursor:pointer;}
+  .trend-bar:hover{fill:#265b4d;}
+  #chart-tooltip{
+    position:fixed;background:var(--ink);color:#fff;font-size:11px;padding:5px 9px;border-radius:6px;
+    pointer-events:none;z-index:1000;opacity:0;transition:opacity 0.1s;white-space:nowrap;
+  }
+  #chart-tooltip strong{font-family:'IBM Plex Mono', monospace;}
+
+  /* ---------- 분포 패널 ---------- */
+  .dist-row{display:flex;align-items:center;gap:8px;margin-top:6px;font-size:12px;}
+  .dist-label{width:74px;flex-shrink:0;}
+  .dist-bar{flex:1;height:8px;background:var(--paper);border-radius:4px;overflow:hidden;}
+  .dist-bar span{display:block;height:100%;}
+  .dist-bar span.good{background:var(--teal);}
+  .dist-bar span.warn{background:var(--amber);}
+  .dist-bar span.bad{background:var(--brick);}
+  .dist-bar span.neutral{background:var(--muted);}
+  .dist-count{color:var(--muted);width:22px;text-align:right;flex-shrink:0;}
+
+  /* ---------- 최근 활동 ---------- */
+  .activity-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px dashed var(--line);font-size:12px;}
+  .activity-row:last-child{border-bottom:none;}
+  .activity-detail{flex:1;color:var(--ink);}
+  .activity-time{color:var(--muted);font-family:'IBM Plex Mono', monospace;font-size:11px;}
+
+  /* ---------- 드로어 (사용자 기록 보기) ---------- */
+  .drawer-overlay{
+    position:fixed;inset:0;background:rgba(27,36,48,0.4);z-index:850;
+    display:flex;justify-content:flex-end;
+  }
+  .drawer{
+    width:min(560px,92vw);background:var(--card);height:100%;overflow-y:auto;
+    padding:26px 24px;box-shadow:-10px 0 30px rgba(0,0,0,0.18);
+  }
+  .drawer h3{
+    font-family:'Fraunces', serif;font-weight:600;font-size:19px;margin:0 0 18px;
+    display:flex;justify-content:space-between;align-items:center;gap:12px;
+  }
+
+  /* ---------- 모달 (커스텀 확인창) ---------- */
+  .modal-overlay{
+    position:fixed;inset:0;background:rgba(27,36,48,0.45);
+    display:flex;align-items:center;justify-content:center;z-index:900;padding:20px;
+  }
+  .modal-box{
+    background:var(--card);border-radius:12px;padding:24px;max-width:400px;width:100%;
+    box-shadow:0 12px 40px rgba(0,0,0,0.2);
+  }
+  .modal-box h3{font-family:'Fraunces', serif;font-weight:600;font-size:18px;margin:0 0 16px;}
+  .modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:18px;}
+
+  /* ---------- 토스트 ---------- */
+  #toast-box{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:999;display:flex;flex-direction:column;gap:8px;align-items:center;}
+  .toast{
+    padding:10px 18px;border-radius:8px;font-size:13px;color:#fff;background:var(--ink);
+    box-shadow:0 6px 20px rgba(0,0,0,0.15);opacity:0;transform:translateY(8px);
+    animation:toast-in 0.2s ease forwards;
+  }
+  .toast.success{background:var(--teal);}
+  .toast.error{background:var(--brick);}
+  @keyframes toast-in{ to{opacity:1;transform:translateY(0);} }
+
+  @media (max-width:900px){
+    .shell{flex-direction:column;}
+    .sidebar{
+      width:100%;height:auto;position:static;flex-direction:row;align-items:center;
+      padding:10px 14px;overflow-x:auto;gap:6px;
+    }
+    .sidebar .brand{display:none;}
+    .side-nav{flex-direction:row;}
+    .nav-item{border-left:none;border-bottom:3px solid transparent;padding:9px 12px;white-space:nowrap;}
+    .nav-item.active{border-left:none;border-bottom-color:var(--teal);}
+    .sidebar-footer{margin:0 0 0 auto;padding:0;border:none;}
+    .content{padding:20px 16px 50px;}
+    .kpi-row{grid-template-columns:1fr 1fr;}
+    .panel-row, .panel-row.thirds{grid-template-columns:1fr;}
+  }
+</style>
+</head>
+<body>
+<div id="toast-box"></div>
+<div id="chart-tooltip"></div>
+
+<!-- 관리자 자체 로그인 화면 (유저 페이지와 완전히 분리됨) -->
+<section id="admin-login-screen" style="display:none;padding:40px 20px;">
+  <div class="card" style="max-width:380px;margin:60px auto 0;">
+    <h2 style="margin:0 0 20px;"><span class="eyebrow">Admin</span> 관리자 로그인</h2>
+    <form id="admin-login-form" onsubmit="doAdminLogin(event)">
+      <div style="margin-bottom:12px;">
+        <label>아이디</label>
+        <input type="text" id="admin-login-username" required autocomplete="username" />
+      </div>
+      <div style="margin-bottom:16px;">
+        <label>비밀번호</label>
+        <input type="password" id="admin-login-password" required autocomplete="current-password" />
+      </div>
+      <button type="submit" class="btn btn-primary" style="width:100%;">로그인</button>
+    </form>
+    <div id="admin-auth-error" class="auth-error"></div>
+  </div>
+</section>
+
+<!-- 대시보드 셸 -->
+<div id="dashboard-shell" class="shell" style="display:none;">
+  <aside class="sidebar">
+    <div class="brand">마이 헬스 로그<small>ADMIN CONSOLE</small></div>
+    <nav class="side-nav">
+      <button class="nav-item active" data-view="overview" onclick="switchView('overview')">개요</button>
+      <button class="nav-item" data-view="users" onclick="switchView('users')">사용자 관리</button>
+      <button class="nav-item" data-view="audit" onclick="switchView('audit')">감사 로그</button>
+    </nav>
+    <div class="sidebar-footer">
+      <span id="server-status" class="badge neutral">서버 상태 확인 중</span>
+    </div>
+  </aside>
+
+  <main class="content">
+    <header class="topbar">
+      <h1 id="view-title">개요</h1>
+      <div class="user-switch">
+        <span id="whoami-text"></span>
+        <button class="btn btn-ghost" onclick="logout()">로그아웃</button>
+      </div>
+    </header>
+
+    <!-- ---------- 개요 ---------- -->
+    <section id="view-overview" class="view active">
+      <div class="kpi-row" id="kpi-row">
+        <div class="kpi-card"><div class="l">총 사용자 수</div><div class="v">-</div></div>
+        <div class="kpi-card"><div class="l">총 건강기록 수</div><div class="v">-</div></div>
+        <div class="kpi-card"><div class="l">최근 7일 신규가입</div><div class="v">-</div></div>
+        <div class="kpi-card"><div class="l">감사 로그 건수</div><div class="v">-</div></div>
+      </div>
+
+      <div class="panel-row">
+        <div class="card">
+          <h2><span class="title-group"><span class="eyebrow">Trend</span> 가입 추이 (최근 14일)</span></h2>
+          <div class="trend-summary" id="trend-summary">불러오는 중...</div>
+          <div class="trend-chart-wrap" id="trend-chart-wrap">
+            <svg class="trend-chart" id="trend-chart" viewBox="0 0 560 130" preserveAspectRatio="none"></svg>
+          </div>
+        </div>
+        <div class="card">
+          <h2><span class="eyebrow">Recent</span> 최근 활동</h2>
+          <div id="recent-activity-body"><span style="color:var(--muted);font-size:13px;">불러오는 중...</span></div>
+          <button class="btn btn-ghost" style="margin-top:12px;width:100%;" onclick="switchView('audit')">전체 감사 로그 보기</button>
+        </div>
+      </div>
+
+      <div class="panel-row thirds">
+        <div class="card" id="dist-bmi-card"></div>
+        <div class="card" id="dist-bp-card"></div>
+        <div class="card" id="dist-sugar-card"></div>
+      </div>
+    </section>
+
+    <!-- ---------- 사용자 관리 ---------- -->
+    <section id="view-users" class="view">
+      <div class="card">
+        <h2><span class="eyebrow">Users</span> 전체 사용자</h2>
+        <div class="search-bar">
+          <div>
+            <label>아이디 검색</label>
+            <input type="text" id="user-search" placeholder="아이디 일부 입력" oninput="onSearchInput()" />
+          </div>
+          <div>
+            <label>권한</label>
+            <select id="role-filter" onchange="onRoleFilterChange()">
+              <option value="">전체</option>
+              <option value="user">일반 사용자</option>
+              <option value="admin">관리자</option>
+            </select>
+          </div>
+          <button class="btn btn-ghost" onclick="resetFilters()">초기화</button>
+        </div>
+        <div style="overflow-x:auto;">
+          <table>
+            <thead>
+              <tr>
+                <th class="sortable" onclick="setSort('id')">ID<span class="sort-indicator" id="sort-id"></span></th>
+                <th class="sortable" onclick="setSort('username')">아이디<span class="sort-indicator" id="sort-username"></span></th>
+                <th>권한</th>
+                <th class="sortable" onclick="setSort('created_at')">가입일<span class="sort-indicator" id="sort-created_at"></span></th>
+                <th class="sortable" onclick="setSort('record_count')">기록 수<span class="sort-indicator" id="sort-record_count"></span></th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="users-body"></tbody>
+          </table>
+        </div>
+        <div id="users-empty" class="empty-note" style="display:none;">조건에 맞는 사용자가 없습니다.</div>
+        <div class="pagination" id="pagination-box" style="display:none;">
+          <button class="btn btn-ghost" onclick="prevPage()">← 이전</button>
+          <span id="page-indicator"></span>
+          <button class="btn btn-ghost" onclick="nextPage()">다음 →</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ---------- 감사 로그 ---------- -->
+    <section id="view-audit" class="view">
+      <div class="card">
+        <h2><span class="eyebrow">Audit</span> 관리자 활동 로그</h2>
+        <div class="search-bar">
+          <div>
+            <label>조치 유형</label>
+            <select id="audit-filter" onchange="onAuditFilterChange()">
+              <option value="">전체</option>
+              <option value="delete_user">계정 삭제</option>
+              <option value="force_logout">강제 로그아웃</option>
+            </select>
+          </div>
+        </div>
+        <div style="overflow-x:auto;">
+          <table>
+            <thead>
+              <tr><th>시각</th><th>관리자</th><th>조치</th><th>대상</th><th>비고</th></tr>
+            </thead>
+            <tbody id="audit-body"></tbody>
+          </table>
+        </div>
+        <div id="audit-empty" class="empty-note" style="display:none;">아직 활동 로그가 없습니다.</div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- 사용자 기록 드로어 -->
+<div class="drawer-overlay" id="user-drawer-overlay" style="display:none;" onclick="closeUserRecords()">
+  <div class="drawer" onclick="event.stopPropagation()">
+    <h3><span id="user-drawer-title"></span><button class="btn btn-ghost" onclick="closeUserRecords()">닫기</button></h3>
+    <div style="overflow-x:auto;">
+      <table>
+        <thead>
+          <tr><th>날짜</th><th>체중/BMI</th><th>혈압</th><th>혈당</th><th>활동/수면</th></tr>
+        </thead>
+        <tbody id="user-records-body"></tbody>
+      </table>
+    </div>
+    <div id="user-records-empty" class="empty-note" style="display:none;">기록이 없습니다.</div>
+  </div>
+</div>
+
+<!-- 커스텀 확인 모달 (native confirm() 대체) -->
+<div class="modal-overlay" id="confirm-modal" style="display:none;">
+  <div class="modal-box">
+    <h3 id="confirm-modal-title">확인</h3>
+    <p id="confirm-modal-message" style="font-size:13px;color:var(--muted);margin:0;"></p>
+    <div class="modal-actions">
+      <button type="button" class="btn btn-ghost" id="confirm-modal-cancel">취소</button>
+      <button type="button" class="btn btn-danger" id="confirm-modal-ok">확인</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let adminUsername = null;
+let currentPage = 1;
+const PAGE_SIZE = 10;
+let currentSearch = '';
+let currentRoleFilter = '';
+let currentSortBy = 'id';
+let currentSortDir = 'asc';
+let searchDebounce = null;
+let auditLogCache = [];
+
+const VIEW_TITLES = {overview: '개요', users: '사용자 관리', audit: '감사 로그'};
+
+function toast(message, type){
+  const box = document.getElementById('toast-box');
+  const el = document.createElement('div');
+  el.className = 'toast' + (type ? ' ' + type : '');
+  el.textContent = message;
+  box.appendChild(el);
+  setTimeout(() => el.remove(), 3200);
+}
+
+function statusClass(cat){
+  const good = ['정상','적정','우수'];
+  const warn = ['주의','과체중','공복혈당장애','부족','과다','저체중'];
+  const bad = ['고혈압','비만','당뇨 의심'];
+  if(good.includes(cat)) return 'good';
+  if(warn.includes(cat)) return 'warn';
+  if(bad.includes(cat)) return 'bad';
+  return 'neutral';
+}
+
+function escapeAttr(s){
+  return String(s).replace(/'/g, "\\'");
+}
+
+// ---------- 인증 ----------
+async function checkAdmin(){
+  try{
+    const res = await fetch('/auth/me', {credentials:'same-origin'});
+    if(!res.ok){ showAdminLogin(); return; }
+    const user = await res.json();
+    if(user.role !== 'admin'){
+      // 이 페이지는 유저 페이지와 완전히 분리되어 있음 - 관리자가 아닌 세션이면
+      // 다른 페이지로 보내지 않고 이 화면에서 바로 로그인하도록 세션만 정리
+      await fetch('/auth/logout', {method:'POST', credentials:'same-origin'});
+      showAdminLogin();
+      document.getElementById('admin-auth-error').textContent = '관리자 계정으로 로그인해주세요.';
+      return;
+    }
+    enterDashboard(user);
+  }catch(e){
+    showAdminLogin();
+  }
+}
+
+function showAdminLogin(){
+  document.getElementById('admin-login-screen').style.display = 'block';
+  document.getElementById('dashboard-shell').style.display = 'none';
+  document.getElementById('admin-login-form').reset();
+  document.getElementById('admin-auth-error').textContent = '';
+}
+
+function enterDashboard(user){
+  adminUsername = user.username;
+  document.getElementById('admin-login-screen').style.display = 'none';
+  document.getElementById('dashboard-shell').style.display = 'flex';
+  document.getElementById('whoami-text').textContent = `${user.username}님`;
+  switchView('overview');
+  loadHealthStatus();
+  loadStats();
+  loadUsers();
+  loadAuditLog();
+}
+
+async function doAdminLogin(ev){
+  ev.preventDefault();
+  const username = document.getElementById('admin-login-username').value.trim();
+  const password = document.getElementById('admin-login-password').value;
+  const errEl = document.getElementById('admin-auth-error');
+  errEl.textContent = '';
+  try{
+    const res = await fetch('/auth/login', {
+      method:'POST', credentials:'same-origin',
+      headers:{'Content-Type':'application/json'}, body: JSON.stringify({username, password}),
+    });
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.detail || '로그인에 실패했습니다.');
+    if(data.role !== 'admin'){
+      await fetch('/auth/logout', {method:'POST', credentials:'same-origin'});
+      errEl.textContent = '관리자 계정이 아닙니다. 일반 사용자는 유저 페이지를 이용해주세요.';
+      return;
+    }
+    enterDashboard(data);
+  }catch(e){
+    errEl.textContent = e.message;
+  }
+}
+
+async function logout(){
+  try{ await fetch('/auth/logout', {method:'POST', credentials:'same-origin'}); }catch(e){ /* 무시 */ }
+  toast('로그아웃되었습니다.');
+  showAdminLogin();
+}
+
+// ---------- 커스텀 확인 모달 ----------
+function customConfirm(message, title){
+  return new Promise(resolve => {
+    const modal = document.getElementById('confirm-modal');
+    document.getElementById('confirm-modal-title').textContent = title || '확인';
+    document.getElementById('confirm-modal-message').textContent = message;
+    modal.style.display = 'flex';
+    const okBtn = document.getElementById('confirm-modal-ok');
+    const cancelBtn = document.getElementById('confirm-modal-cancel');
+    function cleanup(result){
+      modal.style.display = 'none';
+      okBtn.removeEventListener('click', onOk);
+      cancelBtn.removeEventListener('click', onCancel);
+      resolve(result);
+    }
+    function onOk(){ cleanup(true); }
+    function onCancel(){ cleanup(false); }
+    okBtn.addEventListener('click', onOk);
+    cancelBtn.addEventListener('click', onCancel);
+  });
+}
+
+// ---------- 네비게이션 ----------
+function switchView(view){
+  document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
+  document.getElementById(`view-${view}`).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.toggle('active', el.dataset.view === view));
+  document.getElementById('view-title').textContent = VIEW_TITLES[view];
+}
+
+// ---------- 서버 상태 ----------
+async function loadHealthStatus(){
+  const el = document.getElementById('server-status');
+  try{
+    const res = await fetch('/health');
+    if(res.ok){
+      el.textContent = '● 서버 정상';
+      el.className = 'badge good';
+    }else{
+      el.textContent = '● 서버 응답 이상';
+      el.className = 'badge bad';
+    }
+  }catch(e){
+    el.textContent = '● 서버 응답 없음';
+    el.className = 'badge bad';
+  }
+}
+
+// ---------- 개요: KPI / 차트 / 분포 ----------
+function distHtml(title, dist){
+  const total = Object.values(dist).reduce((a,b)=>a+b,0) || 1;
+  const entries = Object.entries(dist);
+  if(entries.length === 0){
+    return `<h2><span class="eyebrow">Distribution</span> ${title}</h2><span class="empty-note">데이터 없음</span>`;
+  }
+  const rows = entries.map(([k,v]) => `
+      <div class="dist-row">
+        <span class="dist-label">${k}</span>
+        <div class="dist-bar"><span class="${statusClass(k)}" style="width:${(v/total*100).toFixed(0)}%"></span></div>
+        <span class="dist-count">${v}</span>
+      </div>`).join('');
+  return `<h2><span class="eyebrow">Distribution</span> ${title}</h2>${rows}`;
+}
+
+function renderKpis(s){
+  const adminCount = s.role_distribution.admin || 0;
+  const userCount = s.role_distribution.user || 0;
+  document.getElementById('kpi-row').innerHTML = `
+    <div class="kpi-card">
+      <div class="l">총 사용자 수</div><div class="v">${s.total_users}</div>
+      <div class="d">관리자 ${adminCount} · 일반 ${userCount}</div>
+    </div>
+    <div class="kpi-card"><div class="l">총 건강기록 수</div><div class="v">${s.total_records}</div></div>
+    <div class="kpi-card"><div class="l">최근 7일 신규가입</div><div class="v">${s.new_users_last_7_days}</div></div>
+    <div class="kpi-card"><div class="l">감사 로그 건수</div><div class="v" id="kpi-audit-count">-</div></div>
+  `;
+}
+
+function roundedTopBarPath(x, yTop, width, height, radius){
+  const r = Math.max(0, Math.min(radius, width / 2, height));
+  const yBottom = yTop + height;
+  if(height <= 0){ return `M ${x} ${yBottom} L ${x + width} ${yBottom} Z`; }
+  return `M ${x} ${yBottom} L ${x} ${yTop + r} Q ${x} ${yTop} ${x + r} ${yTop} ` +
+         `L ${x + width - r} ${yTop} Q ${x + width} ${yTop} ${x + width} ${yTop + r} L ${x + width} ${yBottom} Z`;
+}
+
+function renderTrendChart(points){
+  const svgEl = document.getElementById('trend-chart');
+  const W = 560, H = 130, padTop = 8, padBottom = 22;
+  const maxCount = Math.max(1, ...points.map(p => p.count));
+  const slot = W / points.length;
+  const barWidth = Math.min(24, slot - 4);
+  const chartHeight = H - padTop - padBottom;
+  const baselineY = padTop + chartHeight;
+
+  let bars = '';
+  points.forEach((p, i) => {
+    const x = i * slot + (slot - barWidth) / 2;
+    const barHeight = (p.count / maxCount) * chartHeight;
+    const yTop = baselineY - barHeight;
+    const path = roundedTopBarPath(x, yTop, barWidth, barHeight, 4);
+    bars += `<path d="${path}" class="trend-bar" data-date="${p.date}" data-count="${p.count}"></path>`;
+  });
+
+  svgEl.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  svgEl.innerHTML =
+    `<line x1="0" y1="${baselineY}" x2="${W}" y2="${baselineY}" style="stroke:var(--line);stroke-width:1"/>` + bars;
+
+  const total = points.reduce((a, p) => a + p.count, 0);
+  document.getElementById('trend-summary').textContent = `최근 14일간 총 ${total}명 가입`;
+}
+
+document.getElementById('trend-chart-wrap').addEventListener('pointermove', (e) => {
+  const bar = e.target.closest('.trend-bar');
+  const tooltip = document.getElementById('chart-tooltip');
+  if(!bar){ tooltip.style.opacity = '0'; return; }
+  const dateVal = bar.getAttribute('data-date');
+  const countVal = bar.getAttribute('data-count');
+  tooltip.textContent = '';
+  const strong = document.createElement('strong');
+  strong.textContent = `${countVal}명`;
+  tooltip.appendChild(strong);
+  tooltip.appendChild(document.createTextNode(` · ${dateVal.slice(5)}`));
+  tooltip.style.left = `${e.clientX + 14}px`;
+  tooltip.style.top = `${e.clientY - 30}px`;
+  tooltip.style.opacity = '1';
+});
+document.getElementById('trend-chart-wrap').addEventListener('pointerleave', () => {
+  document.getElementById('chart-tooltip').style.opacity = '0';
+});
+
+async function loadStats(){
+  try{
+    const res = await fetch('/admin/stats', {credentials:'same-origin'});
+    if(!res.ok) throw new Error((await res.json()).detail || '통계를 불러올 수 없습니다.');
+    const s = await res.json();
+    renderKpis(s);
+    renderTrendChart(s.signup_trend);
+    document.getElementById('dist-bmi-card').innerHTML = distHtml('BMI 분류 (전체 사용자)', s.bmi_category_distribution);
+    document.getElementById('dist-bp-card').innerHTML = distHtml('혈압 분류 (전체 사용자)', s.bp_category_distribution);
+    document.getElementById('dist-sugar-card').innerHTML = distHtml('혈당 분류 (전체 사용자)', s.sugar_category_distribution);
+  }catch(e){
+    toast(e.message, 'error');
+  }
+}
+
+// ---------- 최근 활동 / 감사 로그 ----------
+function actionLabel(action){
+  const map = {delete_user: '계정 삭제', force_logout: '강제 로그아웃'};
+  return map[action] || action;
+}
+
+function actionBadgeClass(action){
+  return action === 'delete_user' ? 'bad' : 'warn';
+}
+
+function renderRecentActivity(logs){
+  const el = document.getElementById('recent-activity-body');
+  if(logs.length === 0){
+    el.innerHTML = '<div class="empty-note">아직 활동 로그가 없습니다.</div>';
+    return;
+  }
+  el.innerHTML = logs.slice(0, 5).map(l => `
+    <div class="activity-row">
+      <span class="badge ${actionBadgeClass(l.action)}">${actionLabel(l.action)}</span>
+      <span class="activity-detail">${l.target_username || '-'}</span>
+      <span class="activity-time">${l.created_at ? l.created_at.replace('T',' ').slice(5,16) : '-'}</span>
+    </div>`).join('');
+}
+
+function renderAuditTable(logs){
+  const body = document.getElementById('audit-body');
+  const empty = document.getElementById('audit-empty');
+  if(logs.length === 0){
+    body.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+  body.innerHTML = logs.map(l => `
+    <tr>
+      <td>${l.created_at ? l.created_at.replace('T',' ').slice(0,19) : '-'}</td>
+      <td>${l.admin_username}</td>
+      <td><span class="badge ${actionBadgeClass(l.action)}">${actionLabel(l.action)}</span></td>
+      <td>${l.target_username || '-'}</td>
+      <td style="color:var(--muted);font-size:12px;">${l.detail || ''}</td>
+    </tr>`).join('');
+}
+
+function onAuditFilterChange(){
+  const filter = document.getElementById('audit-filter').value;
+  const filtered = filter ? auditLogCache.filter(l => l.action === filter) : auditLogCache;
+  renderAuditTable(filtered);
+}
+
+async function loadAuditLog(){
+  try{
+    const res = await fetch('/admin/audit-log', {credentials:'same-origin'});
+    if(!res.ok) throw new Error((await res.json()).detail || '활동 로그를 불러올 수 없습니다.');
+    const data = await res.json();
+    auditLogCache = data.logs;
+    renderAuditTable(auditLogCache);
+    renderRecentActivity(auditLogCache);
+    const kpiEl = document.getElementById('kpi-audit-count');
+    if(kpiEl) kpiEl.textContent = data.count;
+  }catch(e){
+    toast(e.message, 'error');
+  }
+}
+
+// ---------- 사용자 관리: 검색/필터/정렬/페이지네이션 ----------
+function roleBadgeClass(role){
+  return role === 'admin' ? 'good' : 'neutral';
+}
+
+function setSort(column){
+  if(currentSortBy === column){
+    currentSortDir = currentSortDir === 'asc' ? 'desc' : 'asc';
+  }else{
+    currentSortBy = column;
+    currentSortDir = 'asc';
+  }
+  updateSortIndicators();
+  loadUsers(1);
+}
+
+function updateSortIndicators(){
+  ['id','username','created_at','record_count'].forEach(col => {
+    const el = document.getElementById(`sort-${col}`);
+    if(!el) return;
+    el.textContent = col === currentSortBy ? (currentSortDir === 'asc' ? '▲' : '▼') : '';
+  });
+}
+
+function onSearchInput(){
+  clearTimeout(searchDebounce);
+  searchDebounce = setTimeout(() => {
+    currentSearch = document.getElementById('user-search').value.trim();
+    loadUsers(1);
+  }, 300);
+}
+
+function onRoleFilterChange(){
+  currentRoleFilter = document.getElementById('role-filter').value;
+  loadUsers(1);
+}
+
+function resetFilters(){
+  document.getElementById('user-search').value = '';
+  document.getElementById('role-filter').value = '';
+  currentSearch = '';
+  currentRoleFilter = '';
+  currentSortBy = 'id';
+  currentSortDir = 'asc';
+  updateSortIndicators();
+  loadUsers(1);
+}
+
+function prevPage(){ if(currentPage > 1) loadUsers(currentPage - 1); }
+function nextPage(){ loadUsers(currentPage + 1); }
+
+async function loadUsers(page = currentPage){
+  currentPage = page;
+  const body = document.getElementById('users-body');
+  const empty = document.getElementById('users-empty');
+  const paginationBox = document.getElementById('pagination-box');
+  try{
+    const params = new URLSearchParams({
+      page: currentPage, page_size: PAGE_SIZE,
+      sort_by: currentSortBy, sort_dir: currentSortDir,
+    });
+    if(currentSearch) params.set('search', currentSearch);
+    if(currentRoleFilter) params.set('role', currentRoleFilter);
+    const res = await fetch(`/admin/users?${params}`, {credentials:'same-origin'});
+    if(!res.ok) throw new Error((await res.json()).detail || '사용자 목록을 불러올 수 없습니다.');
+    const data = await res.json();
+    if(data.users.length === 0){
+      body.innerHTML = '';
+      empty.style.display = 'block';
+    }else{
+      empty.style.display = 'none';
+      body.innerHTML = data.users.map(u => {
+        const isSelf = u.username === adminUsername;
+        const actions = isSelf
+          ? `<button onclick="viewUserRecords(${u.id}, '${escapeAttr(u.username)}')">기록 보기</button>`
+          : `<button onclick="viewUserRecords(${u.id}, '${escapeAttr(u.username)}')">기록 보기</button>
+             <button onclick="forceLogout(${u.id}, '${escapeAttr(u.username)}')">강제 로그아웃</button>
+             <button onclick="deleteUser(${u.id}, '${escapeAttr(u.username)}')">계정 삭제</button>`;
+        return `
+      <tr>
+        <td>${u.id}</td>
+        <td>${u.username}${isSelf ? ' <span style="color:var(--muted);font-size:11px;">(나)</span>' : ''}</td>
+        <td><span class="badge ${roleBadgeClass(u.role)}">${u.role}</span></td>
+        <td>${u.created_at ? u.created_at.slice(0,10) : '-'}</td>
+        <td>${u.record_count}</td>
+        <td class="row-actions">${actions}</td>
+      </tr>`;
+      }).join('');
+    }
+
+    const totalPages = Math.max(1, Math.ceil(data.count / data.page_size));
+    if(totalPages > 1){
+      paginationBox.style.display = 'flex';
+      document.getElementById('page-indicator').textContent = `${data.page} / ${totalPages} 페이지 · 총 ${data.count}명`;
+    }else{
+      paginationBox.style.display = 'none';
+    }
+  }catch(e){
+    toast(e.message, 'error');
+  }
+}
+
+// ---------- 사용자 기록 드로어 ----------
+async function viewUserRecords(id, username){
+  const overlay = document.getElementById('user-drawer-overlay');
+  const body = document.getElementById('user-records-body');
+  const empty = document.getElementById('user-records-empty');
+  document.getElementById('user-drawer-title').textContent = `${username}님의 건강기록`;
+  overlay.style.display = 'flex';
+  try{
+    const res = await fetch(`/admin/users/${id}/records`, {credentials:'same-origin'});
+    if(!res.ok) throw new Error((await res.json()).detail || '기록을 불러올 수 없습니다.');
+    const data = await res.json();
+    if(data.records.length === 0){
+      body.innerHTML = '';
+      empty.style.display = 'block';
+      return;
+    }
+    empty.style.display = 'none';
+    const sorted = [...data.records].sort((a,b) => b.date.localeCompare(a.date));
+    body.innerHTML = sorted.map(r => `
+      <tr>
+        <td>${r.date}</td>
+        <td>${r.weight}kg<br/><span class="badge ${statusClass(r.bmi_category)}">${r.bmi} · ${r.bmi_category}</span></td>
+        <td>${r.systolic}/${r.diastolic}<br/><span class="badge ${statusClass(r.bp_category)}">${r.bp_category}</span></td>
+        <td>${r.blood_sugar}<br/><span class="badge ${statusClass(r.sugar_category)}">${r.sugar_category}</span></td>
+        <td><span class="badge ${statusClass(r.activity_level)}">${r.activity_level}</span> <span class="badge ${statusClass(r.sleep_status)}">${r.sleep_status}</span></td>
+      </tr>`).join('');
+  }catch(e){
+    toast(e.message, 'error');
+  }
+}
+
+function closeUserRecords(){
+  document.getElementById('user-drawer-overlay').style.display = 'none';
+}
+
+// ---------- 강제 로그아웃 / 계정 삭제 ----------
+async function forceLogout(id, username){
+  const ok = await customConfirm(`'${username}'의 모든 로그인 세션을 무효화할까요? 계정은 삭제되지 않고, 다음 요청부터 다시 로그인해야 합니다.`, '강제 로그아웃');
+  if(!ok) return;
+  try{
+    const res = await fetch(`/admin/users/${id}/force-logout`, {method:'POST', credentials:'same-origin'});
+    if(!res.ok) throw new Error((await res.json()).detail || '강제 로그아웃 실패');
+    const data = await res.json();
+    toast(data.message, 'success');
+    loadAuditLog();
+  }catch(e){
+    toast('강제 로그아웃 실패: ' + e.message, 'error');
+  }
+}
+
+async function deleteUser(id, username){
+  const ok = await customConfirm(`'${username}' 계정을 삭제할까요? 이 사용자의 건강기록/목표/세션도 함께 삭제됩니다.`, '계정 삭제');
+  if(!ok) return;
+  try{
+    const res = await fetch(`/admin/users/${id}`, {method:'DELETE', credentials:'same-origin'});
+    if(!res.ok) throw new Error((await res.json()).detail || '삭제 실패');
+    toast('계정을 삭제했습니다.', 'success');
+    loadUsers();
+    loadStats();
+    loadAuditLog();
+  }catch(e){
+    toast('삭제 실패: ' + e.message, 'error');
+  }
+}
+
+checkAdmin();
+</script>
+</body>
+</html>

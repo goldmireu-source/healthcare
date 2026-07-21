@@ -104,24 +104,31 @@
 
 ## 5. 파일 구조
 
+**(2026-07-21 개편)** 여러 작업자가 백엔드/프론트엔드를 나눠 맡는 협업 상황을 가정해서 실제로 폴더를 분리함 (기존엔 전부 루트에 평평하게 있었음). `backend/`와 `frontend/`는 로컬·Docker 이미지 내부 모두 항상 형제 폴더로 유지되고, `main.py`/`database.py`는 `__file__` 기준 상대경로로 서로를 찾기 때문에 uvicorn을 어디서 실행하든 경로가 깨지지 않음.
+
 ```
 healthcare/
-├── main.py           # FastAPI 앱, 라우트 전체 (인증 포함)
-├── auth.py            # 비밀번호 해시(PBKDF2) + 세션 토큰 관리
-├── models.py          # SQLAlchemy ORM (User, Session, HealthRecord, Goal)
-├── schemas.py         # Pydantic 요청/응답 모델 (UserSignup/UserLogin 포함)
-├── database.py        # DB 연결/세션 설정 (SQLite, data/health_log.db)
-├── health_logic.py     # BMI/혈압/혈당 계산·분류·경고·활동량·수면 로직
-├── static/
-│   ├── index.html      # 사용자용 웹 화면 (/app 에 마운트됨)
-│   └── admin.html      # 관리자 전용 화면 (/app/admin.html, index.html과 완전 분리)
-├── promote_admin.py    # 로컬 전용: 기존 계정을 관리자로 승격 (API로는 노출 안 함)
-├── seed_demo_data.py   # 로컬 전용: 데모 시연용 사용자 12명 + 2주치 건강기록/목표 생성
-├── requirements.txt
-├── Dockerfile
+├── backend/                # FastAPI 서버 (Python) — API 담당자 영역
+│   ├── main.py              #   앱 진입점, 라우트 전체 (인증/관리자 포함)
+│   ├── auth.py               #   비밀번호 해시(PBKDF2) + 세션 토큰 + 관리자 권한 체크
+│   ├── models.py             #   SQLAlchemy ORM (User/Session/HealthRecord/Goal/AuditLog)
+│   ├── schemas.py            #   Pydantic 요청/응답 모델
+│   ├── database.py           #   DB 연결/세션 설정 (SQLite, ../data/health_log.db)
+│   ├── health_logic.py        #   BMI/혈압/혈당 계산·분류·경고·활동량·수면 로직
+│   ├── promote_admin.py       #   로컬 전용: 기존 계정을 관리자로 승격 (API로는 노출 안 함)
+│   ├── seed_demo_data.py      #   로컬 전용: 데모 시연용 사용자 12명 + 2주치 건강기록/목표 생성
+│   ├── requirements.txt
+│   └── venv/                  #   (git 미포함)
+├── frontend/
+│   └── static/               # 화면 담당자 영역 — 별도 빌드 없는 순수 HTML/CSS/JS
+│       ├── index.html         #   사용자용 웹 화면 (/app/)
+│       └── admin.html         #   관리자 대시보드 (/app/admin.html, index.html과 완전 분리)
+├── data/                    # sqlite 파일 저장 위치 (git 미포함, 런타임에 생성)
+├── Dockerfile               # backend/·frontend/를 그대로 담아 이미지 빌드 (WORKDIR을 backend/로 맞춰 실행)
 ├── .dockerignore
 ├── .gitignore
-└── README.md
+├── README.md
+└── PROJECT_CONTEXT.md
 ```
 
 ## 6. 진행 상황 (지금까지 완료된 것)
@@ -165,16 +172,27 @@ healthcare/
   - 기존 기능 회귀 테스트도 함께 통과: 관리자 페이지네이션/검색/통계, 일반 사용자 기록·주간리포트, 정적 페이지 서빙, 서버 로그 에러 없음
   - JS 문법은 Node `--check`로 두 화면 모두 파싱 오류 없음을 확인했으나, 실제 브라우저 동작(모달 열림/닫힘, 폼 흐름)은 직접 확인 못 함 — 브라우저에서 한 번 더 확인 권장
   - **⚠️ curl `-d`로 한글이 포함된 JSON을 인라인으로 보내면 인코딩이 깨지는 경우가 있었음** ("There was an error parsing the body"). 한글 포함 payload는 UTF-8로 파일에 먼저 쓰고 `--data-binary @file`로 보낼 것
+- [x] **프로젝트 폴더 구조 개편 + 관리자 대시보드 전면 고도화** (2026-07-21, 같은 날 후속 작업) — "관리자 화면이 회원 상세페이지 수준밖에 안 된다" + "여러 작업자가 협업하는 걸 가정해서 폴더 정리해달라"는 요청 반영
+  - **폴더 구조**: 루트에 평평하게 있던 파일들을 `backend/`(FastAPI 전체)와 `frontend/static/`(index.html, admin.html)로 실제로 분리 (`git mv`로 이력 보존). `main.py`의 정적 파일 마운트 경로, `database.py`의 DB 경로를 전부 `__file__` 기준 상대경로로 바꿔서 uvicorn 실행 위치에 관계없이 항상 올바른 `../frontend/static`, `../data`를 찾도록 함. `venv`도 `backend/venv`로 재생성. `Dockerfile`도 `backend/`·`frontend/`를 그대로 담아 컨테이너 내부에서도 동일한 형제 폴더 구조를 유지하도록 재작성 (WORKDIR을 `/app/backend`로 맞춰 `uvicorn main:app` 그대로 실행)
+  - **백엔드 확장**: `GET /admin/stats`에 `role_distribution`(관리자/일반 수), `new_users_last_7_days`, `signup_trend`(최근 14일 가입자 수 추이) 추가. `GET /admin/users`에 `role` 필터, `sort_by`(id/username/created_at/record_count)·`sort_dir` 정렬 추가 — 기록 수는 N+1 쿼리 대신 `group_by` 집계 쿼리 한 번으로 가져오도록 개선
+  - **관리자 대시보드 전면 재설계** (`admin.html`): 사이드바 네비게이션(개요/사용자 관리/감사 로그)으로 화면을 분리 — 예전처럼 통계/사용자/기록/로그가 한 페이지에 쭉 나열되던 구조에서 벗어남
+    - 개요: KPI 카드 4개(총 사용자·총 기록·최근 7일 가입·감사 로그 건수), 최근 14일 가입 추이(직접 그린 SVG 막대그래프, hover 시 날짜/인원 툴팁), 최근 활동 미리보기, BMI/혈압/혈당 분포(정상=teal/주의=amber/위험=brick 상태색 재사용)
+    - 사용자 관리: 아이디 검색 + 권한 필터 + 정렬 가능한 테이블 헤더(오름/내림 화살표) + 페이지네이션. "기록 보기"를 페이지 하단에 펼치던 것에서 오른쪽에서 슬라이드되는 드로어 패널로 변경(리스트 스크롤 위치 유지됨)
+    - 감사 로그: 조치 유형 필터(전체/계정삭제/강제로그아웃) 추가
+    - 차트는 `dataviz` 스킬 가이드를 따름 — 분류 데이터는 이미 정상/주의/위험 의미를 갖고 있어 상태(status) 컬러 잡을 그대로 재사용(새 카테고리 컬러 발명 안 함), 가입 추이는 단일 시계열이라 단색(teal) 처리, 라벨은 `textContent`로 렌더링(툴팁에 신뢰 안 되는 데이터 주입 방지)
+  - 로컬에서 fresh 프로세스로 재시작 후 curl로 전체 회귀 테스트: 폴더 이동 후 정적 파일/DB 경로 정상 확인, 확장된 `/admin/stats`·정렬·역할 필터·조합 검색, 강제 로그아웃→감사 로그 기록 확인, 자기 자신 대상 차단 재확인, 일반 사용자 엔드포인트(`/records`,`/goals`,`/reports/weekly`,`/stats`) 회귀 확인. admin.html JS는 Node `--check`로 문법 검증
+  - **참고**: 이 세션 중 실제 사용자가 브라우저에서 직접 회원가입한 것으로 보이는 계정(`goldmireu`)이 데이터에 남아있음 — 삭제하지 않고 그대로 둠
 
 ## 7. 다음 작업
 
-1. Docker 빌드 & 실행 확인 (role/관리자 확장 기능이 반영된 최신 코드 기준으로 재빌드 필요)
-   - `docker build -t health-log-api .`
+1. 새 폴더 구조 기준으로 Docker 재빌드 & 실행 확인 (이번 개편으로 Dockerfile 자체가 바뀌어서 반드시 재검증 필요)
+   - 리포 루트에서 `docker build -t health-log-api .`
    - `docker run -d -p 8000:8000 -v F:/healthcare/data:/app/data --name health-log-api health-log-api`
      (Windows Git Bash에서는 반드시 슬래시 경로 사용 — 백슬래시는 "system cannot find the file specified" 오류 발생)
-   - http://localhost:8000 (자동으로 `/app`으로 이동) 에서 컨테이너 기준 재테스트, 관리자 계정으로 `/app/admin.html`도 확인
+   - http://localhost:8000 (자동으로 `/app`으로 이동), http://localhost:8000/app/admin.html 둘 다 컨테이너 기준 재테스트
    - 문제 있으면 `docker logs health-log-api`
-2. 이어서 고도화 로드맵 2번(데이터 시각화 차트), 3번 잔여(로딩 상태) 진행
+2. 관리자 대시보드 실제 브라우저 확인 (차트 hover, 드로어 열림/닫힘, 정렬 클릭 등 JS 상호작용은 curl로 검증 못 함)
+3. 이어서 고도화 로드맵 2번(사용자 화면 데이터 시각화 차트), 3번 잔여(로딩 상태) 진행
 
 ## 8. 이후 계획 (미착수)
 
