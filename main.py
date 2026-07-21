@@ -114,7 +114,17 @@ def signup(payload: schemas.UserSignup, response: Response, db: Session = Depend
         raise HTTPException(status_code=409, detail="이미 사용 중인 아이디입니다.")
 
     password_hash, salt = auth.hash_password(payload.password)
-    user = models.User(username=payload.username, password_hash=password_hash, password_salt=salt)
+    answer_hash, answer_salt = auth.hash_password(
+        auth.normalize_security_answer(payload.security_answer)
+    )
+    user = models.User(
+        username=payload.username,
+        password_hash=password_hash,
+        password_salt=salt,
+        security_question=payload.security_question,
+        security_answer_hash=answer_hash,
+        security_answer_salt=answer_salt,
+    )
     db.add(user)
     db.commit()
     db.refresh(user)
@@ -161,6 +171,77 @@ def logout(request: Request, response: Response, db: Session = Depends(get_db)):
 @app.get("/auth/me", response_model=schemas.UserOut, tags=["Auth"])
 def get_me(current_user: models.User = Depends(auth.get_current_user)):
     return current_user
+
+
+@app.get("/auth/security-question", response_model=schemas.SecurityQuestionOut, tags=["Auth"])
+def get_security_question(username: str = Query(...), db: Session = Depends(get_db)):
+    user = db.query(models.User).filter(models.User.username == username).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="사용자를 찾을 수 없습니다.")
+    return schemas.SecurityQuestionOut(security_question=user.security_question)
+
+
+@app.post("/auth/reset-password", tags=["Auth"])
+def reset_password(payload: schemas.PasswordResetIn, db: Session = Depends(get_db)):
+    user = db.query(models.User).filter(models.User.username == payload.username).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="사용자를 찾을 수 없습니다.")
+    if not auth.verify_password(
+        auth.normalize_security_answer(payload.security_answer),
+        user.security_answer_hash,
+        user.security_answer_salt,
+    ):
+        raise HTTPException(status_code=401, detail="보안질문 답이 올바르지 않습니다.")
+
+    password_hash, salt = auth.hash_password(payload.new_password)
+    user.password_hash = password_hash
+    user.password_salt = salt
+    # 재설정 후에는 기존에 로그인돼 있던 모든 세션을 무효화 (탈취된 세션 방지)
+    db.query(models.Session).filter(models.Session.user_id == user.id).delete()
+    db.commit()
+    return {"message": "비밀번호가 재설정되었습니다. 새 비밀번호로 다시 로그인해주세요."}
+
+
+@app.post("/auth/change-password", tags=["Auth"])
+def change_password(
+    payload: schemas.PasswordChangeIn,
+    request: Request,
+    current_user: models.User = Depends(auth.get_current_user),
+    db: Session = Depends(get_db),
+):
+    if not auth.verify_password(
+        payload.current_password, current_user.password_hash, current_user.password_salt
+    ):
+        raise HTTPException(status_code=401, detail="현재 비밀번호가 올바르지 않습니다.")
+
+    password_hash, salt = auth.hash_password(payload.new_password)
+    current_user.password_hash = password_hash
+    current_user.password_salt = salt
+    # 지금 이 세션은 유지하고, 다른 기기/브라우저의 세션만 무효화
+    current_token = request.cookies.get(auth.SESSION_COOKIE_NAME)
+    db.query(models.Session).filter(
+        models.Session.user_id == current_user.id,
+        models.Session.token != current_token,
+    ).delete()
+    db.commit()
+    return {"message": "비밀번호가 변경되었습니다."}
+
+
+@app.delete("/auth/me", tags=["Auth"])
+def delete_my_account(
+    payload: schemas.AccountDeleteIn,
+    response: Response,
+    current_user: models.User = Depends(auth.get_current_user),
+    db: Session = Depends(get_db),
+):
+    if not auth.verify_password(
+        payload.password, current_user.password_hash, current_user.password_salt
+    ):
+        raise HTTPException(status_code=401, detail="비밀번호가 올바르지 않습니다.")
+    db.delete(current_user)
+    db.commit()
+    response.delete_cookie(auth.SESSION_COOKIE_NAME)
+    return {"message": "계정이 삭제되었습니다."}
 
 
 # ---------- 필수 엔드포인트 (모두 로그인 필요, 본인 기록만 대상) ----------

@@ -38,6 +38,11 @@ def verify_password(password: str, password_hash: str, salt: str) -> bool:
     return hmac.compare_digest(computed, password_hash)
 
 
+def normalize_security_answer(answer: str) -> str:
+    """대소문자/공백 차이로 재설정에 실패하는 걸 막기 위한 정규화."""
+    return answer.strip().lower()
+
+
 def create_session(db: DBSession, user: models.User) -> models.Session:
     token = secrets.token_urlsafe(32)
     expires_at = datetime.now(timezone.utc) + timedelta(days=SESSION_TTL_DAYS)

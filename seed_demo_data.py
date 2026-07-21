@@ -51,12 +51,26 @@ GOALS = {
 }
 
 
+DEMO_SECURITY_QUESTION = "가장 좋아하는 색은?"
+DEMO_SECURITY_ANSWER = "blue"
+
+
 def get_or_create_user(db, username: str, password: str) -> models.User:
     user = db.query(models.User).filter(models.User.username == username).first()
     if user:
         return user
     password_hash, salt = auth.hash_password(password)
-    user = models.User(username=username, password_hash=password_hash, password_salt=salt)
+    answer_hash, answer_salt = auth.hash_password(
+        auth.normalize_security_answer(DEMO_SECURITY_ANSWER)
+    )
+    user = models.User(
+        username=username,
+        password_hash=password_hash,
+        password_salt=salt,
+        security_question=DEMO_SECURITY_QUESTION,
+        security_answer_hash=answer_hash,
+        security_answer_salt=answer_salt,
+    )
     db.add(user)
     db.commit()
     db.refresh(user)
@@ -134,6 +148,7 @@ def seed() -> None:
 
         print(f"완료: 신규 사용자 {created_users}명, 신규 기록 {created_records}건, 신규 목표 {created_goals}건")
         print(f"모든 데모 계정 비밀번호: {DEFAULT_PASSWORD}")
+        print(f"모든 데모 계정 보안질문: {DEMO_SECURITY_QUESTION} / 답: {DEMO_SECURITY_ANSWER}")
     finally:
         db.close()
 

@@ -9,6 +9,8 @@ from pydantic import BaseModel, Field
 class UserSignup(BaseModel):
     username: str = Field(..., min_length=3, max_length=30, pattern=r"^[a-zA-Z0-9_]+$")
     password: str = Field(..., min_length=6, max_length=100)
+    security_question: str = Field(..., min_length=2, max_length=200)
+    security_answer: str = Field(..., min_length=1, max_length=200)
 
 
 class UserLogin(BaseModel):
@@ -23,6 +25,25 @@ class UserOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class SecurityQuestionOut(BaseModel):
+    security_question: str
+
+
+class PasswordResetIn(BaseModel):
+    username: str
+    security_answer: str
+    new_password: str = Field(..., min_length=6, max_length=100)
+
+
+class PasswordChangeIn(BaseModel):
+    current_password: str
+    new_password: str = Field(..., min_length=6, max_length=100)
+
+
+class AccountDeleteIn(BaseModel):
+    password: str
 
 
 # ---------- Admin ----------

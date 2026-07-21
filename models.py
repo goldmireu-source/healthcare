@@ -15,6 +15,10 @@ class User(Base):
     password_hash = Column(String(200), nullable=False)
     password_salt = Column(String(64), nullable=False)
     role = Column(String(10), nullable=False, default="user")  # "user" | "admin"
+    # 비밀번호 찾기(보안질문 방식) — 이메일/SMS 인프라 없이 본인 확인 후 재설정하기 위함
+    security_question = Column(String(200), nullable=False)
+    security_answer_hash = Column(String(200), nullable=False)
+    security_answer_salt = Column(String(64), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     records = relationship(
