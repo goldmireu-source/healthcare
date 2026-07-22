@@ -126,6 +126,17 @@ healthcare/
 
 ### 환경변수
 
+로컬 개발 시 `backend/.env.example`을 `backend/.env`로 복사한 뒤 값을 채우면
+`main.py`가 (python-dotenv로) 서버 시작 시 자동으로 읽어들입니다 (`.env`는
+`.gitignore`에 포함되어 커밋되지 않음). Docker/서버 배포 시에는 `.env` 대신
+`docker run -e OPENAI_API_KEY=...` 등으로 직접 주입하세요.
+
+```bash
+cd backend
+cp .env.example .env
+# .env 파일을 열어 OPENAI_API_KEY 등 실제 값 입력
+```
+
 | 변수 | 기본값 | 설명 |
 |---|---|---|
 | `ALLOWED_ORIGINS` | (빈 값 = 전부 차단) | CORS 허용 origin, 콤마로 구분. 지금처럼 프론트를 같은 origin에서 서빙하면 필요 없음 |

@@ -3,3 +3,4 @@ uvicorn[standard]==0.32.1
 sqlalchemy==2.0.36
 pydantic==2.10.3
 alembic==1.18.5
+python-dotenv==1.0.1

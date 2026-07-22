@@ -6,6 +6,14 @@ import os
 from datetime import date
 from typing import Optional
 
+from dotenv import load_dotenv
+
+# database.py(DB_DIR)/health_coach.py(OPENAI_API_KEY) 등 여러 모듈이 import되는
+# 시점에 바로 환경변수를 읽으므로, 다른 로컬 모듈을 import하기 전에 .env부터 로드한다.
+# 이미 설정된 환경변수(예: pytest의 monkeypatch, Docker의 -e)는 덮어쓰지 않는다
+# (load_dotenv 기본값 override=False).
+load_dotenv()
+
 from fastapi import FastAPI, HTTPException, Depends, Query, Response, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, RedirectResponse, StreamingResponse
