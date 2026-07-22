@@ -22,8 +22,8 @@
     --muted:#6B7680;
   }
   *{box-sizing:border-box;}
+  html,body{margin:0;height:100%;}
   body{
-    margin:0;
     background:var(--paper);
     color:var(--ink);
     font-family:'IBM Plex Sans KR', sans-serif;
@@ -57,6 +57,7 @@
     background:var(--card);border:1px solid var(--line);border-radius:12px;
     padding:22px 24px;
   }
+  .card + .card{margin-top:20px;}
   .card h2{
     font-family:'Fraunces', serif;font-weight:600;font-size:18px;margin:0 0 16px;
     display:flex;align-items:baseline;gap:8px;
@@ -65,6 +66,35 @@
     font-family:'IBM Plex Mono', monospace;font-size:11px;color:var(--muted);
     letter-spacing:0.06em;text-transform:uppercase;
   }
+
+  /* ---------- 대시보드 셸 (사이드바 + 컨텐츠) ---------- */
+  .shell{display:flex;min-height:100vh;}
+  .sidebar{
+    width:216px;flex-shrink:0;background:var(--card);border-right:1px solid var(--line);
+    display:flex;flex-direction:column;padding:24px 0;position:sticky;top:0;height:100vh;
+  }
+  .sidebar .brand{
+    font-family:'Fraunces', serif;font-weight:600;font-size:17px;padding:0 22px 20px;
+    border-bottom:1px solid var(--line);margin-bottom:14px;
+  }
+  .sidebar .brand small{
+    display:block;font-family:'IBM Plex Mono', monospace;font-size:10px;color:var(--muted);
+    text-transform:uppercase;letter-spacing:0.07em;margin-top:5px;
+  }
+  nav.side-nav{display:flex;flex-direction:column;}
+  .nav-item{
+    display:flex;align-items:center;gap:8px;width:100%;text-align:left;padding:11px 22px;
+    border:none;background:none;cursor:pointer;font-size:14px;color:var(--muted);
+    font-family:'IBM Plex Sans KR', sans-serif;border-left:3px solid transparent;
+  }
+  .nav-item:hover{color:var(--ink);background:var(--paper);}
+  .nav-item.active{color:var(--ink);font-weight:600;border-left-color:var(--teal);background:var(--paper);}
+  .content{flex:1;padding:26px 32px 60px;min-width:0;}
+  .topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;gap:12px;flex-wrap:wrap;}
+  .topbar h1{font-family:'Fraunces', serif;font-weight:600;font-size:26px;margin:0;}
+
+  .view{display:none;}
+  .view.active{display:block;}
 
   /* 입력 폼 */
   form.entry{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;}
@@ -88,7 +118,7 @@
 
   /* 바이탈 스트립 (시그니처 요소) */
   .vitals-strip{display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:var(--line);
-    border:1px solid var(--line);border-radius:12px;overflow:hidden;}
+    border:1px solid var(--line);border-radius:12px;overflow:hidden;margin-bottom:28px;}
   .vital{background:var(--card);padding:16px 14px;text-align:center;}
   .vital .label{font-size:11px;color:var(--muted);letter-spacing:0.04em;text-transform:uppercase;margin-bottom:8px;}
   .vital .value{font-family:'IBM Plex Mono', monospace;font-size:22px;font-weight:600;margin-bottom:6px;}
@@ -101,7 +131,6 @@
   .empty-note{color:var(--muted);font-size:13px;padding:18px 4px;}
 
   /* 검색/통계 */
-  .row-2{display:grid;grid-template-columns:1.3fr 1fr;gap:20px;}
   .search-bar{display:flex;gap:10px;align-items:flex-end;margin-bottom:16px;flex-wrap:wrap;}
   .search-bar div{display:flex;flex-direction:column;gap:5px;}
   .search-bar label{font-size:12px;color:var(--muted);}
@@ -127,7 +156,7 @@
   }
   .row-actions button:hover{border-color:var(--ink);color:var(--ink);}
 
-  .stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
   .stat-item{padding:12px 0;border-bottom:1px dashed var(--line);}
   .stat-item .n{font-family:'IBM Plex Mono', monospace;font-size:20px;font-weight:600;}
   .stat-item .l{font-size:11px;color:var(--muted);}
@@ -135,7 +164,7 @@
   .dist-bar{flex:1;height:6px;background:var(--paper);border-radius:4px;overflow:hidden;}
   .dist-bar span{display:block;height:100%;background:var(--teal);}
 
-  /* 목표 / 주간 리포트 */
+  /* 목표 */
   .goal-form{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px;}
   .goal-form input{padding:8px 9px;border:1px solid var(--line);border-radius:7px;font-family:'IBM Plex Mono', monospace;font-size:13px;width:100%;}
   .goal-form label{font-size:11px;color:var(--muted);display:block;margin-bottom:4px;}
@@ -144,12 +173,20 @@
   .achv .chip.yes{background:var(--teal-soft);color:var(--teal);}
   .achv .chip.no{background:var(--brick-soft);color:var(--brick);}
 
-  .week-compare{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;font-size:13px;}
-  .week-compare div.h{font-size:11px;color:var(--muted);text-transform:uppercase;padding-bottom:8px;border-bottom:1px solid var(--line);margin-bottom:8px;}
-  .week-compare .metric{padding:6px 0;font-family:'IBM Plex Mono', monospace;}
+  /* 주간 리포트 (막대 그래프) */
+  .weekly-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
+  .weekly-card{border:1px solid var(--line);border-radius:10px;padding:14px 16px;}
+  .weekly-card .l{font-size:11px;color:var(--muted);margin-bottom:10px;}
+  .weekly-bar-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:11px;}
+  .weekly-bar-label{width:42px;flex-shrink:0;color:var(--muted);}
+  .weekly-bar-track{flex:1;height:8px;background:var(--paper);border-radius:4px;overflow:hidden;}
+  .weekly-bar-track span{display:block;height:100%;border-radius:4px;}
+  .weekly-bar-track.last span{background:var(--muted);}
+  .weekly-bar-track.this span{background:var(--teal);}
+  .weekly-bar-value{width:48px;text-align:right;font-family:'IBM Plex Mono', monospace;color:var(--ink);flex-shrink:0;}
   .delta.up{color:var(--brick);} .delta.down{color:var(--teal);} .delta.flat{color:var(--muted);}
 
-  footer{text-align:center;color:var(--muted);font-size:12px;margin-top:40px;}
+  footer{text-align:center;color:var(--muted);font-size:12px;margin:40px 0;}
 
   /* 인증 화면 */
   #auth-screen .auth-tabs{display:flex;gap:4px;margin-bottom:20px;border-bottom:1px solid var(--line);}
@@ -219,32 +256,40 @@
   }
   #line-chart-tooltip strong{font-family:'IBM Plex Mono', monospace;}
 
+  @media (max-width:900px){
+    .shell{flex-direction:column;}
+    .sidebar{
+      width:100%;height:auto;position:static;flex-direction:row;align-items:center;
+      padding:10px 14px;overflow-x:auto;gap:6px;
+    }
+    .sidebar .brand{display:none;}
+    .side-nav{flex-direction:row;}
+    .nav-item{border-left:none;border-bottom:3px solid transparent;padding:9px 12px;white-space:nowrap;}
+    .nav-item.active{border-left:none;border-bottom-color:var(--teal);}
+    .content{padding:20px 16px 50px;}
+  }
+
   @media (max-width:720px){
     form.entry, .goal-form{grid-template-columns:1fr 1fr;}
     .vitals-strip{grid-template-columns:repeat(2,1fr);}
-    .row-2{grid-template-columns:1fr;}
-    .week-compare{grid-template-columns:1fr;}
+    .stat-grid{grid-template-columns:1fr 1fr;}
+    .weekly-grid{grid-template-columns:1fr;}
   }
 </style>
 </head>
 <body>
 <div id="toast-box"></div>
 <div id="line-chart-tooltip"></div>
-<div class="wrap">
 
+<!-- 로그인 전: 인증 화면 -->
+<div class="wrap" id="auth-wrap">
   <header class="top">
     <div>
       <h1>마이 헬스 로그</h1>
       <p>매일의 숫자를 기록하면, 여기서 몸 상태를 읽어드립니다</p>
     </div>
-    <div class="user-switch" id="whoami-box" style="display:none;">
-      <span id="whoami-text"></span>
-      <button onclick="openAccountSettings()">계정 설정</button>
-      <button onclick="logout()">로그아웃</button>
-    </div>
   </header>
 
-  <!-- 로그인 / 회원가입 화면 -->
   <section id="auth-screen">
     <div class="card" style="max-width:380px;margin:40px auto;">
       <div class="auth-tabs">
@@ -325,196 +370,223 @@
       </div>
     </div>
   </section>
-
-  <!-- 계정 설정 모달 -->
-  <div class="modal-overlay" id="account-modal" style="display:none;">
-    <div class="modal-box">
-      <h3>계정 설정</h3>
-      <h4>비밀번호 변경</h4>
-      <form id="change-password-form" onsubmit="submitChangePassword(event)">
-        <div style="margin-bottom:10px;">
-          <label>현재 비밀번호</label>
-          <input type="password" id="cp-current" required />
-        </div>
-        <div style="margin-bottom:10px;">
-          <label>새 비밀번호 (6자 이상)</label>
-          <input type="password" id="cp-new" required minlength="6" />
-        </div>
-        <div style="margin-bottom:14px;">
-          <label>새 비밀번호 확인</label>
-          <input type="password" id="cp-new2" required minlength="6" />
-        </div>
-        <button type="submit" class="btn btn-primary" style="width:100%;">비밀번호 변경</button>
-      </form>
-
-      <div class="danger-zone">
-        <h4 style="color:var(--brick);">계정 탈퇴</h4>
-        <p>탈퇴하면 모든 건강기록/목표가 함께 삭제되며 되돌릴 수 없습니다.</p>
-        <div style="display:flex;gap:8px;">
-          <input type="password" id="delete-account-password" placeholder="비밀번호 확인" style="flex:1;min-width:0;" />
-          <button type="button" class="btn btn-danger" style="flex-shrink:0;white-space:nowrap;" onclick="submitDeleteAccount()">탈퇴</button>
-        </div>
-      </div>
-
-      <div class="modal-actions">
-        <button type="button" class="btn btn-ghost" onclick="closeAccountSettings()">닫기</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- 커스텀 확인 모달 (native confirm 대체) -->
-  <div class="modal-overlay" id="confirm-modal" style="display:none;">
-    <div class="modal-box">
-      <h3 id="confirm-modal-title">확인</h3>
-      <p id="confirm-modal-message" style="font-size:13px;color:var(--muted);margin:0;"></p>
-      <div class="modal-actions">
-        <button type="button" class="btn btn-ghost" id="confirm-modal-cancel">취소</button>
-        <button type="button" class="btn btn-danger" id="confirm-modal-ok">확인</button>
-      </div>
-    </div>
-  </div>
-
-  <div id="app-content" style="display:none;">
-
-  <section>
-    <div class="card">
-      <h2><span class="eyebrow">Entry</span> 오늘의 기록</h2>
-      <form class="entry" id="record-form" onsubmit="submitRecord(event)">
-        <input type="hidden" id="record-id" />
-        <div>
-          <label>측정일</label>
-          <input type="date" id="f-date" required />
-        </div>
-        <div>
-          <label>몸무게 (kg)</label>
-          <input type="number" step="0.1" id="f-weight" required />
-        </div>
-        <div>
-          <label>키 (cm)</label>
-          <input type="number" step="0.1" id="f-height" required />
-        </div>
-        <div>
-          <label>걸음 수</label>
-          <input type="number" id="f-steps" value="0" />
-        </div>
-        <div>
-          <label>수축기 혈압</label>
-          <input type="number" id="f-systolic" required />
-        </div>
-        <div>
-          <label>이완기 혈압</label>
-          <input type="number" id="f-diastolic" required />
-        </div>
-        <div>
-          <label>공복 혈당 (mg/dL)</label>
-          <input type="number" id="f-sugar" required />
-        </div>
-        <div>
-          <label>수면 시간</label>
-          <input type="number" step="0.1" id="f-sleep" value="0" />
-        </div>
-        <div class="full">
-          <label>메모</label>
-          <input type="text" id="f-memo" placeholder="선택 입력" />
-        </div>
-        <div class="actions">
-          <button type="submit" class="btn btn-primary" id="submit-btn">기록 추가</button>
-          <button type="button" class="btn btn-ghost" onclick="resetForm()">초기화</button>
-          <span id="editing-flag">✎ 수정 중인 기록이 있습니다</span>
-        </div>
-      </form>
-    </div>
-  </section>
-
-  <section>
-    <h2 style="font-family:'Fraunces',serif;font-size:16px;margin:0 0 10px;color:var(--muted);font-weight:500;">최신 측정값</h2>
-    <div id="vitals-strip" class="vitals-strip"></div>
-  </section>
-
-  <section>
-    <div class="card">
-      <h2><span class="eyebrow">Trend</span> 측정 추이</h2>
-      <div class="trend-tabs">
-        <button type="button" class="trend-tab active" data-metric="weight" onclick="switchTrendMetric('weight')">체중</button>
-        <button type="button" class="trend-tab" data-metric="bp" onclick="switchTrendMetric('bp')">혈압</button>
-        <button type="button" class="trend-tab" data-metric="sugar" onclick="switchTrendMetric('sugar')">혈당</button>
-      </div>
-      <div class="trend-legend" id="trend-legend"></div>
-      <div class="line-chart-wrap" id="line-chart-wrap">
-        <svg class="line-chart" id="line-chart" viewBox="0 0 700 240" preserveAspectRatio="none"></svg>
-      </div>
-      <div id="trend-empty" class="empty-note" style="display:none;">추이를 보려면 기록이 2건 이상 필요합니다.</div>
-    </div>
-  </section>
-
-  <section class="row-2">
-    <div class="card">
-      <h2><span class="eyebrow">Records</span> 전체 기록</h2>
-      <div class="search-bar">
-        <div>
-          <label>시작일</label>
-          <input type="date" id="s-start" />
-        </div>
-        <div>
-          <label>종료일</label>
-          <input type="date" id="s-end" />
-        </div>
-        <button class="btn btn-ghost" onclick="searchRecords()">검색</button>
-        <button class="btn btn-ghost" onclick="loadRecords()">전체보기</button>
-      </div>
-      <div style="overflow-x:auto;">
-        <table>
-          <thead>
-            <tr><th>날짜</th><th>체중/BMI</th><th>혈압</th><th>혈당</th><th>활동/수면</th><th></th></tr>
-          </thead>
-          <tbody id="records-body"></tbody>
-        </table>
-      </div>
-      <div id="records-loading" class="empty-note" style="display:none;">불러오는 중...</div>
-      <div id="records-empty" class="empty-note" style="display:none;">아직 기록이 없습니다. 위에서 첫 기록을 추가해보세요.</div>
-      <div class="pagination" id="records-pagination" style="display:none;">
-        <button class="btn btn-ghost" onclick="recordsPrevPage()">← 이전</button>
-        <span id="records-page-indicator"></span>
-        <button class="btn btn-ghost" onclick="recordsNextPage()">다음 →</button>
-      </div>
-    </div>
-
-    <div class="card">
-      <h2><span class="eyebrow">Stats</span> 통계 요약</h2>
-      <div id="stats-body"></div>
-    </div>
-  </section>
-
-  <section class="row-2">
-    <div class="card">
-      <h2><span class="eyebrow">Goals</span> 목표 관리</h2>
-      <form class="goal-form" onsubmit="saveGoal(event)">
-        <div><label>목표 체중</label><input type="number" step="0.1" id="g-weight" /></div>
-        <div><label>목표 수축기</label><input type="number" id="g-systolic" /></div>
-        <div><label>목표 이완기</label><input type="number" id="g-diastolic" /></div>
-        <div><label>목표 혈당</label><input type="number" id="g-sugar" /></div>
-        <div class="full" style="grid-column:1/-1;margin-top:4px;">
-          <button type="submit" class="btn btn-primary">목표 저장</button>
-        </div>
-      </form>
-      <div id="goal-result" class="achv"></div>
-    </div>
-
-    <div class="card">
-      <h2><span class="eyebrow">Weekly</span> 주간 리포트</h2>
-      <div id="weekly-body"></div>
-    </div>
-  </section>
-
-  </div>
-
-  <footer>마이 헬스 로그 · 학습용 프로젝트 · 건강 기준은 단순화된 값이며 의학적 진단이 아닙니다</footer>
 </div>
+
+<!-- 계정 설정 모달 -->
+<div class="modal-overlay" id="account-modal" style="display:none;">
+  <div class="modal-box">
+    <h3>계정 설정</h3>
+    <h4>비밀번호 변경</h4>
+    <form id="change-password-form" onsubmit="submitChangePassword(event)">
+      <div style="margin-bottom:10px;">
+        <label>현재 비밀번호</label>
+        <input type="password" id="cp-current" required />
+      </div>
+      <div style="margin-bottom:10px;">
+        <label>새 비밀번호 (6자 이상)</label>
+        <input type="password" id="cp-new" required minlength="6" />
+      </div>
+      <div style="margin-bottom:14px;">
+        <label>새 비밀번호 확인</label>
+        <input type="password" id="cp-new2" required minlength="6" />
+      </div>
+      <button type="submit" class="btn btn-primary" style="width:100%;">비밀번호 변경</button>
+    </form>
+
+    <div class="danger-zone">
+      <h4 style="color:var(--brick);">계정 탈퇴</h4>
+      <p>탈퇴하면 모든 건강기록/목표가 함께 삭제되며 되돌릴 수 없습니다.</p>
+      <div style="display:flex;gap:8px;">
+        <input type="password" id="delete-account-password" placeholder="비밀번호 확인" style="flex:1;min-width:0;" />
+        <button type="button" class="btn btn-danger" style="flex-shrink:0;white-space:nowrap;" onclick="submitDeleteAccount()">탈퇴</button>
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button type="button" class="btn btn-ghost" onclick="closeAccountSettings()">닫기</button>
+    </div>
+  </div>
+</div>
+
+<!-- 커스텀 확인 모달 (native confirm 대체) -->
+<div class="modal-overlay" id="confirm-modal" style="display:none;">
+  <div class="modal-box">
+    <h3 id="confirm-modal-title">확인</h3>
+    <p id="confirm-modal-message" style="font-size:13px;color:var(--muted);margin:0;"></p>
+    <div class="modal-actions">
+      <button type="button" class="btn btn-ghost" id="confirm-modal-cancel">취소</button>
+      <button type="button" class="btn btn-danger" id="confirm-modal-ok">확인</button>
+    </div>
+  </div>
+</div>
+
+<!-- 로그인 후: 사이드바 대시보드 셸 -->
+<div id="dashboard-shell" class="shell" style="display:none;">
+  <aside class="sidebar">
+    <div class="brand">마이 헬스 로그<small>PERSONAL LOG</small></div>
+    <nav class="side-nav">
+      <button class="nav-item active" data-view="records" onclick="switchView('records')">기록</button>
+      <button class="nav-item" data-view="stats-report" onclick="switchView('stats-report')">통계 &amp; 리포트</button>
+      <button class="nav-item" data-view="goals" onclick="switchView('goals')">목표</button>
+    </nav>
+  </aside>
+
+  <main class="content">
+    <header class="topbar">
+      <h1 id="view-title">기록</h1>
+      <div class="user-switch" id="whoami-box">
+        <span id="whoami-text"></span>
+        <button onclick="openAccountSettings()">계정 설정</button>
+        <button onclick="logout()">로그아웃</button>
+      </div>
+    </header>
+
+    <!-- ---------- 기록 ---------- -->
+    <section id="view-records" class="view active">
+      <div class="card">
+        <h2><span class="eyebrow">Entry</span> 오늘의 기록</h2>
+        <form class="entry" id="record-form" onsubmit="submitRecord(event)">
+          <input type="hidden" id="record-id" />
+          <div>
+            <label>측정일</label>
+            <input type="date" id="f-date" required />
+          </div>
+          <div>
+            <label>몸무게 (kg)</label>
+            <input type="number" step="0.1" id="f-weight" required />
+          </div>
+          <div>
+            <label>키 (cm)</label>
+            <input type="number" step="0.1" id="f-height" required />
+          </div>
+          <div>
+            <label>걸음 수</label>
+            <input type="number" id="f-steps" value="0" />
+          </div>
+          <div>
+            <label>수축기 혈압</label>
+            <input type="number" id="f-systolic" required />
+          </div>
+          <div>
+            <label>이완기 혈압</label>
+            <input type="number" id="f-diastolic" required />
+          </div>
+          <div>
+            <label>공복 혈당 (mg/dL)</label>
+            <input type="number" id="f-sugar" required />
+          </div>
+          <div>
+            <label>수면 시간</label>
+            <input type="number" step="0.1" id="f-sleep" value="0" />
+          </div>
+          <div class="full">
+            <label>메모</label>
+            <input type="text" id="f-memo" placeholder="선택 입력" />
+          </div>
+          <div class="actions">
+            <button type="submit" class="btn btn-primary" id="submit-btn">기록 추가</button>
+            <button type="button" class="btn btn-ghost" onclick="resetForm()">초기화</button>
+            <span id="editing-flag">✎ 수정 중인 기록이 있습니다</span>
+          </div>
+        </form>
+      </div>
+
+      <h2 style="font-family:'Fraunces',serif;font-size:16px;margin:24px 0 10px;color:var(--muted);font-weight:500;">최신 측정값</h2>
+      <div id="vitals-strip" class="vitals-strip"></div>
+
+      <div class="card">
+        <h2><span class="eyebrow">Records</span> 전체 기록</h2>
+        <div class="search-bar">
+          <div>
+            <label>시작일</label>
+            <input type="date" id="s-start" />
+          </div>
+          <div>
+            <label>종료일</label>
+            <input type="date" id="s-end" />
+          </div>
+          <button class="btn btn-ghost" onclick="searchRecords()">검색</button>
+          <button class="btn btn-ghost" onclick="loadRecords()">전체보기</button>
+        </div>
+        <div style="overflow-x:auto;">
+          <table>
+            <thead>
+              <tr><th>날짜</th><th>체중/BMI</th><th>혈압</th><th>혈당</th><th>활동/수면</th><th></th></tr>
+            </thead>
+            <tbody id="records-body"></tbody>
+          </table>
+        </div>
+        <div id="records-loading" class="empty-note" style="display:none;">불러오는 중...</div>
+        <div id="records-empty" class="empty-note" style="display:none;">아직 기록이 없습니다. 위에서 첫 기록을 추가해보세요.</div>
+        <div class="pagination" id="records-pagination" style="display:none;">
+          <button class="btn btn-ghost" onclick="recordsPrevPage()">← 이전</button>
+          <span id="records-page-indicator"></span>
+          <button class="btn btn-ghost" onclick="recordsNextPage()">다음 →</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ---------- 통계 & 리포트 ---------- -->
+    <section id="view-stats-report" class="view">
+      <div class="card">
+        <h2><span class="eyebrow">Trend</span> 측정 추이</h2>
+        <div class="trend-tabs">
+          <button type="button" class="trend-tab active" data-metric="weight" onclick="switchTrendMetric('weight')">체중</button>
+          <button type="button" class="trend-tab" data-metric="bp" onclick="switchTrendMetric('bp')">혈압</button>
+          <button type="button" class="trend-tab" data-metric="sugar" onclick="switchTrendMetric('sugar')">혈당</button>
+        </div>
+        <div class="trend-legend" id="trend-legend"></div>
+        <div class="line-chart-wrap" id="line-chart-wrap">
+          <svg class="line-chart" id="line-chart" viewBox="0 0 700 240" preserveAspectRatio="none"></svg>
+        </div>
+        <div id="trend-empty" class="empty-note" style="display:none;">추이를 보려면 기록이 2건 이상 필요합니다.</div>
+      </div>
+
+      <div class="card">
+        <h2><span class="eyebrow">Stats</span> 통계 요약</h2>
+        <div id="stats-body"></div>
+      </div>
+
+      <div class="card">
+        <h2><span class="eyebrow">Weekly</span> 주간 리포트</h2>
+        <div id="weekly-body"></div>
+      </div>
+    </section>
+
+    <!-- ---------- 목표 ---------- -->
+    <section id="view-goals" class="view">
+      <div class="card">
+        <h2><span class="eyebrow">Goals</span> 목표 관리</h2>
+        <form class="goal-form" onsubmit="saveGoal(event)">
+          <div><label>목표 체중</label><input type="number" step="0.1" id="g-weight" /></div>
+          <div><label>목표 수축기</label><input type="number" id="g-systolic" /></div>
+          <div><label>목표 이완기</label><input type="number" id="g-diastolic" /></div>
+          <div><label>목표 혈당</label><input type="number" id="g-sugar" /></div>
+          <div class="full" style="grid-column:1/-1;margin-top:4px;">
+            <button type="submit" class="btn btn-primary">목표 저장</button>
+          </div>
+        </form>
+        <div id="goal-result" class="achv"></div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<footer>마이 헬스 로그 · 학습용 프로젝트 · 건강 기준은 단순화된 값이며 의학적 진단이 아닙니다</footer>
 
 <script>
 let username = null;
 let editingId = null;
 let recordsCache = {};
+
+const VIEW_TITLES = {records: '기록', 'stats-report': '통계 & 리포트', goals: '목표'};
+
+function switchView(view){
+  document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
+  document.getElementById(`view-${view}`).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.toggle('active', el.dataset.view === view));
+  document.getElementById('view-title').textContent = VIEW_TITLES[view];
+}
 
 function statusClass(cat){
   const good = ['정상','적정','우수'];
@@ -660,18 +732,17 @@ async function submitDeleteAccount(){
 }
 
 function showAuthScreen(){
-  document.getElementById('auth-screen').style.display = 'block';
-  document.getElementById('app-content').style.display = 'none';
-  document.getElementById('whoami-box').style.display = 'none';
+  document.getElementById('auth-wrap').style.display = 'block';
+  document.getElementById('dashboard-shell').style.display = 'none';
   username = null;
 }
 
 function showApp(user){
   username = user.username;
-  document.getElementById('auth-screen').style.display = 'none';
-  document.getElementById('app-content').style.display = 'block';
-  document.getElementById('whoami-box').style.display = 'flex';
+  document.getElementById('auth-wrap').style.display = 'none';
+  document.getElementById('dashboard-shell').style.display = 'flex';
   document.getElementById('whoami-text').textContent = `${user.username}님`;
+  switchView('records');
   refreshAll();
 }
 
@@ -1040,6 +1111,7 @@ function editRecord(id){
   const r = recordsCache[id];
   if(!r) return;
   editingId = r.id;
+  switchView('records');
   document.getElementById('f-date').value = r.date;
   document.getElementById('f-weight').value = r.weight;
   document.getElementById('f-height').value = r.height;
@@ -1145,6 +1217,30 @@ function deltaHtml(v, higherIsWorse=true){
   return `<span class="delta ${dir}">${arrow} ${Math.abs(v)}</span>`;
 }
 
+// ---------- 주간 리포트 (막대 그래프: 이번주=강조색, 지난주=중립색) ----------
+function weeklyBarCard(label, thisVal, lastVal, higherIsWorse){
+  const maxV = Math.max(thisVal || 0, lastVal || 0, 1);
+  const thisPct = ((thisVal || 0) / maxV * 100).toFixed(0);
+  const lastPct = ((lastVal || 0) / maxV * 100).toFixed(0);
+  const hasDelta = thisVal !== undefined && thisVal !== null && lastVal !== undefined && lastVal !== null;
+  const delta = hasDelta ? Math.round((thisVal - lastVal) * 100) / 100 : null;
+  return `
+    <div class="weekly-card">
+      <div class="l">${label}</div>
+      <div class="weekly-bar-row">
+        <span class="weekly-bar-label">지난주</span>
+        <div class="weekly-bar-track last"><span style="width:${lastPct}%"></span></div>
+        <span class="weekly-bar-value">${lastVal ?? '-'}</span>
+      </div>
+      <div class="weekly-bar-row">
+        <span class="weekly-bar-label">이번주</span>
+        <div class="weekly-bar-track this"><span style="width:${thisPct}%"></span></div>
+        <span class="weekly-bar-value">${thisVal ?? '-'}</span>
+      </div>
+      ${delta !== null ? `<div style="margin-top:2px;">${deltaHtml(delta, higherIsWorse)}</div>` : ''}
+    </div>`;
+}
+
 async function loadWeeklyReport(){
   const el = document.getElementById('weekly-body');
   try{
@@ -1153,24 +1249,19 @@ async function loadWeeklyReport(){
       el.innerHTML = '<div class="empty-note">최근 2주간 기록이 없습니다.</div>';
       return;
     }
-    const rows = [
-      ['평균 체중', 'avg_weight', true],
+    const metrics = [
+      ['평균 체중(kg)', 'avg_weight', true],
       ['평균 수축기', 'avg_systolic', true],
       ['평균 이완기', 'avg_diastolic', true],
       ['평균 혈당', 'avg_blood_sugar', true],
       ['평균 걸음 수', 'avg_steps', false],
-      ['평균 수면', 'avg_sleep_hours', false],
+      ['평균 수면(h)', 'avg_sleep_hours', false],
     ];
     el.innerHTML = `
-      <div class="week-compare">
-        <div class="h">지표</div><div class="h">이번 주</div><div class="h">지난 주 대비</div>
-        ${rows.map(([label,key,worse]) => `
-          <div class="metric">${label}</div>
-          <div class="metric">${r.this_week[key] ?? '-'}</div>
-          <div class="metric">${deltaHtml(r.change[key], worse)}</div>
-        `).join('')}
+      <div class="weekly-grid">
+        ${metrics.map(([label, key, worse]) => weeklyBarCard(label, r.this_week[key], r.last_week[key], worse)).join('')}
       </div>
-      <div style="margin-top:10px;font-size:11px;color:var(--muted);">
+      <div style="margin-top:12px;font-size:11px;color:var(--muted);">
         이번 주 ${r.this_week.record_count || 0}건 · 지난 주 ${r.last_week.record_count || 0}건 기록 기준
       </div>`;
   }catch(e){ el.innerHTML = '<div class="empty-note">리포트를 불러올 수 없습니다.</div>'; }
