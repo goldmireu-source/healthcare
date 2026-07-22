@@ -32,7 +32,7 @@
     font-weight:700;font-size:36px;margin:0 0 4px;
     letter-spacing:-0.02em;
   }
-  header.top p{margin:0;color:var(--muted);font-size:15px;}
+  header.top p{margin:0;color:var(--muted);font-size:14px;}
   .user-switch{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end;}
   .user-switch button, .user-switch .theme-toggle{flex-shrink:0;}
   .user-switch label{font-size:13px;color:var(--muted);}
@@ -81,7 +81,7 @@
   nav.side-nav{display:flex;flex-direction:column;}
   .nav-item{
     display:flex;align-items:center;gap:8px;width:100%;text-align:left;padding:11px 22px;
-    border:none;background:none;cursor:pointer;font-size:15px;color:var(--muted);
+    border:none;background:none;cursor:pointer;font-size:14px;color:var(--muted);
     font-family:'Pretendard Variable','Pretendard',-apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;border-left:3px solid transparent;
   }
   .nav-item:hover{color:var(--ink);background:var(--paper);}
@@ -106,19 +106,19 @@
   form.entry label{display:block;font-size:13px;color:var(--muted);margin-bottom:5px;}
   form.entry input{
     width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:7px;
-    font-size:15px;font-family:'IBM Plex Mono', monospace;
+    font-size:14px;font-family:'IBM Plex Mono', monospace;
   }
   form.entry input[type="text"]{font-family:'Pretendard Variable','Pretendard',-apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;}
   form.entry .actions{grid-column:1 / -1;display:flex;gap:10px;align-items:center;margin-top:4px;}
   .btn{
-    padding:10px 18px;border-radius:7px;border:none;cursor:pointer;font-size:15px;
+    padding:10px 18px;border-radius:7px;border:none;cursor:pointer;font-size:14px;
     font-weight:500;font-family:'Pretendard Variable','Pretendard',-apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;
   }
   .btn-primary{background:var(--teal);color:var(--on-accent);}
   .btn-primary:hover{background:var(--teal-strong);}
   .btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--line);}
   .btn-ghost:hover{border-color:var(--muted);}
-  #editing-flag{font-size:13px;color:var(--amber);display:none;}
+  #editing-flag{font-size:14px;color:var(--amber);display:none;}
 
   /* Quick Action 툴바 (고도화 13번) */
   .quick-actions{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;}
@@ -187,10 +187,10 @@
   .hero-chip{flex:1;min-width:150px;background:var(--card);border:1px solid var(--line);border-radius:var(--radius-sm);
     padding:12px 15px;display:flex;align-items:center;justify-content:space-between;gap:10px;}
   .hero-chip .hc-label{font-size:12.5px;color:var(--muted);}
-  .hero-chip .hc-value{font-family:'IBM Plex Mono', monospace;font-size:15px;font-weight:600;}
+  .hero-chip .hc-value{font-family:'IBM Plex Mono', monospace;font-size:14px;font-weight:600;}
 
   .dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:6px;vertical-align:middle;}
-  .status-tag{font-size:13px;font-weight:500;}
+  .status-tag{font-size:14px;font-weight:500;}
   .good .dot{background:var(--status-good);} .good .status-tag{color:var(--status-good);}
   .warn .dot{background:var(--amber);} .warn .status-tag{color:var(--amber);}
   .bad .dot{background:var(--brick);} .bad .status-tag{color:var(--brick);}
@@ -250,7 +250,7 @@
   .stat-item{padding:12px 0;border-bottom:1px dashed var(--line);}
   .stat-item .n{font-family:'IBM Plex Mono', monospace;font-size:21px;font-weight:600;}
   .stat-item .l{font-size:12px;color:var(--muted);}
-  .dist-row{display:flex;align-items:center;gap:8px;margin-top:7px;font-size:13px;}
+  .dist-row{display:flex;align-items:center;gap:8px;margin-top:7px;font-size:14px;}
   .dist-bar{flex:1;height:6px;background:var(--paper);border-radius:4px;overflow:hidden;}
   .dist-bar span{display:block;height:100%;background:var(--teal);}
 
@@ -259,7 +259,7 @@
   .goal-form input{padding:9px 10px;border:1px solid var(--line);border-radius:7px;font-family:'IBM Plex Mono', monospace;font-size:14px;width:100%;}
   .goal-form label{font-size:12px;color:var(--muted);display:block;margin-bottom:4px;}
   .achv{display:flex;gap:10px;flex-wrap:wrap;margin-top:4px;}
-  .achv .chip{font-size:13px;padding:5px 10px;border-radius:20px;background:var(--paper);}
+  .achv .chip{font-size:14px;padding:5px 10px;border-radius:20px;background:var(--paper);}
   .achv .chip.yes{background:var(--status-good-soft);color:var(--status-good);}
   .achv .chip.no{background:var(--brick-soft);color:var(--brick);}
 
@@ -293,21 +293,21 @@
   }
   .ai-summary-text{margin:0;font-size:14.5px;color:var(--ink);line-height:1.6;}
 
-  footer{text-align:center;color:var(--muted);font-size:13px;margin:40px 0;}
+  footer{text-align:center;color:var(--muted);font-size:14px;margin:40px 0;}
 
   /* 인증 화면 */
   #auth-screen .auth-tabs{display:flex;gap:4px;margin-bottom:20px;border-bottom:1px solid var(--line);}
   #auth-screen .auth-tab{
-    flex:1;padding:10px;border:none;background:none;cursor:pointer;font-size:15px;
+    flex:1;padding:10px;border:none;background:none;cursor:pointer;font-size:14px;
     color:var(--muted);border-bottom:2px solid transparent;font-family:'Pretendard Variable','Pretendard',-apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;
   }
   #auth-screen .auth-tab.active{color:var(--ink);border-bottom-color:var(--teal);font-weight:600;}
   #auth-screen label{display:block;font-size:13px;color:var(--muted);margin-bottom:5px;}
   #auth-screen input{
-    width:100%;padding:10px 11px;border:1px solid var(--line);border-radius:7px;font-size:15px;
+    width:100%;padding:10px 11px;border:1px solid var(--line);border-radius:7px;font-size:14px;
     font-family:'Pretendard Variable','Pretendard',-apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;
   }
-  .auth-error{color:var(--brick);font-size:13px;margin-top:12px;min-height:15px;}
+  .auth-error{color:var(--brick);font-size:14px;margin-top:12px;min-height:15px;}
 
   /* 토스트 */
   #toast-box{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:999;display:flex;flex-direction:column;gap:8px;align-items:center;}
@@ -333,17 +333,17 @@
   .modal-box h4{font-size:14px;margin:0 0 10px;color:var(--muted);}
   .modal-box label{display:block;font-size:13px;color:var(--muted);margin-bottom:5px;}
   .modal-box input{
-    width:100%;padding:10px 11px;border:1px solid var(--line);border-radius:7px;font-size:15px;
+    width:100%;padding:10px 11px;border:1px solid var(--line);border-radius:7px;font-size:14px;
     font-family:'Pretendard Variable','Pretendard',-apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;
   }
   .modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:18px;}
   .btn-danger{background:var(--brick);color:var(--on-accent);}
   .btn-danger:hover{filter:brightness(0.9);}
   .danger-zone{border-top:1px dashed var(--line);padding-top:16px;margin-top:20px;}
-  .danger-zone p{font-size:13px;color:var(--muted);margin:0 0 10px;}
+  .danger-zone p{font-size:14px;color:var(--muted);margin:0 0 10px;}
 
   /* 페이지네이션 */
-  .pagination{display:flex;align-items:center;gap:12px;margin-top:14px;font-size:13px;color:var(--muted);}
+  .pagination{display:flex;align-items:center;gap:12px;margin-top:14px;font-size:14px;color:var(--muted);}
 
   /* 측정 추이 차트 */
   .trend-tabs{display:flex;gap:6px;margin-bottom:14px;}
@@ -491,14 +491,14 @@
           <button type="button" class="btn btn-primary" style="width:100%;" onclick="submitPasswordReset()">비밀번호 재설정</button>
         </div>
         <div style="text-align:center;margin-top:14px;">
-          <a href="#" style="font-size:13px;color:var(--muted);" onclick="switchAuthTab('login')">로그인으로 돌아가기</a>
+          <a href="#" style="font-size:14px;color:var(--muted);" onclick="switchAuthTab('login')">로그인으로 돌아가기</a>
         </div>
       </form>
 
       <div id="auth-error" class="auth-error"></div>
 
       <div id="forgot-password-link" style="text-align:center;margin-top:14px;">
-        <a href="#" style="font-size:13px;color:var(--muted);" onclick="showResetForm(event)">비밀번호를 잊으셨나요?</a>
+        <a href="#" style="font-size:14px;color:var(--muted);" onclick="showResetForm(event)">비밀번호를 잊으셨나요?</a>
       </div>
     </div>
   </section>
@@ -566,16 +566,16 @@
   <aside class="sidebar">
     <div class="brand"><span class="dot"></span><span>마이 헬스 로그<small>PERSONAL LOG</small></span></div>
     <nav class="side-nav">
-      <button class="nav-item active" data-view="records" onclick="switchView('records')">
-        <svg class="nav-icon" viewBox="0 0 24 24"><path d="M9 11l3 3L22 4M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+      <button class="nav-item active" data-view="records" onclick="switchView('records')" aria-label="기록" aria-current="page">
+        <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11l3 3L22 4M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
         <span class="nav-label">기록</span>
       </button>
-      <button class="nav-item" data-view="stats-report" onclick="switchView('stats-report')">
-        <svg class="nav-icon" viewBox="0 0 24 24"><path d="M3 3v18h18M8 17V10m5 7V6m5 11v-4"/></svg>
+      <button class="nav-item" data-view="stats-report" onclick="switchView('stats-report')" aria-label="통계 & 리포트">
+        <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3v18h18M8 17V10m5 7V6m5 11v-4"/></svg>
         <span class="nav-label">통계 &amp; 리포트</span>
       </button>
-      <button class="nav-item" data-view="goals" onclick="switchView('goals')">
-        <svg class="nav-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg>
+      <button class="nav-item" data-view="goals" onclick="switchView('goals')" aria-label="목표">
+        <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg>
         <span class="nav-label">목표</span>
       </button>
     </nav>
@@ -585,10 +585,10 @@
     <header class="topbar">
       <h1 id="view-title">기록</h1>
       <div class="user-switch" id="whoami-box">
-        <div class="theme-toggle" id="theme-toggle">
-          <button type="button" data-theme-choice="light" onclick="setThemeChoice('light')">라이트</button>
-          <button type="button" data-theme-choice="system" onclick="setThemeChoice('system')">시스템</button>
-          <button type="button" data-theme-choice="dark" onclick="setThemeChoice('dark')">다크</button>
+        <div class="theme-toggle" id="theme-toggle" role="group" aria-label="테마 선택">
+          <button type="button" data-theme-choice="light" onclick="setThemeChoice('light')" aria-pressed="false">라이트</button>
+          <button type="button" data-theme-choice="system" onclick="setThemeChoice('system')" aria-pressed="false">시스템</button>
+          <button type="button" data-theme-choice="dark" onclick="setThemeChoice('dark')" aria-pressed="false">다크</button>
         </div>
         <span id="whoami-text"></span>
         <button onclick="openAccountSettings()">계정 설정</button>
@@ -755,7 +755,9 @@ function applyThemeChoice(choice){
     document.documentElement.setAttribute('data-theme', choice);
   }
   document.querySelectorAll('#theme-toggle button').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.themeChoice === choice);
+    const isActive = btn.dataset.themeChoice === choice;
+    btn.classList.toggle('active', isActive);
+    btn.setAttribute('aria-pressed', String(isActive));
   });
 }
 
@@ -779,7 +781,11 @@ const VIEW_TITLES = {records: '기록', 'stats-report': '통계 & 리포트', go
 function switchView(view){
   document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
   document.getElementById(`view-${view}`).classList.add('active');
-  document.querySelectorAll('.nav-item').forEach(el => el.classList.toggle('active', el.dataset.view === view));
+  document.querySelectorAll('.nav-item').forEach(el => {
+    const isActive = el.dataset.view === view;
+    el.classList.toggle('active', isActive);
+    if(isActive){ el.setAttribute('aria-current', 'page'); }else{ el.removeAttribute('aria-current'); }
+  });
   document.getElementById('view-title').textContent = VIEW_TITLES[view];
   // 차트는 뷰가 display:none인 동안엔 실제 렌더링 너비를 잴 수 없어서 그릴 수 없었음(그래서 예전 고정
   // viewBox가 실제 카드 너비에 억지로 늘어나 붙으며 일그러짐) — 뷰가 보이게 된 지금 다시 그린다.
@@ -1401,7 +1407,7 @@ function renderTrendChart(){
     });
     // 마지막(최신) 값은 숫자로 직접 라벨링 — 끝점을 강조
     const lastV = s.values[s.values.length - 1];
-    svg += `<text x="${xAt(n - 1)}" y="${yAt(lastV) - 11}" text-anchor="end" style="font-size:13px;font-weight:700;fill:${s.color};font-family:'IBM Plex Mono', monospace;">${lastV}</text>`;
+    svg += `<text x="${xAt(n - 1)}" y="${yAt(lastV) - 11}" text-anchor="end" style="font-size:14px;font-weight:700;fill:${s.color};font-family:'IBM Plex Mono', monospace;">${lastV}</text>`;
   });
 
   // x축 날짜 라벨 — 겹치지 않을 만큼만 간격을 두고 선택적으로 표시, 처음/끝은 항상 표시.
@@ -1502,8 +1508,8 @@ function renderRecordsTable(pageItems, totalCount){
         ${r.warnings.length ? `<span class="badge bad">⚠ 경고 ${r.warnings.length}건</span>` : ''}
       </div>
       <div class="timeline-actions">
-        <button onclick="editRecord(${r.id})">수정</button>
-        <button onclick="deleteRecord(${r.id})">삭제</button>
+        <button onclick="editRecord(${r.id})" aria-label="${r.date} 기록 수정">수정</button>
+        <button onclick="deleteRecord(${r.id})" aria-label="${r.date} 기록 삭제">삭제</button>
       </div>
     </div>`;
   }).join('');
@@ -1698,7 +1704,7 @@ async function loadGoal(){
     document.getElementById('g-sugar').value = g.target_blood_sugar ?? '';
     renderGoalAchievement(g.achievement);
   }catch(e){
-    el.innerHTML = '<span style="color:var(--muted);font-size:13px;">설정된 목표가 없습니다. 아래에서 설정해보세요.</span>';
+    el.innerHTML = '<span style="color:var(--muted);font-size:14px;">설정된 목표가 없습니다. 아래에서 설정해보세요.</span>';
   }
 }
 
@@ -1708,7 +1714,7 @@ function renderGoalAchievement(a){
   const el = document.getElementById('goal-result');
   const predEl = document.getElementById('goal-predictions');
   if(!a || a.message){
-    el.innerHTML = `<span style="color:var(--muted);font-size:13px;">${a && a.message ? a.message : ''}</span>`;
+    el.innerHTML = `<span style="color:var(--muted);font-size:14px;">${a && a.message ? a.message : ''}</span>`;
     predEl.innerHTML = '';
     return;
   }

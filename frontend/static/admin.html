@@ -24,10 +24,10 @@
   /* ---------- 로그인 화면 ---------- */
   #admin-login-screen label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px;}
   #admin-login-screen input{
-    width:100%;padding:10px 11px;border:1px solid var(--line);border-radius:7px;font-size:15px;
+    width:100%;padding:10px 11px;border:1px solid var(--line);border-radius:7px;font-size:14px;
     font-family:'Pretendard Variable','Pretendard',-apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;
   }
-  .auth-error{color:var(--brick);font-size:13px;margin-top:12px;min-height:15px;}
+  .auth-error{color:var(--brick);font-size:14px;margin-top:12px;min-height:15px;}
 
   /* ---------- 대시보드 셸 (사이드바 + 컨텐츠) ---------- */
   .shell{display:flex;min-height:100vh;}
@@ -48,7 +48,7 @@
   nav.side-nav{display:flex;flex-direction:column;}
   .nav-item{
     display:flex;align-items:center;gap:8px;width:100%;text-align:left;padding:11px 22px;
-    border:none;background:none;cursor:pointer;font-size:15px;color:var(--muted);
+    border:none;background:none;cursor:pointer;font-size:14px;color:var(--muted);
     font-family:'Pretendard Variable','Pretendard',-apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;border-left:3px solid transparent;
   }
   .nav-item:hover{color:var(--ink);background:var(--paper);}
@@ -125,7 +125,7 @@
     padding:9px 10px;border:1px solid var(--line);border-radius:7px;font-family:'IBM Plex Mono', monospace;
     font-size:14px;min-width:170px;background:var(--card);color:var(--ink);
   }
-  .pagination{display:flex;align-items:center;gap:12px;margin-top:14px;font-size:13px;color:var(--muted);}
+  .pagination{display:flex;align-items:center;gap:12px;margin-top:14px;font-size:14px;color:var(--muted);}
 
   /* ---------- KPI ---------- */
   .kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:14px;margin-bottom:20px;}
@@ -156,7 +156,7 @@
   .panel-row.thirds{grid-template-columns:repeat(3,1fr);}
 
   /* ---------- 가입 추이 차트 ---------- */
-  .trend-summary{font-size:13px;color:var(--muted);margin-bottom:10px;}
+  .trend-summary{font-size:14px;color:var(--muted);margin-bottom:10px;}
   .trend-chart-wrap{position:relative;}
   .trend-chart{width:100%;height:130px;display:block;}
   .trend-bar{fill:var(--teal);cursor:pointer;}
@@ -168,7 +168,7 @@
   #chart-tooltip strong{font-family:'IBM Plex Mono', monospace;}
 
   /* ---------- 분포 패널 ---------- */
-  .dist-row{display:flex;align-items:center;gap:8px;margin-top:7px;font-size:13px;}
+  .dist-row{display:flex;align-items:center;gap:8px;margin-top:7px;font-size:14px;}
   .dist-label{width:76px;flex-shrink:0;}
   .dist-bar{flex:1;height:8px;background:var(--paper);border-radius:4px;overflow:hidden;}
   .dist-bar span{display:block;height:100%;}
@@ -179,7 +179,7 @@
   .dist-count{color:var(--muted);width:24px;text-align:right;flex-shrink:0;}
 
   /* ---------- 최근 활동 ---------- */
-  .activity-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px dashed var(--line);font-size:13px;}
+  .activity-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px dashed var(--line);font-size:14px;}
   .activity-row:last-child{border-bottom:none;}
   .activity-detail{flex:1;color:var(--ink);}
   .activity-time{color:var(--muted);font-family:'IBM Plex Mono', monospace;font-size:12px;}
@@ -295,16 +295,16 @@
   <aside class="sidebar">
     <div class="brand"><span class="dot"></span><span>마이 헬스 로그<small>ADMIN CONSOLE</small></span></div>
     <nav class="side-nav">
-      <button class="nav-item active" data-view="overview" onclick="switchView('overview')">
-        <svg class="nav-icon" viewBox="0 0 24 24"><path d="M3 12l9-9 9 9M5 10v10a1 1 0 0 0 1 1h3m10-11l2 2m-2-2v10a1 1 0 0 1-1 1h-3m-6 0a1 1 0 0 0 1-1v-4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v4a1 1 0 0 0 1 1m-6 0h6"/></svg>
+      <button class="nav-item active" data-view="overview" onclick="switchView('overview')" aria-label="개요" aria-current="page">
+        <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12l9-9 9 9M5 10v10a1 1 0 0 0 1 1h3m10-11l2 2m-2-2v10a1 1 0 0 1-1 1h-3m-6 0a1 1 0 0 0 1-1v-4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v4a1 1 0 0 0 1 1m-6 0h6"/></svg>
         <span class="nav-label">개요</span>
       </button>
-      <button class="nav-item" data-view="users" onclick="switchView('users')">
-        <svg class="nav-icon" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      <button class="nav-item" data-view="users" onclick="switchView('users')" aria-label="사용자 관리">
+        <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
         <span class="nav-label">사용자 관리</span>
       </button>
-      <button class="nav-item" data-view="audit" onclick="switchView('audit')">
-        <svg class="nav-icon" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M4 19.5A2.5 2.5 0 0 0 6.5 22H20V2H6.5A2.5 2.5 0 0 0 4 4.5v15z"/></svg>
+      <button class="nav-item" data-view="audit" onclick="switchView('audit')" aria-label="감사 로그">
+        <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M4 19.5A2.5 2.5 0 0 0 6.5 22H20V2H6.5A2.5 2.5 0 0 0 4 4.5v15z"/></svg>
         <span class="nav-label">감사 로그</span>
       </button>
     </nav>
@@ -317,10 +317,10 @@
     <header class="topbar">
       <h1 id="view-title">개요</h1>
       <div class="user-switch">
-        <div class="theme-toggle" id="theme-toggle">
-          <button type="button" data-theme-choice="light" onclick="setThemeChoice('light')">라이트</button>
-          <button type="button" data-theme-choice="system" onclick="setThemeChoice('system')">시스템</button>
-          <button type="button" data-theme-choice="dark" onclick="setThemeChoice('dark')">다크</button>
+        <div class="theme-toggle" id="theme-toggle" role="group" aria-label="테마 선택">
+          <button type="button" data-theme-choice="light" onclick="setThemeChoice('light')" aria-pressed="false">라이트</button>
+          <button type="button" data-theme-choice="system" onclick="setThemeChoice('system')" aria-pressed="false">시스템</button>
+          <button type="button" data-theme-choice="dark" onclick="setThemeChoice('dark')" aria-pressed="false">다크</button>
         </div>
         <span id="whoami-text"></span>
         <button class="btn btn-ghost" onclick="logout()">로그아웃</button>
@@ -515,7 +515,9 @@ function applyThemeChoice(choice){
     document.documentElement.setAttribute('data-theme', choice);
   }
   document.querySelectorAll('#theme-toggle button').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.themeChoice === choice);
+    const isActive = btn.dataset.themeChoice === choice;
+    btn.classList.toggle('active', isActive);
+    btn.setAttribute('aria-pressed', String(isActive));
   });
 }
 
@@ -671,7 +673,11 @@ function customConfirm(message, title){
 function switchView(view){
   document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
   document.getElementById(`view-${view}`).classList.add('active');
-  document.querySelectorAll('.nav-item').forEach(el => el.classList.toggle('active', el.dataset.view === view));
+  document.querySelectorAll('.nav-item').forEach(el => {
+    const isActive = el.dataset.view === view;
+    el.classList.toggle('active', isActive);
+    if(isActive){ el.setAttribute('aria-current', 'page'); }else{ el.removeAttribute('aria-current'); }
+  });
   document.getElementById('view-title').textContent = VIEW_TITLES[view];
 }
 
@@ -912,7 +918,7 @@ function renderAuditTable(logs){
       <td>${l.admin_username}</td>
       <td><span class="badge ${actionBadgeClass(l.action)}">${actionLabel(l.action)}</span></td>
       <td>${l.target_username || '-'}</td>
-      <td style="color:var(--muted);font-size:13px;">${l.detail || ''}</td>
+      <td style="color:var(--muted);font-size:14px;">${l.detail || ''}</td>
     </tr>`).join('');
 }
 
@@ -1094,12 +1100,12 @@ async function loadUsers(page = currentPage){
       body.innerHTML = data.users.map(u => {
         const isSelf = u.username === adminUsername;
         const actions = isSelf
-          ? `<button onclick="viewUserRecords(${u.id}, '${escapeAttr(u.username)}')">기록 보기</button>
-             <button onclick="viewUserDetail(${u.id}, '${escapeAttr(u.username)}')">회원정보 보기</button>`
-          : `<button onclick="viewUserRecords(${u.id}, '${escapeAttr(u.username)}')">기록 보기</button>
-             <button onclick="viewUserDetail(${u.id}, '${escapeAttr(u.username)}')">회원정보 보기</button>
-             <button onclick="forceLogout(${u.id}, '${escapeAttr(u.username)}')">강제 로그아웃</button>
-             <button onclick="deleteUser(${u.id}, '${escapeAttr(u.username)}')">계정 삭제</button>`;
+          ? `<button onclick="viewUserRecords(${u.id}, '${escapeAttr(u.username)}')" aria-label="${u.username} 기록 보기">기록 보기</button>
+             <button onclick="viewUserDetail(${u.id}, '${escapeAttr(u.username)}')" aria-label="${u.username} 회원정보 보기">회원정보 보기</button>`
+          : `<button onclick="viewUserRecords(${u.id}, '${escapeAttr(u.username)}')" aria-label="${u.username} 기록 보기">기록 보기</button>
+             <button onclick="viewUserDetail(${u.id}, '${escapeAttr(u.username)}')" aria-label="${u.username} 회원정보 보기">회원정보 보기</button>
+             <button onclick="forceLogout(${u.id}, '${escapeAttr(u.username)}')" aria-label="${u.username} 강제 로그아웃">강제 로그아웃</button>
+             <button onclick="deleteUser(${u.id}, '${escapeAttr(u.username)}')" aria-label="${u.username} 계정 삭제">계정 삭제</button>`;
         return `
       <tr>
         <td>${u.id}</td>
