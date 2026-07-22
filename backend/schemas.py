@@ -184,6 +184,15 @@ class AuditLogsOut(BaseModel):
     logs: List[AuditLogOut]
 
 
+class AdminPasswordResetOut(BaseModel):
+    """보안질문 답을 잊어(또는 rate limit에 걸려) 셀프 복구가 불가능한 사용자를 위한
+    관리자 개입 경로. 임시 비밀번호는 이 응답에 딱 한 번만 노출되고 해시로만 저장되므로,
+    관리자가 이 화면을 벗어나면 다시 조회할 방법이 없다 — 안전하게 전달했는지 확인 필요."""
+
+    temporary_password: str
+    message: str = "임시 비밀번호가 발급되었습니다. 이 화면을 벗어나면 다시 볼 수 없으니 안전한 방법으로 사용자에게 전달하고, 로그인 후 비밀번호를 변경하도록 안내하세요."
+
+
 # ---------- Records ----------
 
 class RecordIn(BaseModel):

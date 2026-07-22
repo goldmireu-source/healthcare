@@ -448,6 +448,7 @@
               <option value="">전체</option>
               <option value="delete_user">계정 삭제</option>
               <option value="force_logout">강제 로그아웃</option>
+              <option value="admin_password_reset">임시 비밀번호 발급</option>
             </select>
           </div>
         </div>
@@ -487,7 +488,23 @@
     <h3><span id="user-detail-title"></span></h3>
     <div id="user-detail-body"></div>
     <div class="modal-actions">
+      <button type="button" class="btn btn-ghost" id="reset-password-btn" onclick="resetUserPasswordFromDetail()" style="margin-right:auto;">임시 비밀번호 발급</button>
       <button type="button" class="btn btn-ghost" onclick="closeUserDetail()">닫기</button>
+    </div>
+  </div>
+</div>
+
+<!-- 임시 비밀번호 발급 결과 모달 (한 번만 보이고 다시 조회할 수 없으므로 명시적으로 닫아야 함) -->
+<div class="modal-overlay" id="password-reset-modal" style="display:none;">
+  <div class="modal-box">
+    <h3>임시 비밀번호 발급됨</h3>
+    <p style="font-size:14px;color:var(--muted);margin:0 0 14px;">이 화면을 벗어나면 다시 볼 수 없습니다. 안전한 방법으로 사용자에게 전달하고, 로그인 후 비밀번호를 변경하도록 안내하세요.</p>
+    <div style="display:flex;gap:8px;">
+      <input type="text" id="temp-password-display" readonly style="flex:1;font-family:'IBM Plex Mono', monospace;padding:9px 10px;border:1px solid var(--line);border-radius:7px;background:var(--card-2);color:var(--ink);" />
+      <button type="button" class="btn btn-ghost" onclick="copyTempPassword()">복사</button>
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="btn btn-primary" onclick="closePasswordResetModal()">확인했습니다</button>
     </div>
   </div>
 </div>
@@ -881,7 +898,7 @@ async function loadStats(){
 
 // ---------- 최근 활동 / 감사 로그 ----------
 function actionLabel(action){
-  const map = {delete_user: '계정 삭제', force_logout: '강제 로그아웃'};
+  const map = {delete_user: '계정 삭제', force_logout: '강제 로그아웃', admin_password_reset: '임시 비밀번호 발급'};
   return map[action] || action;
 }
 
@@ -1165,11 +1182,16 @@ async function viewUserRecords(id, username){
 }
 
 // ---------- 회원정보 보기 (계정 자체의 상세 정보 - 건강기록과 별개) ----------
+let currentDetailUser = null; // { id, username } - 임시 비밀번호 발급 버튼이 참조
+
 async function viewUserDetail(id, username){
+  currentDetailUser = {id, username};
   const modal = document.getElementById('user-detail-modal');
   const body = document.getElementById('user-detail-body');
   document.getElementById('user-detail-title').textContent = `${username}님의 회원정보`;
   body.innerHTML = '<span style="color:var(--muted);">불러오는 중...</span>';
+  // 자기 자신의 비밀번호는 이 기능으로 재설정할 수 없음(백엔드도 400으로 막음) - 버튼 자체를 숨김
+  document.getElementById('reset-password-btn').style.display = username === adminUsername ? 'none' : 'inline-block';
   modal.style.display = 'flex';
   try{
     const res = await fetch(`/admin/users/${id}`, {credentials:'same-origin'});
@@ -1204,6 +1226,42 @@ async function viewUserDetail(id, username){
 
 function closeUserDetail(){
   document.getElementById('user-detail-modal').style.display = 'none';
+}
+
+// ---------- 임시 비밀번호 발급 (보안질문 답을 잊어 셀프 복구가 막힌 사용자를 위한 관리자 개입) ----------
+async function resetUserPasswordFromDetail(){
+  if(!currentDetailUser) return;
+  const {id, username} = currentDetailUser;
+  const ok = await customConfirm(
+    `'${username}' 계정의 임시 비밀번호를 발급할까요? 기존 로그인 세션이 모두 무효화됩니다.`,
+    '임시 비밀번호 발급',
+  );
+  if(!ok) return;
+  try{
+    const res = await fetch(`/admin/users/${id}/reset-password`, {method:'POST', credentials:'same-origin'});
+    if(!res.ok) throw new Error((await res.json()).detail || '임시 비밀번호 발급에 실패했습니다.');
+    const data = await res.json();
+    document.getElementById('temp-password-display').value = data.temporary_password;
+    document.getElementById('password-reset-modal').style.display = 'flex';
+    loadAuditLog();
+  }catch(e){
+    toast('임시 비밀번호 발급 실패: ' + e.message, 'error');
+  }
+}
+
+function copyTempPassword(){
+  const input = document.getElementById('temp-password-display');
+  input.select();
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(input.value)
+      .then(() => toast('클립보드에 복사했습니다.', 'success'))
+      .catch(() => toast('복사에 실패했습니다. 직접 선택해 복사해주세요.', 'error'));
+  }
+}
+
+function closePasswordResetModal(){
+  document.getElementById('password-reset-modal').style.display = 'none';
+  document.getElementById('temp-password-display').value = '';
 }
 
 function closeUserRecords(){

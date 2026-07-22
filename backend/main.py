@@ -3,6 +3,7 @@ import io
 import json
 import logging
 import os
+import secrets
 from datetime import date
 from typing import Optional
 
@@ -1108,6 +1109,37 @@ def admin_force_logout(
         "message": f"'{user.username}'의 모든 세션을 무효화했습니다.",
         "sessions_invalidated": invalidated,
     }
+
+
+@app.post("/admin/users/{user_id}/reset-password", response_model=schemas.AdminPasswordResetOut, tags=["Admin"])
+def admin_reset_password(
+    user_id: int,
+    current_admin: models.User = Depends(auth.get_current_admin),
+    db: Session = Depends(get_db),
+):
+    """보안질문 답을 잊거나(또는 그 rate limit에 걸려) 셀프 복구가 막힌 사용자를 위한
+    최소한의 관리자 개입 경로 — 이메일 인증 인프라가 없어 다른 대안이 없는 상황을
+    보완한다. 무작위 임시 비밀번호를 생성해 즉시 해시로만 저장하고, 탈취 우려가 있는
+    기존 세션은 비밀번호 찾기 재설정과 동일하게 전부 무효화한다."""
+    if user_id == current_admin.id:
+        raise HTTPException(status_code=400, detail="자기 자신의 비밀번호는 이 기능으로 재설정할 수 없습니다.")
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="사용자를 찾을 수 없습니다.")
+
+    temporary_password = secrets.token_urlsafe(9)
+    password_hash, salt = auth.hash_password(temporary_password)
+    user.password_hash = password_hash
+    user.password_salt = salt
+    db.query(models.Session).filter(models.Session.user_id == user_id).delete()
+    db.commit()
+
+    # 감사 로그에는 절대 비밀번호 값 자체를 남기지 않는다 (누가/언제/누구에게 했는지만 기록)
+    admin_service.log_admin_action(
+        db, current_admin, "admin_password_reset", target_username=user.username,
+        detail="관리자가 임시 비밀번호 발급 (기존 세션 전부 무효화됨)",
+    )
+    return schemas.AdminPasswordResetOut(temporary_password=temporary_password)
 
 
 @app.get("/admin/audit-log", response_model=schemas.AuditLogsOut, tags=["Admin"])
