@@ -35,6 +35,7 @@ healthcare/
 │   ├── tests/                #   pytest 테스트 스위트 (아래 "테스트 실행" 참고)
 │   ├── promote_admin.py      #   [로컬 전용] 기존 계정을 관리자로 승격하는 CLI 스크립트
 │   ├── seed_demo_data.py     #   [로컬 전용] 데모 시연용 사용자/기록 생성 스크립트
+│   ├── backup_db.py          #   [로컬 전용] DB 백업(타임스탬프 복사 + 오래된 백업 자동 정리)
 │   ├── requirements.txt
 │   ├── requirements-dev.txt  #   테스트 실행용 추가 의존성 (pytest, httpx)
 │   ├── pytest.ini
@@ -240,6 +241,8 @@ python promote_admin.py <username>
 ```
 
 데모 시연용 더미데이터가 필요하면 `backend/` 안에서 `python seed_demo_data.py` 실행 (일반 사용자 12명 + 2주치 건강기록/목표 생성, 기존 계정은 건드리지 않음).
+
+DB 백업이 필요하면 `backend/` 안에서 `python backup_db.py` 실행 — `data/health_log.db`를 sqlite3의 온라인 백업 API로 `backups/` 디렉토리에 타임스탬프 파일(`health_log_YYYYMMDD_HHMMSS.db`)로 복사하고, 기본적으로 최근 14개만 남기고 오래된 백업은 자동 삭제한다 (`--keep 30`처럼 보관 개수 조정 가능, `--keep 0`은 무제한 보관). 지금은 수동 실행만 지원 - 주기적 자동 실행(cron/작업 스케줄러 등록)은 서버 배포 시 별도로 설정한다.
 
 ### 테스트 실행
 
