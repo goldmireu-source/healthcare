@@ -1,0 +1,191 @@
+"""관리자(Admin) 관련 서비스 레이어.
+
+이전에는 main.py 안에 직접 정의되어 있던 헬퍼/쿼리 로직을 그대로(로직 변경
+없이) 옮겼다. 라우트 핸들러(main.py)는 이 모듈의 함수를 호출하는 얇은
+wrapper 역할만 한다.
+
+주의: 여기서 쓰는 RISK_BAD_CATEGORIES/RISK_WARN_CATEGORIES는 "가장 최근 기록
+1건의 분류"만 보는 기존 관리자 위험도(high/moderate/normal/unknown) 기준이다.
+health_score.py/health_trends.py 등 사용자 쪽 AI 기능이 쓰는 판단 기준과는
+목적이 달라 의도적으로 분리되어 있다 (자세한 설명은 risk_detection.py 참고).
+"""
+
+from datetime import date as date_cls, datetime, timedelta
+from typing import Dict, Optional
+
+from sqlalchemy import func
+from sqlalchemy.orm import Session
+
+import models
+import schemas
+from admin_analytics import compute_admin_analytics
+
+RISK_BAD_CATEGORIES = {"고혈압", "비만", "당뇨 의심"}
+RISK_WARN_CATEGORIES = {"주의", "과체중", "공복혈당장애", "부족", "과다", "저체중"}
+RISK_LEVEL_ORDER = {"high": 3, "moderate": 2, "normal": 1, "unknown": 0}
+
+
+def risk_level_for_record(record: Optional[models.HealthRecord]) -> str:
+    if record is None:
+        return "unknown"
+    cats = {record.bmi_category, record.bp_category, record.sugar_category}
+    if cats & RISK_BAD_CATEGORIES:
+        return "high"
+    if cats & RISK_WARN_CATEGORIES:
+        return "moderate"
+    return "normal"
+
+
+def log_admin_action(
+    db: Session,
+    admin_user: models.User,
+    action: str,
+    target_username: Optional[str] = None,
+    detail: str = "",
+) -> None:
+    db.add(
+        models.AuditLog(
+            admin_username=admin_user.username,
+            action=action,
+            target_username=target_username,
+            detail=detail,
+        )
+    )
+    db.commit()
+
+
+def list_users(
+    db: Session,
+    search: Optional[str],
+    role: Optional[str],
+    risk: Optional[str],
+    sort_by: str,
+    sort_dir: str,
+    page: int,
+    page_size: int,
+) -> schemas.AdminUsersOut:
+    """검색/역할/위험도 필터 + 정렬 + 페이지네이션을 적용한 사용자 목록을 만든다."""
+    query = db.query(models.User)
+    if search:
+        query = query.filter(models.User.username.ilike(f"%{search}%"))
+    if role in ("user", "admin"):
+        query = query.filter(models.User.role == role)
+
+    users = query.all()
+
+    # user_id별 기록 수를 한 번의 집계 쿼리로 가져와 N+1 쿼리를 피함
+    record_counts = dict(
+        db.query(models.HealthRecord.user_id, func.count(models.HealthRecord.id))
+        .group_by(models.HealthRecord.user_id)
+        .all()
+    )
+
+    # user_id별 "가장 최근" 기록 1건만 추려서 위험도를 계산 (user_id, date desc 정렬 후
+    # 처음 등장하는 것만 채택 -> 사용자 수만큼의 개별 쿼리 없이 한 번의 조회로 해결)
+    latest_by_user: Dict[int, models.HealthRecord] = {}
+    for r in (
+        db.query(models.HealthRecord)
+        .order_by(models.HealthRecord.user_id, models.HealthRecord.date.desc())
+        .all()
+    ):
+        latest_by_user.setdefault(r.user_id, r)
+    risk_by_user = {uid: risk_level_for_record(rec) for uid, rec in latest_by_user.items()}
+
+    if risk in ("high", "moderate", "normal", "unknown"):
+        users = [u for u in users if risk_by_user.get(u.id, "unknown") == risk]
+
+    total = len(users)
+
+    def sort_key(u):
+        if sort_by == "username":
+            return u.username.lower()
+        if sort_by == "created_at":
+            return u.created_at or datetime.min
+        if sort_by == "record_count":
+            return record_counts.get(u.id, 0)
+        if sort_by == "risk_level":
+            return RISK_LEVEL_ORDER.get(risk_by_user.get(u.id, "unknown"), 0)
+        return u.id
+
+    users.sort(key=sort_key, reverse=(sort_dir == "desc"))
+
+    start = (page - 1) * page_size
+    page_users = users[start : start + page_size]
+
+    items = [
+        schemas.AdminUserOut(
+            id=u.id,
+            username=u.username,
+            role=u.role,
+            created_at=u.created_at,
+            record_count=record_counts.get(u.id, 0),
+            risk_level=risk_by_user.get(u.id, "unknown"),
+        )
+        for u in page_users
+    ]
+    return schemas.AdminUsersOut(count=total, page=page, page_size=page_size, users=items)
+
+
+def _distribution(values) -> Dict:
+    dist: dict = {}
+    for v in values:
+        dist[v] = dist.get(v, 0) + 1
+    return dist
+
+
+def compute_admin_stats(db: Session) -> schemas.AdminStatsOut:
+    """관리자 개요 대시보드에 필요한 통계 전체(기존 통계 + admin_analytics.py의 신규 KPI)를 계산한다."""
+    users = db.query(models.User).all()
+    records = db.query(models.HealthRecord).all()
+
+    role_distribution = _distribution([u.role for u in users])
+
+    today = date_cls.today()
+    new_users_last_7_days = sum(
+        1 for u in users if u.created_at and u.created_at.date() >= today - timedelta(days=6)
+    )
+
+    signups_by_day: dict = {}
+    for u in users:
+        if u.created_at:
+            day = u.created_at.date().isoformat()
+            signups_by_day[day] = signups_by_day.get(day, 0) + 1
+    signup_trend = [
+        schemas.SignupTrendPoint(
+            date=(today - timedelta(days=i)).isoformat(),
+            count=signups_by_day.get((today - timedelta(days=i)).isoformat(), 0),
+        )
+        for i in range(13, -1, -1)
+    ]
+
+    latest_by_user: Dict[int, models.HealthRecord] = {}
+    for r in sorted(records, key=lambda r: r.date, reverse=True):
+        latest_by_user.setdefault(r.user_id, r)
+    users_by_id = {u.id: u for u in users}
+    high_risk_usernames = sorted(
+        users_by_id[uid].username
+        for uid, rec in latest_by_user.items()
+        if uid in users_by_id and risk_level_for_record(rec) == "high"
+    )
+
+    analytics = compute_admin_analytics(users, records, today=today)
+
+    return schemas.AdminStatsOut(
+        total_users=len(users),
+        total_records=len(records),
+        role_distribution=role_distribution,
+        new_users_last_7_days=new_users_last_7_days,
+        signup_trend=signup_trend,
+        bmi_category_distribution=_distribution([r.bmi_category for r in records]),
+        bp_category_distribution=_distribution([r.bp_category for r in records]),
+        sugar_category_distribution=_distribution([r.sugar_category for r in records]),
+        high_risk_usernames=high_risk_usernames,
+        recent_activity_rate=analytics.recent_activity_rate,
+        retention_rate=analytics.retention_rate,
+        avg_bmi=analytics.avg_bmi,
+        avg_systolic=analytics.avg_systolic,
+        avg_diastolic=analytics.avg_diastolic,
+        avg_blood_sugar=analytics.avg_blood_sugar,
+        high_risk_growth_rate=analytics.high_risk_growth_rate,
+        signup_to_record_rate=analytics.signup_to_record_rate,
+    )

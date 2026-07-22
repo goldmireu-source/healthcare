@@ -177,6 +177,50 @@
   .btn-ghost:hover{border-color:var(--muted);}
   #editing-flag{font-size:12px;color:var(--amber);display:none;}
 
+  /* Quick Action 툴바 (고도화 13번) */
+  .quick-actions{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;}
+
+  /* 요약 카드 그리드 (목표 진행률 / 최근 배지 / 이번주 변화, 고도화 13번) */
+  .summary-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:24px;}
+  .summary-card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius-md);padding:16px 18px;}
+  .summary-card .sc-title{font-size:11.5px;color:var(--muted);letter-spacing:0.02em;margin-bottom:10px;font-weight:600;}
+  .summary-card .sc-empty{font-size:12.5px;color:var(--muted);}
+  .summary-card .sc-goal-row{display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:6px;}
+  .summary-card .sc-goal-row b{font-family:'IBM Plex Mono', monospace;}
+  .summary-card .sc-badges{display:flex;gap:8px;flex-wrap:wrap;}
+  .summary-card .sc-badge{
+    display:flex;align-items:center;gap:5px;font-size:11.5px;padding:4px 9px;border-radius:999px;
+    background:var(--teal-soft);color:var(--teal-strong);font-weight:600;
+  }
+  .summary-card .sc-week-line{font-size:12.5px;margin-bottom:5px;display:flex;justify-content:space-between;}
+
+  /* AI Health Coach 카드 (규칙 기반 코칭 메시지 — backend/health_coach.py) */
+  .ai-coach-card{
+    margin-bottom:20px;background:linear-gradient(135deg, var(--teal-soft) 0%, var(--card) 60%);
+    border-color:var(--teal-soft);
+  }
+  .ai-coach-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px;}
+  .ai-coach-list li{
+    display:flex;align-items:flex-start;gap:10px;font-size:13.5px;color:var(--ink);line-height:1.5;
+  }
+  .ai-coach-list li .ai-coach-icon{
+    flex-shrink:0;width:20px;height:20px;border-radius:50%;background:var(--teal-soft);
+    display:flex;align-items:center;justify-content:center;margin-top:1px;
+  }
+  .ai-coach-list li .ai-coach-icon svg{width:12px;height:12px;stroke:var(--teal-strong);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+  .ai-coach-empty{color:var(--muted);font-size:13px;}
+
+  /* 이상 징후 감지 배너 (backend/risk_detection.py) — 감지된 게 있을 때만 표시됨 */
+  .risk-banner-card{margin-bottom:20px;border-width:1px;}
+  .risk-banner-card.severity-high{background:var(--brick-soft);border-color:var(--brick);}
+  .risk-banner-card.severity-medium{background:var(--amber-soft);border-color:var(--amber);}
+  .risk-banner-card.severity-low{background:var(--card-2);border-color:var(--line-strong);}
+  .risk-anomaly-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px;}
+  .risk-anomaly-list li{display:flex;flex-direction:column;gap:2px;}
+  .risk-anomaly-list .ra-label{font-size:13.5px;font-weight:600;color:var(--ink);}
+  .risk-anomaly-list .ra-label .dot{margin-right:7px;}
+  .risk-anomaly-list .ra-detail{font-size:12.5px;color:var(--muted);margin-left:16px;}
+
   /* 대시보드 히어로 (건강 스코어 링 + 핵심 지표 카드) */
   .hero-row{display:grid;grid-template-columns:172px repeat(3,1fr);gap:14px;margin-bottom:14px;}
   .hero-card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius-md);padding:18px 20px;box-shadow:var(--shadow-sm);}
@@ -187,6 +231,11 @@
   .metric-card{display:flex;flex-direction:column;gap:8px;}
   .metric-card .mc-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;}
   .metric-card .mc-label{font-size:11.5px;color:var(--muted);letter-spacing:0.02em;}
+  /* 건강 추세 분석 화살표 (health_trends.py의 Trend: UP/DOWN/STABLE) */
+  .trend-arrow{font-size:11px;font-weight:700;margin-left:2px;}
+  .trend-arrow.good{color:var(--status-good);}
+  .trend-arrow.bad{color:var(--brick);}
+  .trend-arrow.neutral{color:var(--muted);}
   .metric-card .mc-value{font-family:'IBM Plex Mono', monospace;font-size:27px;font-weight:700;line-height:1;}
   .metric-card .mc-value small{font-size:13px;color:var(--muted);font-weight:500;}
   .metric-card .mc-sub{font-size:11.5px;color:var(--muted);}
@@ -270,6 +319,12 @@
   .achv .chip.yes{background:var(--status-good-soft);color:var(--status-good);}
   .achv .chip.no{background:var(--brick-soft);color:var(--brick);}
 
+  /* 목표 달성 예측 (backend/goal_prediction.py) */
+  .goal-predictions{display:flex;flex-direction:column;gap:6px;margin-top:14px;}
+  .goal-prediction-row{display:flex;gap:10px;align-items:baseline;font-size:12.5px;}
+  .goal-prediction-row .gp-label{flex-shrink:0;width:76px;color:var(--muted);font-weight:600;}
+  .goal-prediction-row .gp-message{color:var(--ink);}
+
   /* 주간 리포트 (막대 그래프) */
   .weekly-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
   .weekly-card{border:1px solid var(--line);border-radius:10px;padding:14px 16px;}
@@ -282,6 +337,17 @@
   .weekly-bar-track.this span{background:var(--teal);}
   .weekly-bar-value{width:48px;text-align:right;font-family:'IBM Plex Mono', monospace;color:var(--ink);flex-shrink:0;}
   .delta.up{color:var(--brick);} .delta.down{color:var(--status-good);} .delta.flat{color:var(--muted);}
+
+  /* 주간 리포트 아래 AI 요약 (health_coach.generate_weekly_summary) */
+  .ai-summary-block{
+    margin-top:16px;padding:14px 16px;border-radius:var(--radius-sm);
+    background:var(--teal-soft);border:1px solid var(--teal-soft);
+  }
+  .ai-summary-label{
+    font-family:'IBM Plex Mono', monospace;font-size:11px;color:var(--teal-strong);
+    letter-spacing:0.06em;text-transform:uppercase;margin-bottom:6px;
+  }
+  .ai-summary-text{margin:0;font-size:13.5px;color:var(--ink);line-height:1.6;}
 
   footer{text-align:center;color:var(--muted);font-size:12px;margin:40px 0;}
 
@@ -389,6 +455,9 @@
     .weekly-grid{grid-template-columns:1fr;}
     .timeline-card{padding:12px;}
     .timeline-actions{margin-left:0;width:100%;justify-content:flex-end;}
+    .summary-grid{grid-template-columns:1fr;}
+    .quick-actions{flex-direction:column;}
+    .quick-actions .btn{width:100%;}
   }
 </style>
 </head>
@@ -572,8 +641,25 @@
 
     <!-- ---------- 기록 ---------- -->
     <section id="view-records" class="view active">
+      <div class="quick-actions">
+        <button type="button" class="btn btn-ghost" onclick="document.getElementById('f-weight').focus()">+ 오늘 기록 추가</button>
+        <button type="button" class="btn btn-ghost" onclick="switchView('stats-report')">통계 &amp; 리포트 보기</button>
+        <button type="button" class="btn btn-ghost" onclick="switchView('goals')">목표 확인</button>
+      </div>
+
+      <div class="card ai-coach-card">
+        <h2><span class="eyebrow">AI</span> Health Coach</h2>
+        <ul class="ai-coach-list" id="ai-coach-list"></ul>
+      </div>
+
+      <div class="card risk-banner-card" id="risk-banner-card" style="display:none;">
+        <h2><span class="eyebrow">Risk</span> 이상 징후 감지</h2>
+        <ul class="risk-anomaly-list" id="risk-anomaly-list"></ul>
+      </div>
+
       <div class="hero-row" id="hero-row"></div>
       <div class="hero-secondary" id="hero-secondary"></div>
+      <div class="summary-grid" id="summary-grid"></div>
 
       <div class="card">
         <h2><span class="eyebrow">Entry</span> 오늘의 기록</h2>
@@ -636,6 +722,8 @@
           </div>
           <button class="btn btn-ghost" onclick="searchRecords()">검색</button>
           <button class="btn btn-ghost" onclick="loadRecords()">전체보기</button>
+          <button class="btn btn-ghost" onclick="location.href='/export/csv'">CSV 다운로드</button>
+          <button class="btn btn-ghost" onclick="location.href='/export/json'">JSON 다운로드</button>
         </div>
         <div class="timeline-list" id="records-body"></div>
         <div id="records-loading" class="empty-note" style="display:none;">불러오는 중...</div>
@@ -689,6 +777,7 @@
           </div>
         </form>
         <div id="goal-result" class="achv"></div>
+        <div id="goal-predictions" class="goal-predictions"></div>
       </div>
     </section>
   </main>
@@ -977,10 +1066,156 @@ function refreshAll(){
   document.getElementById('stats-body').innerHTML = LOADING_HTML;
   document.getElementById('goal-result').innerHTML = LOADING_HTML;
   document.getElementById('weekly-body').innerHTML = LOADING_HTML;
+  document.getElementById('ai-coach-list').innerHTML = `<li>${LOADING_HTML}</li>`;
+  document.getElementById('risk-banner-card').style.display = 'none';
+  document.getElementById('summary-grid').innerHTML = `<div class="summary-card sc-empty">${LOADING_HTML}</div>`.repeat(3);
   loadRecords();
   loadStats();
   loadGoal();
   loadWeeklyReport();
+  loadHealthCoaching();
+  loadRiskDetection();
+  loadDashboardSummary();
+}
+
+// ---------- 대시보드 요약 카드 (목표 진행률 / 최근 배지 / 이번주 변화, 고도화 13번) ----------
+const SUMMARY_GOAL_LABELS = {weight_achieved: '체중', systolic_achieved: '수축기', diastolic_achieved: '이완기', blood_sugar_achieved: '혈당'};
+const BADGE_ICON_GLYPH = {streak: '🔥', goal: '🎯', bmi: '⚖', bp: '❤'};
+
+function renderGoalProgressCard(goalData){
+  const achievedKeys = ['weight_achieved','systolic_achieved','diastolic_achieved','blood_sugar_achieved'];
+  if(!goalData || !goalData.achievement || goalData.achievement.message){
+    return '<div class="sc-title">목표 진행률</div><div class="sc-empty">설정된 목표가 없습니다.</div>';
+  }
+  const a = goalData.achievement;
+  const rows = achievedKeys
+    .filter(k => k in a)
+    .map(k => `<div class="sc-goal-row"><span>${SUMMARY_GOAL_LABELS[k]}</span><b class="${a[k] ? '' : ''}" style="color:${a[k] ? 'var(--status-good)' : 'var(--muted)'}">${a[k] ? '달성' : '진행 중'}</b></div>`)
+    .join('');
+  return `<div class="sc-title">목표 진행률</div>${rows || '<div class="sc-empty">설정된 목표 항목이 없습니다.</div>'}`;
+}
+
+function renderRecentBadgesCard(badgesData){
+  if(!badgesData || !badgesData.badges){
+    return '<div class="sc-title">최근 배지</div><div class="sc-empty">불러올 수 없습니다.</div>';
+  }
+  const earned = badgesData.badges.filter(b => b.earned);
+  if(earned.length === 0){
+    return '<div class="sc-title">최근 배지</div><div class="sc-empty">아직 획득한 배지가 없습니다.</div>';
+  }
+  const chips = earned.map(b => `<span class="sc-badge">${BADGE_ICON_GLYPH[b.icon] || '🏅'} ${b.label}</span>`).join('');
+  return `<div class="sc-title">최근 배지 (${earned.length}개)</div><div class="sc-badges">${chips}</div>`;
+}
+
+function renderWeekChangeCard(weeklyData){
+  if(!weeklyData || !weeklyData.this_week || !weeklyData.this_week.record_count){
+    return '<div class="sc-title">이번주 변화</div><div class="sc-empty">이번 주 기록이 없습니다.</div>';
+  }
+  const change = weeklyData.change || {};
+  const lines = [
+    ['체중', change.avg_weight, 'kg'],
+    ['걸음수', change.avg_steps, '보'],
+  ].filter(([, v]) => v !== undefined && v !== null).map(([label, v, unit]) => {
+    const arrow = v > 0 ? '▲' : v < 0 ? '▼' : '–';
+    return `<div class="sc-week-line"><span>${label}</span><span>${arrow} ${Math.abs(v)}${unit}</span></div>`;
+  }).join('');
+  return `<div class="sc-title">이번주 변화</div>${lines || '<div class="sc-empty">비교할 지난주 기록이 없습니다.</div>'}`;
+}
+
+async function loadDashboardSummary(){
+  const el = document.getElementById('summary-grid');
+  const [goalData, badgesData, weeklyData] = await Promise.all([
+    apiGet('/goals').catch(() => null),
+    apiGet('/badges').catch(() => null),
+    apiGet('/reports/weekly').catch(() => null),
+  ]);
+  el.innerHTML = `
+    <div class="summary-card">${renderGoalProgressCard(goalData)}</div>
+    <div class="summary-card">${renderRecentBadgesCard(badgesData)}</div>
+    <div class="summary-card">${renderWeekChangeCard(weeklyData)}</div>
+  `;
+}
+
+// ---------- AI Health Coach ----------
+// 규칙 기반 코칭 메시지를 불러와 카드에 표시한다 (backend/health_coach.py 참고).
+// 메시지 텍스트는 서버가 만든 결과 그대로이므로 textContent로만 렌더링한다 (innerHTML 금지).
+function renderHealthCoaching(messages){
+  const listEl = document.getElementById('ai-coach-list');
+  listEl.innerHTML = '';
+  if(!messages || messages.length === 0){
+    const li = document.createElement('li');
+    li.className = 'ai-coach-empty';
+    li.textContent = '아직 코칭 메시지가 없습니다.';
+    listEl.appendChild(li);
+    return;
+  }
+  messages.forEach(message => {
+    const li = document.createElement('li');
+    const iconWrap = document.createElement('span');
+    iconWrap.className = 'ai-coach-icon';
+    iconWrap.innerHTML = '<svg viewBox="0 0 24 24"><path d="M12 2l2.4 6.6L21 11l-6.6 2.4L12 20l-2.4-6.6L3 11l6.6-2.4z"/></svg>';
+    const textEl = document.createElement('span');
+    textEl.textContent = message;
+    li.appendChild(iconWrap);
+    li.appendChild(textEl);
+    listEl.appendChild(li);
+  });
+}
+
+async function loadHealthCoaching(){
+  try{
+    const data = await apiGet('/health-coaching');
+    renderHealthCoaching(data.messages);
+  }catch(e){
+    const listEl = document.getElementById('ai-coach-list');
+    listEl.innerHTML = '';
+    const li = document.createElement('li');
+    li.className = 'ai-coach-empty';
+    li.textContent = '코칭 메시지를 불러올 수 없습니다.';
+    listEl.appendChild(li);
+  }
+}
+
+// ---------- 이상 징후 감지 ----------
+// 감지된 이상 징후가 하나도 없으면 배너 자체를 숨긴다 (backend/risk_detection.py 참고).
+const RISK_SEVERITY_DOT_CLASS = {HIGH: 'bad', MEDIUM: 'warn', LOW: 'neutral'};
+
+function renderRiskDetection(result){
+  const card = document.getElementById('risk-banner-card');
+  const listEl = document.getElementById('risk-anomaly-list');
+  listEl.innerHTML = '';
+
+  if(!result || !result.anomalies || result.anomalies.length === 0){
+    card.style.display = 'none';
+    return;
+  }
+
+  card.className = `card risk-banner-card severity-${result.risk_level.toLowerCase()}`;
+  result.anomalies.forEach(anomaly => {
+    const li = document.createElement('li');
+    const labelEl = document.createElement('div');
+    labelEl.className = 'ra-label';
+    const dot = document.createElement('span');
+    dot.className = `dot ${RISK_SEVERITY_DOT_CLASS[anomaly.severity] || 'neutral'}`;
+    labelEl.appendChild(dot);
+    labelEl.appendChild(document.createTextNode(anomaly.label));
+    const detailEl = document.createElement('div');
+    detailEl.className = 'ra-detail';
+    detailEl.textContent = anomaly.detail;
+    li.appendChild(labelEl);
+    li.appendChild(detailEl);
+    listEl.appendChild(li);
+  });
+  card.style.display = 'block';
+}
+
+async function loadRiskDetection(){
+  try{
+    const data = await apiGet('/risk-detection');
+    renderRiskDetection(data);
+  }catch(e){
+    document.getElementById('risk-banner-card').style.display = 'none';
+  }
 }
 
 async function apiGet(path){
@@ -999,15 +1234,15 @@ async function apiSend(path, method, body){
 // ---------- 대시보드 히어로 (건강 스코어 + 핵심 지표) ----------
 // 참고용으로 계산한 단순 지표이며 의학적 진단이 아님 - 5개 분류값(BMI/혈압/혈당/활동량/수면)의
 // 상태 등급(양호/주의/위험)에 페널티를 매겨 100점에서 차감하는 방식.
-function computeHealthScore(latest){
-  const penalty = {good:0, warn:8, bad:16, neutral:4};
-  const cats = [latest.bmi_category, latest.bp_category, latest.sugar_category, latest.activity_level, latest.sleep_status];
-  const total = cats.reduce((sum, c) => sum + (penalty[statusClass(c)] ?? 4), 0);
-  return Math.max(0, Math.min(100, 100 - total));
-}
-
+// 건강 스코어(가중치 + 추세 보너스/감점)는 backend/health_score.py가 계산한
+// 값을 그대로 쓴다 (GET /health-score). score가 null이면(조회 실패) 빈 링을 그린다.
 function scoreRingSvg(score){
   const r = 46, circumference = 2 * Math.PI * r;
+  if(score === null || score === undefined){
+    return `<svg viewBox="0 0 112 112">
+      <circle cx="56" cy="56" r="${r}" fill="none" stroke="var(--card-2)" stroke-width="10"/>
+    </svg>`;
+  }
   const offset = circumference - (score / 100) * circumference;
   const colorVar = score >= 70 ? 'var(--status-good)' : score >= 45 ? 'var(--amber)' : 'var(--brick)';
   return `<svg viewBox="0 0 112 112">
@@ -1029,7 +1264,21 @@ function findComparisonRecord(sorted){
   return sorted[0];
 }
 
-function renderHero(sorted){
+// 건강 추세 분석(health_trends.py, GET /trends)의 UP/DOWN/STABLE을 화살표로 표시.
+// lowerIsBetter: 이 지표는 값이 낮을수록 좋은지 (체중/혈압/혈당=true, 걸음수/수면=false).
+function trendArrowHtml(trend, lowerIsBetter){
+  if(!trend || trend.trend === 'STABLE'){
+    return '<span class="trend-arrow neutral" title="최근 큰 변화 없음">–</span>';
+  }
+  const isUp = trend.trend === 'UP';
+  const improved = lowerIsBetter ? !isUp : isUp;
+  const arrow = isUp ? '▲' : '▼';
+  const title = isUp ? '최근 상승 추세' : '최근 하락 추세';
+  return `<span class="trend-arrow ${improved ? 'good' : 'bad'}" title="${title}">${arrow}</span>`;
+}
+
+function renderHero(sorted, trends, healthScore){
+  trends = trends || {};
   const heroRow = document.getElementById('hero-row');
   const heroSecondary = document.getElementById('hero-secondary');
   if(!sorted.length){
@@ -1039,9 +1288,11 @@ function renderHero(sorted){
   }
   const latest = sorted[sorted.length - 1];
   const compare = findComparisonRecord(sorted);
-  const score = computeHealthScore(latest);
-  const scoreLabel = score >= 70 ? '양호' : score >= 45 ? '주의' : '점검 필요';
-  const scoreClass = score >= 70 ? 'good' : score >= 45 ? 'warn' : 'bad';
+  // 건강 스코어는 backend/health_score.py가 계산(가중치 + 추세 보너스/감점)한 값을 그대로 씀.
+  // 조회에 실패하면 숫자 대신 "–"를 보여준다 (임의의 점수를 지어내지 않음).
+  const score = healthScore ? healthScore.total_score : null;
+  const scoreLabel = score === null ? '확인 불가' : score >= 70 ? '양호' : score >= 45 ? '주의' : '점검 필요';
+  const scoreClass = score === null ? 'neutral' : score >= 70 ? 'good' : score >= 45 ? 'warn' : 'bad';
 
   let weightSub = '기록이 더 쌓이면 변화 추이를 보여드려요';
   if(compare){
@@ -1053,29 +1304,29 @@ function renderHero(sorted){
   heroRow.innerHTML = `
     <div class="hero-card score-card">
       ${scoreRingSvg(score)}
-      <div class="score-num" style="font-size:22px;">${score}</div>
+      <div class="score-num" style="font-size:22px;">${score === null ? '–' : score}</div>
       <div class="score-label">건강 스코어</div>
       <span class="status-tag ${scoreClass}"><span class="dot"></span>${scoreLabel}</span>
     </div>
     <div class="hero-card metric-card">
-      <div class="mc-top"><span class="mc-label">체중 · BMI</span><span class="status-tag ${statusClass(latest.bmi_category)}"><span class="dot"></span>${latest.bmi_category}</span></div>
+      <div class="mc-top"><span class="mc-label">체중 · BMI ${trendArrowHtml(trends.weight, true)}</span><span class="status-tag ${statusClass(latest.bmi_category)}"><span class="dot"></span>${latest.bmi_category}</span></div>
       <div class="mc-value">${latest.weight}<small> kg</small></div>
       <div class="mc-sub">${weightSub}</div>
     </div>
     <div class="hero-card metric-card">
-      <div class="mc-top"><span class="mc-label">혈압</span><span class="status-tag ${statusClass(latest.bp_category)}"><span class="dot"></span>${latest.bp_category}</span></div>
+      <div class="mc-top"><span class="mc-label">혈압 ${trendArrowHtml(trends.systolic, true)}</span><span class="status-tag ${statusClass(latest.bp_category)}"><span class="dot"></span>${latest.bp_category}</span></div>
       <div class="mc-value">${latest.systolic}<small>/${latest.diastolic}</small></div>
       <div class="mc-sub">최근 측정(${latest.date}) 기준</div>
     </div>
     <div class="hero-card metric-card">
-      <div class="mc-top"><span class="mc-label">공복 혈당</span><span class="status-tag ${statusClass(latest.sugar_category)}"><span class="dot"></span>${latest.sugar_category}</span></div>
+      <div class="mc-top"><span class="mc-label">공복 혈당 ${trendArrowHtml(trends.blood_sugar, true)}</span><span class="status-tag ${statusClass(latest.sugar_category)}"><span class="dot"></span>${latest.sugar_category}</span></div>
       <div class="mc-value">${latest.blood_sugar}<small> mg/dL</small></div>
       <div class="mc-sub">최근 측정(${latest.date}) 기준</div>
     </div>`;
 
   heroSecondary.innerHTML = `
-    <div class="hero-chip"><span class="hc-label">활동량</span><span class="hc-value">${latest.steps} 보 · <span class="status-tag ${statusClass(latest.activity_level)}">${latest.activity_level}</span></span></div>
-    <div class="hero-chip"><span class="hc-label">수면</span><span class="hc-value">${latest.sleep_hours}h · <span class="status-tag ${statusClass(latest.sleep_status)}">${latest.sleep_status}</span></span></div>`;
+    <div class="hero-chip"><span class="hc-label">활동량 ${trendArrowHtml(trends.steps, false)}</span><span class="hc-value">${latest.steps} 보 · <span class="status-tag ${statusClass(latest.activity_level)}">${latest.activity_level}</span></span></div>
+    <div class="hero-chip"><span class="hc-label">수면 ${trendArrowHtml(trends.sleep_hours, false)}</span><span class="hc-value">${latest.sleep_hours}h · <span class="status-tag ${statusClass(latest.sleep_status)}">${latest.sleep_status}</span></span></div>`;
 }
 
 // ---------- 측정 추이 차트 ----------
@@ -1293,12 +1544,18 @@ function recordsNextPage(){ recordsPage++; renderRecordsPage(); }
 
 async function loadRecords(){
   try{
-    const data = await apiGet('/records');
+    // 기록, 추세(health_trends.py), 건강 스코어(health_score.py)를 함께 불러와
+    // 히어로 카드 하나에서 전부 표시한다.
+    const [data, trendsData, scoreData] = await Promise.all([
+      apiGet('/records'),
+      apiGet('/trends').catch(() => ({trends: {}})),
+      apiGet('/health-score').catch(() => null),
+    ]);
     allRecordsCache = data.records;
     recordsPage = 1;
     renderRecordsPage();
     const sorted = [...data.records].sort((a,b) => a.date.localeCompare(b.date));
-    renderHero(sorted);
+    renderHero(sorted, trendsData.trends || {}, scoreData);
   }catch(e){
     document.getElementById('records-loading').style.display = 'none';
     document.getElementById('records-body').innerHTML = '';
@@ -1433,15 +1690,40 @@ async function loadGoal(){
   }
 }
 
+const GOAL_METRIC_LABELS = {weight: '체중', systolic: '수축기 혈압', diastolic: '이완기 혈압', blood_sugar: '공복혈당'};
+
 function renderGoalAchievement(a){
   const el = document.getElementById('goal-result');
-  if(!a || a.message){ el.innerHTML = `<span style="color:var(--muted);font-size:12px;">${a && a.message ? a.message : ''}</span>`; return; }
+  const predEl = document.getElementById('goal-predictions');
+  if(!a || a.message){
+    el.innerHTML = `<span style="color:var(--muted);font-size:12px;">${a && a.message ? a.message : ''}</span>`;
+    predEl.innerHTML = '';
+    return;
+  }
   const chips = [];
   if('weight_achieved' in a) chips.push(`<span class="chip ${a.weight_achieved ? 'yes':'no'}">체중 ${a.weight_achieved ? '달성':'미달'} (차이 ${a.weight_diff}kg)</span>`);
   if('systolic_achieved' in a) chips.push(`<span class="chip ${a.systolic_achieved ? 'yes':'no'}">수축기 ${a.systolic_achieved ? '달성':'미달'}</span>`);
   if('diastolic_achieved' in a) chips.push(`<span class="chip ${a.diastolic_achieved ? 'yes':'no'}">이완기 ${a.diastolic_achieved ? '달성':'미달'}</span>`);
   if('blood_sugar_achieved' in a) chips.push(`<span class="chip ${a.blood_sugar_achieved ? 'yes':'no'}">혈당 ${a.blood_sugar_achieved ? '달성':'미달'}</span>`);
   el.innerHTML = chips.join('');
+
+  // 목표 달성 예측 (backend/goal_prediction.py, 평균 변화량 기반 — 회귀 아님)
+  predEl.innerHTML = '';
+  if(a.predictions){
+    Object.entries(a.predictions).forEach(([metric, pred]) => {
+      const row = document.createElement('div');
+      row.className = 'goal-prediction-row';
+      const label = document.createElement('span');
+      label.className = 'gp-label';
+      label.textContent = GOAL_METRIC_LABELS[metric] || metric;
+      const msg = document.createElement('span');
+      msg.className = 'gp-message';
+      msg.textContent = pred.message;
+      row.appendChild(label);
+      row.appendChild(msg);
+      predEl.appendChild(row);
+    });
+  }
 }
 
 async function saveGoal(ev){
@@ -1512,7 +1794,21 @@ async function loadWeeklyReport(){
       </div>
       <div style="margin-top:12px;font-size:11px;color:var(--muted);">
         이번 주 ${r.this_week.record_count || 0}건 · 지난 주 ${r.last_week.record_count || 0}건 기록 기준
-      </div>`;
+      </div>
+      <div class="ai-summary-block" id="weekly-ai-summary"></div>`;
+
+    // AI 요약은 서버가 만든 자유 형식 문장이라 textContent로만 채운다 (innerHTML 금지)
+    if(r.ai_summary){
+      const summaryEl = document.getElementById('weekly-ai-summary');
+      const label = document.createElement('div');
+      label.className = 'ai-summary-label';
+      label.textContent = 'AI 요약';
+      const text = document.createElement('p');
+      text.className = 'ai-summary-text';
+      text.textContent = r.ai_summary;
+      summaryEl.appendChild(label);
+      summaryEl.appendChild(text);
+    }
   }catch(e){ el.innerHTML = '<div class="empty-note">리포트를 불러올 수 없습니다.</div>'; }
 }
 

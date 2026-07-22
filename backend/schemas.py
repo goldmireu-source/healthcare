@@ -122,6 +122,16 @@ class AdminStatsOut(BaseModel):
     sugar_category_distribution: Dict[str, int] = {}
     high_risk_usernames: List[str] = []
 
+    # ---------- 고도화: 관리자 Analytics 확장 (admin_analytics.py) ----------
+    recent_activity_rate: float = 0.0  # 최근 7일 내 기록을 남긴 사용자 비율(%)
+    retention_rate: float = 0.0  # 기록을 1건이라도 남긴 사용자 비율(%)
+    avg_bmi: Optional[float] = None
+    avg_systolic: Optional[float] = None
+    avg_diastolic: Optional[float] = None
+    avg_blood_sugar: Optional[float] = None
+    high_risk_growth_rate: Optional[float] = None  # 7일 전 대비 고위험 사용자 증가율(%)
+    signup_to_record_rate: float = 0.0  # 최근 30일 가입자 중 기록 작성 비율(%)
+
 
 class AuditLogOut(BaseModel):
     id: int
@@ -252,3 +262,141 @@ class WeeklyReportOut(BaseModel):
     this_week: Dict
     last_week: Dict
     change: Dict
+    ai_summary: str = ""  # AI 건강 리포트 요약 문단 (health_coach.generate_weekly_summary)
+
+
+# ---------- AI Health Coach ----------
+
+class HealthCoachingOut(BaseModel):
+    messages: List[str]
+
+
+# ---------- 건강 추세 분석 (health_trends.py) ----------
+
+class TrendOut(BaseModel):
+    metric: str
+    trend: str  # "UP" | "DOWN" | "STABLE" (health_trends.Trend)
+    recent_avg: Optional[float] = None
+    prior_avg: Optional[float] = None
+    diff: Optional[float] = None
+
+
+class TrendsOut(BaseModel):
+    trends: Dict[str, TrendOut]
+
+
+# ---------- 이상 징후 감지 (risk_detection.py) ----------
+# 주의: 아래 risk_level("LOW"/"MEDIUM"/"HIGH")은 "최근 며칠간의 급격한 변화"를 보는
+# 값으로, 관리자 페이지의 AdminUserOut.risk_level("high"/"moderate"/"normal"/"unknown",
+# 가장 최근 기록 1건의 카테고리 기준)과는 판단 기준이 다른 별개의 개념이다.
+
+class AnomalyOut(BaseModel):
+    metric: str
+    label: str
+    severity: str  # "LOW" | "MEDIUM" | "HIGH"
+    detail: str
+
+
+class RiskDetectionOut(BaseModel):
+    risk_level: str  # "LOW" | "MEDIUM" | "HIGH"
+    anomalies: List[AnomalyOut]
+
+
+# ---------- Health Score 개선 (health_score.py) ----------
+
+class MetricScoreOut(BaseModel):
+    metric: str
+    category: Optional[str] = None
+    base_score: float
+    trend_adjustment: float
+    final_score: float
+    weight: float
+
+
+class HealthScoreOut(BaseModel):
+    total_score: int
+    metrics: List[MetricScoreOut]
+
+
+# ---------- 건강 캘린더 (health_calendar.py) ----------
+
+class CalendarDayOut(BaseModel):
+    date: str
+    level: str  # "good" | "warn" | "bad"
+    score: int
+
+
+class CalendarOut(BaseModel):
+    year: int
+    month: int
+    days: List[CalendarDayOut]
+
+
+# ---------- 건강 타임라인 (health_timeline.py) ----------
+
+class TimelineEventOut(BaseModel):
+    date: str
+    label: str
+    kind: str
+
+
+class TimelineOut(BaseModel):
+    events: List[TimelineEventOut]
+
+
+# ---------- 건강 배지 (badges.py) ----------
+
+class BadgeOut(BaseModel):
+    key: str
+    label: str
+    description: str
+    icon: str
+    earned: bool
+    earned_at: Optional[datetime] = None
+
+
+class BadgesOut(BaseModel):
+    badges: List[BadgeOut]
+
+
+# ---------- 확장성 확보 (integrations.py) ----------
+
+class IntegrationStatusOut(BaseModel):
+    name: str
+    category: str  # "llm" | "wearable" | "import"
+    status: str  # "mock" | "available"
+    description: str
+
+
+class IntegrationsStatusOut(BaseModel):
+    integrations: List[IntegrationStatusOut]
+
+
+class WearableActivityOut(BaseModel):
+    date: str
+    steps: Optional[int] = None
+    sleep_hours: Optional[float] = None
+
+
+class WearableMockOut(BaseModel):
+    provider: str
+    days: List[WearableActivityOut]
+
+
+class ImportedRecordOut(BaseModel):
+    date: str
+    weight: Optional[float] = None
+    systolic: Optional[int] = None
+    diastolic: Optional[int] = None
+    blood_sugar: Optional[int] = None
+    steps: Optional[int] = None
+    sleep_hours: Optional[float] = None
+
+
+class CsvImportIn(BaseModel):
+    csv_content: str = Field(..., max_length=200_000)
+
+
+class ImportPreviewOut(BaseModel):
+    count: int
+    records: List[ImportedRecordOut]

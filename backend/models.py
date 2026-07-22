@@ -33,6 +33,9 @@ class User(Base):
     sessions = relationship(
         "Session", back_populates="user", cascade="all, delete-orphan"
     )
+    badges = relationship(
+        "Badge", back_populates="user", cascade="all, delete-orphan"
+    )
 
 
 class Session(Base):
@@ -113,3 +116,20 @@ class Goal(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
     user = relationship("User", back_populates="goals")
+
+
+class Badge(Base):
+    """자동 획득 배지 (연속 기록/첫 정상 지표/첫 목표 달성 등, 고도화: 건강 배지).
+
+    획득 조건 평가는 backend/badges.py에서 수행하고, 여기서는 "이미 획득한
+    배지"만 저장한다 (같은 badge_key가 중복 저장되지 않도록 조회 시 확인함).
+    """
+
+    __tablename__ = "badges"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    badge_key = Column(String(50), nullable=False)
+    earned_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    user = relationship("User", back_populates="badges")

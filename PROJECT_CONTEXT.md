@@ -223,10 +223,31 @@ healthcare/
   - **Playwright 검증 중 발견/수정한 실제 버그 3건**: (1) 모바일 사이드바가 `position:fixed`인데 데스크톱용 `top:0`이 겹쳐 남아있어 `bottom:0`과 함께 뷰포트 전체 높이를 차지해버림(실사용자 클릭도 막힘) → `top:auto` 명시로 수정, (2) 토스트/툴팁/트렌드탭 active 등 여러 곳이 `background:var(--ink)`+고정 `#fff` 텍스트 조합이라 다크모드에서 `--ink`가 밝은색으로 뒤집히며 흰 배경에 흰 글씨로 안 보이는 버그 다수 → 고정 다크 칩 색상 또는 `--on-accent` 토큰으로 수정, (3) 모바일 폭에서 상단바의 테마토글+버튼들이 통째로 줄바꿈되지 않고 버튼 글자가 중간에서 잘려 두 줄로 쪼개짐 → `.user-switch`에 `flex-wrap:wrap` 추가로 버튼 단위로 줄바꿈되게 수정
   - 라이트/다크 × 데스크톱/태블릿/모바일 전체 조합 + 위험도 필터를 Playwright 스크린샷으로 최종 재검증, 콘솔 에러는 기존과 동일한 401(비로그인)/404(목표 미설정) 뿐
 
+- [x] **AI Health Coach 플랫폼 고도화 (14개 기능 전체)** (2026-07-22) — "CRUD를 넘어 AI가 데이터를 분석하고 행동을 유도하는 플랫폼"으로 고도화하라는 요청에 따라, 아래 14개 기능을 순서대로 하나씩 완성 → 테스트 → 다음 기능 진행하는 방식으로 전부 구현. 기존 REST API/DB/디자인 시스템은 전혀 건드리지 않고 순수 추가만 함.
+  1. **AI Health Coach** (`health_coach.py`, `GET /health-coaching`) — 규칙 기반 코칭 메시지, `CoachingProvider` 인터페이스로 LLM 교체 대비. 대시보드 최상단 카드.
+  2. **AI 건강 리포트** (`health_coach.generate_weekly_summary`) — 주간 리포트를 자연어 문단으로 요약(지만/고/으며 연결어를 어간 기반으로 조합해 문법 보장), `/reports/weekly`의 `ai_summary` 필드로 노출.
+  3. **건강 추세 분석** (`health_trends.py`) — `Trend` Enum(UP/DOWN/STABLE), `GET /trends`. Feature 1의 임시 로직을 여기로 리팩터링(회귀 없음을 재확인 완료).
+  4. **이상 징후 감지** (`risk_detection.py`, `GET /risk-detection`) — 급격한 변화 전용 임계값으로 LOW/MEDIUM/HIGH 판정, 감지된 게 있을 때만 배너 표시.
+  5. **Health Score 개선** (`health_score.py`, `GET /health-score`) — 가중치(체중20/혈압25/혈당25/운동15/수면15) + 추세 보너스·감점. 클라이언트 계산 로직 제거, 서버 단일 소스로 교체.
+  6. **목표 달성 예측** (`goal_prediction.py`) — 평균 변화량(회귀 아님) 기반 예상 소요일, `/goals`의 `achievement.predictions`로 노출.
+  7. **건강 캘린더** (`health_calendar.py`, `GET /calendar`) — 월별 날짜별 good/warn/bad 3색.
+  8. **건강 타임라인** (`health_timeline.py`, `GET /timeline`) — 분류가 좋아진 시점 + 목표 최초 달성 시점만 이벤트로 추출.
+  9. **건강 배지** (`badges.py`, 신규 테이블 `badges`, `GET /badges`) — 7일/30일 연속 기록, 첫 정상 BMI/혈압, 첫 목표 달성. 배경 스케줄러가 없어 조회 시점에 평가 후 저장하는 지연 평가 방식.
+  10. **Export** (`GET /export/csv`, `GET /export/json`) — PDF 제외, JSON은 기존 `record_to_out()` 재사용.
+  11. **관리자 Analytics 확장** (`admin_analytics.py`) — 최근 활동률/기록 유지율/평균 BMI·혈압·혈당/위험 사용자 증가율/가입 전환율을 기존 `/admin/stats`에 추가.
+  12. **Service Layer 분리** — `health_service.py`/`goal_service.py`/`report_service.py`/`admin_service.py`로 main.py의 로직을 분리(로직은 그대로 복사, 이름만 정리). **분리 전/후 응답을 직접 diff해 완전히 동일함을 확인**(가장 리스크 큰 단계라 별도로 꼼꼼히 검증).
+  13. **Dashboard UI 재배치** — Quick Action 툴바 + 목표진행률/최근배지/이번주변화 요약 카드 3종 추가.
+  14. **확장성 확보** (`integrations.py`) — `WearableDataSource`(Mock, Apple/Samsung/Google Fit 공통 인터페이스), `HealthDataImporter`(CSV는 실제 파싱 동작, PDF는 Mock), LLM 확장은 1번의 `CoachingProvider`를 재사용. `GET /integrations/status`로 확인 가능.
+  - **검증**: 매 기능마다 (1)단위 테스트(합성 데이터로 여러 시나리오) (2)서버 재시작 후 curl로 실제 데모 계정 데이터 검증 (3)기존 엔드포인트 전체 스모크 테스트 순으로 진행. 최종적으로 Playwright로 유저/관리자 페이지 라이트·다크 모드 전체 스크린샷 확인, 서버 로그 전체에 500/Traceback 없음 확인.
+  - **버그 1건 발견/수정**: 관리자 개요의 "평균 혈압" KPI 카드가 소수점 값(`124.26/80.4`)이 카드 폭에 안 맞아 숫자 중간에서 줄바꿈되던 문제 → 정수로 반올림해 표시하도록 수정.
+  - **신규 DB 테이블**: `badges` (SQLAlchemy `Base.metadata.create_all`로 자동 생성, 별도 마이그레이션 불필요).
+  - **신규 파일 12개**: `health_coach.py`, `health_trends.py`, `risk_detection.py`, `health_score.py`, `goal_prediction.py`, `health_calendar.py`, `health_timeline.py`, `badges.py`, `admin_analytics.py`, `health_service.py`, `goal_service.py`, `report_service.py`, `admin_service.py`, `integrations.py` (실제로는 14개).
+
 ## 7. 다음 작업
 
 1. (제안) 관리자 대시보드에도 사용자 화면처럼 시각화가 있으니, 향후 필요시 이 Playwright 스크린샷 검증 방식을 `/run-skill-generator`로 프로젝트 스킬화하는 것을 고려 — 매번 임시 Node 프로젝트를 새로 만들 필요 없어짐
 2. AWS Lightsail 배포 단계로 진행 (8번 섹션 참고)
+3. (선택) integrations.py의 CSV Import 미리보기를 실제 DB 저장까지 연결하는 후속 작업
 
 ## 8. 이후 계획 (미착수)
 

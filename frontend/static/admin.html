@@ -190,13 +190,14 @@
   .pagination{display:flex;align-items:center;gap:12px;margin-top:14px;font-size:12px;color:var(--muted);}
 
   /* ---------- KPI ---------- */
-  .kpi-row{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:20px;}
+  .kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:14px;margin-bottom:20px;}
   .kpi-card.risk-high{border-color:var(--brick-soft);background:var(--brick-soft);}
   .kpi-card.risk-high .v{color:var(--brick);}
   .kpi-card.risk-high .l{color:var(--brick);}
   .kpi-card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 18px;}
   .kpi-card .l{font-size:11px;color:var(--muted);letter-spacing:0.02em;margin-bottom:8px;}
-  .kpi-card .v{font-family:'IBM Plex Mono', monospace;font-size:26px;font-weight:600;}
+  .kpi-card .v{font-family:'IBM Plex Mono', monospace;font-size:26px;font-weight:600;overflow-wrap:break-word;}
+  #kpi-row-2 .kpi-card .v{font-size:21px;}
   .kpi-card .d{font-size:11px;margin-top:6px;color:var(--muted);}
 
   .panel-row{display:grid;grid-template-columns:1.6fr 1fr;gap:16px;margin-bottom:20px;align-items:stretch;}
@@ -374,6 +375,16 @@
         <div class="kpi-card"><div class="l">최근 7일 신규가입</div><div class="v">-</div></div>
         <div class="kpi-card"><div class="l">고위험 사용자</div><div class="v">-</div></div>
         <div class="kpi-card"><div class="l">감사 로그 건수</div><div class="v">-</div></div>
+      </div>
+
+      <div class="kpi-row" id="kpi-row-2">
+        <div class="kpi-card"><div class="l">최근 활동률</div><div class="v">-</div></div>
+        <div class="kpi-card"><div class="l">기록 유지율</div><div class="v">-</div></div>
+        <div class="kpi-card"><div class="l">평균 BMI</div><div class="v">-</div></div>
+        <div class="kpi-card"><div class="l">평균 혈압</div><div class="v">-</div></div>
+        <div class="kpi-card"><div class="l">평균 혈당</div><div class="v">-</div></div>
+        <div class="kpi-card"><div class="l">위험 사용자 증가율</div><div class="v">-</div></div>
+        <div class="kpi-card"><div class="l">가입 전환율</div><div class="v">-</div></div>
       </div>
 
       <div class="panel-row">
@@ -717,6 +728,22 @@ function renderKpis(s){
       <div class="d">${s.high_risk_usernames.length ? s.high_risk_usernames.join(', ') : '없음'}</div>
     </div>
     <div class="kpi-card"><div class="l">감사 로그 건수</div><div class="v" id="kpi-audit-count">-</div></div>
+  `;
+
+  const growth = s.high_risk_growth_rate;
+  const growthText = growth === null || growth === undefined
+    ? '데이터 부족'
+    : `${growth > 0 ? '▲' : growth < 0 ? '▼' : '–'} ${Math.abs(growth)}% (최근 7일)`;
+  const growthClass = growth === null || growth === undefined ? '' : growth > 0 ? 'risk-high' : '';
+
+  document.getElementById('kpi-row-2').innerHTML = `
+    <div class="kpi-card"><div class="l">최근 활동률</div><div class="v">${s.recent_activity_rate}%</div><div class="d">최근 7일 내 기록 작성</div></div>
+    <div class="kpi-card"><div class="l">기록 유지율</div><div class="v">${s.retention_rate}%</div><div class="d">기록 1건 이상 보유</div></div>
+    <div class="kpi-card"><div class="l">평균 BMI</div><div class="v">${s.avg_bmi ?? '-'}</div></div>
+    <div class="kpi-card"><div class="l">평균 혈압</div><div class="v">${s.avg_systolic != null ? Math.round(s.avg_systolic) : '-'}/${s.avg_diastolic != null ? Math.round(s.avg_diastolic) : '-'}</div></div>
+    <div class="kpi-card"><div class="l">평균 혈당</div><div class="v">${s.avg_blood_sugar ?? '-'}</div></div>
+    <div class="kpi-card${growthClass}"><div class="l">위험 사용자 증가율</div><div class="v">${growthText}</div></div>
+    <div class="kpi-card"><div class="l">가입 전환율</div><div class="v">${s.signup_to_record_rate}%</div><div class="d">최근 30일 가입자 중 기록 작성</div></div>
   `;
 }
 

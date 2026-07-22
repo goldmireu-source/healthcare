@@ -1,13 +1,13 @@
+import csv
+import io
 import json
 import logging
 import os
-from datetime import date as date_cls, datetime, timedelta
 from typing import Optional
 
 from fastapi import FastAPI, HTTPException, Depends, Query, Response, Request
-from fastapi.responses import JSONResponse, RedirectResponse
+from fastapi.responses import JSONResponse, RedirectResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
-from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from database import Base, engine, get_db
@@ -15,7 +15,22 @@ import models
 import schemas
 import auth
 import rate_limit
-from health_logic import evaluate_record
+from health_coach import generate_health_coaching
+from health_trends import analyze_trends
+from risk_detection import detect_risks
+from health_score import compute_health_score
+from health_calendar import build_month_calendar
+from health_timeline import build_timeline
+from badges import BADGE_DEFINITIONS, evaluate_new_badges
+import health_service
+import goal_service
+import report_service
+import admin_service
+from integrations import (
+    WearableProvider,
+    MockWearableDataSource,
+    CsvHealthDataImporter,
+)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("healthlog")
@@ -41,50 +56,6 @@ async def unhandled_exception_handler(request, exc):
         status_code=500,
         content={"detail": f"예상치 못한 오류가 발생했습니다: {str(exc)}"},
     )
-
-
-def record_to_out(r: models.HealthRecord) -> schemas.RecordOut:
-    return schemas.RecordOut(
-        id=r.id,
-        username=r.user.username,
-        date=r.date,
-        weight=r.weight,
-        height=r.height,
-        systolic=r.systolic,
-        diastolic=r.diastolic,
-        blood_sugar=r.blood_sugar,
-        steps=r.steps,
-        sleep_hours=r.sleep_hours,
-        memo=r.memo or "",
-        bmi=r.bmi,
-        bmi_category=r.bmi_category,
-        bp_category=r.bp_category,
-        sugar_category=r.sugar_category,
-        warnings=json.loads(r.warnings) if r.warnings else [],
-        activity_level=r.activity_level,
-        sleep_status=r.sleep_status,
-        created_at=r.created_at,
-        updated_at=r.updated_at,
-    )
-
-
-def apply_evaluation(record: models.HealthRecord) -> None:
-    result = evaluate_record(
-        record.weight,
-        record.height,
-        record.systolic,
-        record.diastolic,
-        record.blood_sugar,
-        record.steps,
-        record.sleep_hours,
-    )
-    record.bmi = result["bmi"]
-    record.bmi_category = result["bmi_category"]
-    record.bp_category = result["bp_category"]
-    record.sugar_category = result["sugar_category"]
-    record.warnings = json.dumps(result["warnings"], ensure_ascii=False)
-    record.activity_level = result["activity_level"]
-    record.sleep_status = result["sleep_status"]
 
 
 @app.get("/", tags=["Root"])
@@ -338,11 +309,11 @@ def create_record(
         sleep_hours=payload.sleep_hours,
         memo=payload.memo,
     )
-    apply_evaluation(record)
+    health_service.apply_evaluation(record)
     db.add(record)
     db.commit()
     db.refresh(record)
-    return record_to_out(record)
+    return health_service.record_to_out(record)
 
 
 @app.get("/records", response_model=schemas.RecordListOut, tags=["Records"])
@@ -356,18 +327,7 @@ def list_records(
         .order_by(models.HealthRecord.date.asc())
         .all()
     )
-    return schemas.RecordListOut(count=len(records), records=[record_to_out(r) for r in records])
-
-
-def _get_owned_record(db: Session, record_id: int, current_user: models.User) -> models.HealthRecord:
-    record = (
-        db.query(models.HealthRecord)
-        .filter(models.HealthRecord.id == record_id, models.HealthRecord.user_id == current_user.id)
-        .first()
-    )
-    if not record:
-        raise HTTPException(status_code=404, detail="기록을 찾을 수 없습니다.")
-    return record
+    return schemas.RecordListOut(count=len(records), records=[health_service.record_to_out(r) for r in records])
 
 
 @app.get("/records/{record_id}", response_model=schemas.RecordOut, tags=["Records"])
@@ -376,8 +336,8 @@ def get_record(
     current_user: models.User = Depends(auth.get_current_user),
     db: Session = Depends(get_db),
 ):
-    record = _get_owned_record(db, record_id, current_user)
-    return record_to_out(record)
+    record = health_service.get_owned_record(db, record_id, current_user)
+    return health_service.record_to_out(record)
 
 
 @app.put("/records/{record_id}", response_model=schemas.RecordOut, tags=["Records"])
@@ -387,16 +347,16 @@ def update_record(
     current_user: models.User = Depends(auth.get_current_user),
     db: Session = Depends(get_db),
 ):
-    record = _get_owned_record(db, record_id, current_user)
+    record = health_service.get_owned_record(db, record_id, current_user)
 
     update_data = payload.model_dump(exclude_unset=True)
     for field, value in update_data.items():
         setattr(record, field, value)
 
-    apply_evaluation(record)
+    health_service.apply_evaluation(record)
     db.commit()
     db.refresh(record)
-    return record_to_out(record)
+    return health_service.record_to_out(record)
 
 
 @app.delete("/records/{record_id}", tags=["Records"])
@@ -405,7 +365,7 @@ def delete_record(
     current_user: models.User = Depends(auth.get_current_user),
     db: Session = Depends(get_db),
 ):
-    record = _get_owned_record(db, record_id, current_user)
+    record = health_service.get_owned_record(db, record_id, current_user)
     db.delete(record)
     db.commit()
     return {"message": f"{record_id}번 기록이 삭제되었습니다."}
@@ -430,7 +390,7 @@ def search_records(
         .order_by(models.HealthRecord.date.asc())
         .all()
     )
-    return schemas.RecordListOut(count=len(records), records=[record_to_out(r) for r in records])
+    return schemas.RecordListOut(count=len(records), records=[health_service.record_to_out(r) for r in records])
 
 
 @app.get("/stats", response_model=schemas.StatsOut, tags=["Records"])
@@ -473,37 +433,7 @@ def get_stats(
 
 
 # ---------- 고도화 기능: 목표 관리 ----------
-
-def _goal_to_out(db: Session, goal: models.Goal, username: str) -> schemas.GoalOut:
-    latest = (
-        db.query(models.HealthRecord)
-        .filter(models.HealthRecord.user_id == goal.user_id)
-        .order_by(models.HealthRecord.date.desc())
-        .first()
-    )
-    achievement: dict = {}
-    if latest:
-        if goal.target_weight is not None:
-            achievement["weight_diff"] = round(latest.weight - goal.target_weight, 2)
-            achievement["weight_achieved"] = latest.weight <= goal.target_weight
-        if goal.target_systolic is not None:
-            achievement["systolic_achieved"] = latest.systolic <= goal.target_systolic
-        if goal.target_diastolic is not None:
-            achievement["diastolic_achieved"] = latest.diastolic <= goal.target_diastolic
-        if goal.target_blood_sugar is not None:
-            achievement["blood_sugar_achieved"] = latest.blood_sugar <= goal.target_blood_sugar
-    else:
-        achievement["message"] = "아직 기록이 없어 달성률을 계산할 수 없습니다."
-
-    return schemas.GoalOut(
-        id=goal.id,
-        username=username,
-        target_weight=goal.target_weight,
-        target_systolic=goal.target_systolic,
-        target_diastolic=goal.target_diastolic,
-        target_blood_sugar=goal.target_blood_sugar,
-        achievement=achievement,
-    )
+# 실제 로직(달성 여부 + 예측 계산)은 goal_service.py로 분리됨.
 
 
 @app.post("/goals", response_model=schemas.GoalOut, tags=["Goals"])
@@ -528,7 +458,7 @@ def set_goal(
 
     db.commit()
     db.refresh(goal)
-    return _goal_to_out(db, goal, current_user.username)
+    return goal_service.goal_to_out(db, goal, current_user.username)
 
 
 @app.get("/goals", response_model=schemas.GoalOut, tags=["Goals"])
@@ -539,7 +469,7 @@ def get_goal(
     goal = db.query(models.Goal).filter(models.Goal.user_id == current_user.id).first()
     if not goal:
         raise HTTPException(status_code=404, detail="설정된 목표가 없습니다.")
-    return _goal_to_out(db, goal, current_user.username)
+    return goal_service.goal_to_out(db, goal, current_user.username)
 
 
 # ---------- 고도화 기능: 주간 리포트 ----------
@@ -549,88 +479,353 @@ def weekly_report(
     current_user: models.User = Depends(auth.get_current_user),
     db: Session = Depends(get_db),
 ):
-    today = date_cls.today()
-    this_week_start = (today - timedelta(days=6)).isoformat()
-    this_week_end = today.isoformat()
-    last_week_start = (today - timedelta(days=13)).isoformat()
-    last_week_end = (today - timedelta(days=7)).isoformat()
+    return report_service.build_weekly_report(db, current_user)
 
-    def week_stats(start: str, end: str) -> dict:
-        records = (
-            db.query(models.HealthRecord)
-            .filter(
-                models.HealthRecord.user_id == current_user.id,
-                models.HealthRecord.date >= start,
-                models.HealthRecord.date <= end,
-            )
-            .all()
+
+# ---------- 고도화 기능: Export (CSV / JSON) ----------
+# PDF는 요구사항에서 제외됨. 사용자 본인의 건강기록만 내보낸다.
+
+_EXPORT_CSV_HEADER = [
+    "date", "weight", "height", "systolic", "diastolic", "blood_sugar",
+    "steps", "sleep_hours", "bmi", "bmi_category", "bp_category",
+    "sugar_category", "activity_level", "sleep_status", "memo",
+]
+
+
+def _export_filename(username: str, extension: str) -> str:
+    # username은 회원가입 시 ^[a-zA-Z0-9_]+$ 로만 검증되어 헤더 인젝션 위험이 없음
+    return f"health_records_{username}.{extension}"
+
+
+@app.get("/export/csv", tags=["Export"])
+def export_records_csv(
+    current_user: models.User = Depends(auth.get_current_user),
+    db: Session = Depends(get_db),
+):
+    records = (
+        db.query(models.HealthRecord)
+        .filter(models.HealthRecord.user_id == current_user.id)
+        .order_by(models.HealthRecord.date.asc())
+        .all()
+    )
+
+    buffer = io.StringIO()
+    writer = csv.writer(buffer)
+    writer.writerow(_EXPORT_CSV_HEADER)
+    for r in records:
+        writer.writerow([
+            r.date, r.weight, r.height, r.systolic, r.diastolic, r.blood_sugar,
+            r.steps, r.sleep_hours, r.bmi, r.bmi_category, r.bp_category,
+            r.sugar_category, r.activity_level, r.sleep_status, r.memo,
+        ])
+
+    filename = _export_filename(current_user.username, "csv")
+    return StreamingResponse(
+        iter([buffer.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+@app.get("/export/json", tags=["Export"])
+def export_records_json(
+    current_user: models.User = Depends(auth.get_current_user),
+    db: Session = Depends(get_db),
+):
+    records = (
+        db.query(models.HealthRecord)
+        .filter(models.HealthRecord.user_id == current_user.id)
+        .order_by(models.HealthRecord.date.asc())
+        .all()
+    )
+    # health_service.record_to_out()은 이미 /records 엔드포인트가 쓰는 것과 동일한 직렬화 로직 (중복 방지)
+    payload = [health_service.record_to_out(r).model_dump(mode="json") for r in records]
+
+    filename = _export_filename(current_user.username, "json")
+    return StreamingResponse(
+        iter([json.dumps(payload, ensure_ascii=False, indent=2)]),
+        media_type="application/json",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+# ---------- 고도화 기능: AI Health Coach ----------
+# 지금은 health_coach.py의 규칙 기반 로직만 사용하고, LLM API는 연결하지 않는다.
+# (추후 OpenAI 등으로 교체하기 쉽도록 health_coach.py에서 provider 인터페이스로 분리해둠)
+
+@app.get("/health-coaching", response_model=schemas.HealthCoachingOut, tags=["AI Coach"])
+def get_health_coaching(
+    current_user: models.User = Depends(auth.get_current_user),
+    db: Session = Depends(get_db),
+):
+    records = (
+        db.query(models.HealthRecord)
+        .filter(models.HealthRecord.user_id == current_user.id)
+        .all()
+    )
+    # 목표가 없는 사용자가 대부분이라 404를 그대로 두면 안 되므로, 없으면 None으로 처리
+    goal = db.query(models.Goal).filter(models.Goal.user_id == current_user.id).first()
+
+    messages = generate_health_coaching(records, goal)
+    return schemas.HealthCoachingOut(messages=messages)
+
+
+# ---------- 고도화 기능: 건강 추세 분석 ----------
+# 체중/혈압/혈당/걸음수/수면 각 지표가 최근 상승(UP)/하락(DOWN)/유지(STABLE)인지
+# 판단한다. health_coach.py의 코칭 메시지도 내부적으로 이 모듈(health_trends.py)을
+# 사용하므로, 여기서 보여주는 결과와 코칭 메시지의 판단 기준은 항상 일치한다.
+
+@app.get("/trends", response_model=schemas.TrendsOut, tags=["AI Coach"])
+def get_health_trends(
+    current_user: models.User = Depends(auth.get_current_user),
+    db: Session = Depends(get_db),
+):
+    records = (
+        db.query(models.HealthRecord)
+        .filter(models.HealthRecord.user_id == current_user.id)
+        .all()
+    )
+    trend_results = analyze_trends(records)
+    trends_out = {
+        metric: schemas.TrendOut(
+            metric=result.metric,
+            trend=result.trend.value,
+            recent_avg=result.recent_avg,
+            prior_avg=result.prior_avg,
+            diff=result.diff,
         )
-        if not records:
-            return {"record_count": 0}
+        for metric, result in trend_results.items()
+    }
+    return schemas.TrendsOut(trends=trends_out)
 
-        def avg(values):
-            return round(sum(values) / len(values), 2)
 
-        return {
-            "record_count": len(records),
-            "avg_weight": avg([r.weight for r in records]),
-            "avg_systolic": avg([r.systolic for r in records]),
-            "avg_diastolic": avg([r.diastolic for r in records]),
-            "avg_blood_sugar": avg([r.blood_sugar for r in records]),
-            "avg_steps": avg([r.steps for r in records]),
-            "avg_sleep_hours": avg([r.sleep_hours for r in records]),
-        }
+# ---------- 고도화 기능: 이상 징후 감지 ----------
+# health_trends.py가 "추세"를 본다면, 이 엔드포인트는 그중 "위험할 만큼 급격한
+# 변화"만 추려서 위험도(LOW/MEDIUM/HIGH)로 보여준다 (risk_detection.py 참고).
 
-    this_week = week_stats(this_week_start, this_week_end)
-    last_week = week_stats(last_week_start, last_week_end)
+@app.get("/risk-detection", response_model=schemas.RiskDetectionOut, tags=["AI Coach"])
+def get_risk_detection(
+    current_user: models.User = Depends(auth.get_current_user),
+    db: Session = Depends(get_db),
+):
+    records = (
+        db.query(models.HealthRecord)
+        .filter(models.HealthRecord.user_id == current_user.id)
+        .all()
+    )
+    result = detect_risks(records)
+    return schemas.RiskDetectionOut(
+        risk_level=result.risk_level.value,
+        anomalies=[
+            schemas.AnomalyOut(
+                metric=a.metric, label=a.label, severity=a.severity.value, detail=a.detail
+            )
+            for a in result.anomalies
+        ],
+    )
 
-    change = {}
-    for key in ["avg_weight", "avg_systolic", "avg_diastolic", "avg_blood_sugar", "avg_steps", "avg_sleep_hours"]:
-        if key in this_week and key in last_week:
-            change[key] = round(this_week[key] - last_week[key], 2)
 
-    return schemas.WeeklyReportOut(
-        username=current_user.username, this_week=this_week, last_week=last_week, change=change
+# ---------- 고도화 기능: Health Score 개선 ----------
+# 이전에는 프론트(JS)에서 5개 지표에 균등한 페널티를 매겨 점수를 계산했다. 이제는
+# 지표별 가중치(체중20%/혈압25%/혈당25%/운동15%/수면15%) + 추세 보너스/감점을
+# 반영해 서버(health_score.py)에서 계산한 값을 그대로 내려준다.
+
+@app.get("/health-score", response_model=schemas.HealthScoreOut, tags=["AI Coach"])
+def get_health_score(
+    current_user: models.User = Depends(auth.get_current_user),
+    db: Session = Depends(get_db),
+):
+    records = (
+        db.query(models.HealthRecord)
+        .filter(models.HealthRecord.user_id == current_user.id)
+        .order_by(models.HealthRecord.date.asc())
+        .all()
+    )
+    if not records:
+        raise HTTPException(status_code=404, detail="건강 스코어를 계산할 기록이 없습니다.")
+
+    result = compute_health_score(latest=records[-1], records=records)
+    return schemas.HealthScoreOut(
+        total_score=result.total_score,
+        metrics=[
+            schemas.MetricScoreOut(
+                metric=m.metric, category=m.category, base_score=m.base_score,
+                trend_adjustment=m.trend_adjustment, final_score=m.final_score, weight=m.weight,
+            )
+            for m in result.metrics
+        ],
+    )
+
+
+# ---------- 고도화 기능: 건강 캘린더 ----------
+
+@app.get("/calendar", response_model=schemas.CalendarOut, tags=["AI Coach"])
+def get_health_calendar(
+    year: int = Query(..., ge=1900, le=2100),
+    month: int = Query(..., ge=1, le=12),
+    current_user: models.User = Depends(auth.get_current_user),
+    db: Session = Depends(get_db),
+):
+    records = (
+        db.query(models.HealthRecord)
+        .filter(models.HealthRecord.user_id == current_user.id)
+        .all()
+    )
+    days = build_month_calendar(records, year, month)
+    return schemas.CalendarOut(
+        year=year,
+        month=month,
+        days=[schemas.CalendarDayOut(date=d.date, level=d.level, score=d.score) for d in days],
+    )
+
+
+# ---------- 고도화 기능: 건강 타임라인 ----------
+
+@app.get("/timeline", response_model=schemas.TimelineOut, tags=["AI Coach"])
+def get_health_timeline(
+    current_user: models.User = Depends(auth.get_current_user),
+    db: Session = Depends(get_db),
+):
+    records = (
+        db.query(models.HealthRecord)
+        .filter(models.HealthRecord.user_id == current_user.id)
+        .all()
+    )
+    goal = db.query(models.Goal).filter(models.Goal.user_id == current_user.id).first()
+    events = build_timeline(records, goal)
+    return schemas.TimelineOut(
+        events=[schemas.TimelineEventOut(date=e.date, label=e.label, kind=e.kind) for e in events]
+    )
+
+
+# ---------- 고도화 기능: 건강 배지 ----------
+# 배경 작업 스케줄러가 없는 프로젝트라, "조회 시점에 새로 만족한 조건이 있는지
+# 평가하고, 있으면 그때 저장"하는 지연 평가 방식을 쓴다 (badges.py 참고).
+
+@app.get("/badges", response_model=schemas.BadgesOut, tags=["AI Coach"])
+def get_badges(
+    current_user: models.User = Depends(auth.get_current_user),
+    db: Session = Depends(get_db),
+):
+    earned = db.query(models.Badge).filter(models.Badge.user_id == current_user.id).all()
+    earned_keys = {b.badge_key for b in earned}
+
+    records = (
+        db.query(models.HealthRecord)
+        .filter(models.HealthRecord.user_id == current_user.id)
+        .all()
+    )
+    goal = db.query(models.Goal).filter(models.Goal.user_id == current_user.id).first()
+
+    new_keys = evaluate_new_badges(records, goal, earned_keys)
+    if new_keys:
+        for key in new_keys:
+            db.add(models.Badge(user_id=current_user.id, badge_key=key))
+        db.commit()
+        earned = db.query(models.Badge).filter(models.Badge.user_id == current_user.id).all()
+
+    earned_map = {b.badge_key: b for b in earned}
+    badges_out = [
+        schemas.BadgeOut(
+            key=defn.key,
+            label=defn.label,
+            description=defn.description,
+            icon=defn.icon,
+            earned=defn.key in earned_map,
+            earned_at=earned_map[defn.key].earned_at if defn.key in earned_map else None,
+        )
+        for defn in BADGE_DEFINITIONS
+    ]
+    return schemas.BadgesOut(badges=badges_out)
+
+
+# ---------- 고도화 기능: 확장성 확보 (Integrations) ----------
+# 지금은 OpenAI/Claude/Gemini, Apple Health/Samsung Health/Google Fit, 건강검진
+# PDF를 실제로 연결하지 않는다. 대신 나중에 붙이기 쉽도록 인터페이스만 설계해
+# integrations.py에 두고, 여기서는 그 인터페이스가 실제로 동작하는지 보여주는
+# 최소한의 엔드포인트만 노출한다 (CSV 파싱은 진짜로 동작, 나머지는 Mock).
+
+@app.get("/integrations/status", response_model=schemas.IntegrationsStatusOut, tags=["Integrations"])
+def integrations_status(current_user: models.User = Depends(auth.get_current_user)):
+    return schemas.IntegrationsStatusOut(integrations=[
+        schemas.IntegrationStatusOut(
+            name="OpenAI", category="llm", status="mock",
+            description="AI Health Coach를 LLM 기반으로 교체 가능 (health_coach.CoachingProvider 구현)",
+        ),
+        schemas.IntegrationStatusOut(
+            name="Claude", category="llm", status="mock",
+            description="OpenAI와 동일한 CoachingProvider 인터페이스로 교체 가능",
+        ),
+        schemas.IntegrationStatusOut(
+            name="Gemini", category="llm", status="mock",
+            description="OpenAI와 동일한 CoachingProvider 인터페이스로 교체 가능",
+        ),
+        schemas.IntegrationStatusOut(
+            name="Apple Health", category="wearable", status="mock",
+            description="WearableDataSource 구현체를 추가하면 실제 걸음수/수면 데이터 연동 가능",
+        ),
+        schemas.IntegrationStatusOut(
+            name="Samsung Health", category="wearable", status="mock",
+            description="Apple Health와 동일한 WearableDataSource 인터페이스로 교체 가능",
+        ),
+        schemas.IntegrationStatusOut(
+            name="Google Fit", category="wearable", status="mock",
+            description="Apple Health와 동일한 WearableDataSource 인터페이스로 교체 가능",
+        ),
+        schemas.IntegrationStatusOut(
+            name="CSV Import", category="import", status="available",
+            description="실제로 CSV를 파싱해 미리보기까지 제공 (DB 저장 연동은 후속 작업)",
+        ),
+        schemas.IntegrationStatusOut(
+            name="건강검진 PDF", category="import", status="mock",
+            description="HealthDataImporter 구현체(PDF 파서)를 추가하면 실제 연동 가능",
+        ),
+    ])
+
+
+@app.get("/integrations/wearable/mock", response_model=schemas.WearableMockOut, tags=["Integrations"])
+def integrations_wearable_mock(
+    provider: str = Query("apple_health", description="apple_health | samsung_health | google_fit"),
+    start: str = Query(..., description="조회 시작일 YYYY-MM-DD"),
+    end: str = Query(..., description="조회 종료일 YYYY-MM-DD"),
+    current_user: models.User = Depends(auth.get_current_user),
+):
+    try:
+        provider_enum = WearableProvider(provider)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="지원하지 않는 웨어러블 provider입니다.")
+
+    source = MockWearableDataSource(provider_enum)
+    days = source.fetch_daily_activity(start, end)
+    return schemas.WearableMockOut(
+        provider=provider,
+        days=[schemas.WearableActivityOut(date=d.date, steps=d.steps, sleep_hours=d.sleep_hours) for d in days],
+    )
+
+
+@app.post("/integrations/import/csv/preview", response_model=schemas.ImportPreviewOut, tags=["Integrations"])
+def integrations_import_csv_preview(
+    payload: schemas.CsvImportIn,
+    current_user: models.User = Depends(auth.get_current_user),
+):
+    importer = CsvHealthDataImporter()
+    records = importer.parse(payload.csv_content)
+    return schemas.ImportPreviewOut(
+        count=len(records),
+        records=[
+            schemas.ImportedRecordOut(
+                date=r.date, weight=r.weight, systolic=r.systolic, diastolic=r.diastolic,
+                blood_sugar=r.blood_sugar, steps=r.steps, sleep_hours=r.sleep_hours,
+            )
+            for r in records
+        ],
     )
 
 
 # ---------- 관리자 전용 기능 ----------
 # 회원가입으로는 절대 admin이 될 수 없음 (role은 항상 "user"로 생성됨).
 # 계정을 관리자로 승격하려면 로컬에서 promote_admin.py를 직접 실행해야 함.
-
-def _log_admin_action(
-    db: Session,
-    admin_user: models.User,
-    action: str,
-    target_username: Optional[str] = None,
-    detail: str = "",
-) -> None:
-    db.add(
-        models.AuditLog(
-            admin_username=admin_user.username,
-            action=action,
-            target_username=target_username,
-            detail=detail,
-        )
-    )
-    db.commit()
-
-
-RISK_BAD_CATEGORIES = {"고혈압", "비만", "당뇨 의심"}
-RISK_WARN_CATEGORIES = {"주의", "과체중", "공복혈당장애", "부족", "과다", "저체중"}
-RISK_LEVEL_ORDER = {"high": 3, "moderate": 2, "normal": 1, "unknown": 0}
-
-
-def _risk_level(record: Optional[models.HealthRecord]) -> str:
-    if record is None:
-        return "unknown"
-    cats = {record.bmi_category, record.bp_category, record.sugar_category}
-    if cats & RISK_BAD_CATEGORIES:
-        return "high"
-    if cats & RISK_WARN_CATEGORIES:
-        return "moderate"
-    return "normal"
-
+# 실제 쿼리/집계 로직은 admin_service.py로 분리됨.
 
 @app.get("/admin/users", response_model=schemas.AdminUsersOut, tags=["Admin"])
 def admin_list_users(
@@ -644,65 +839,7 @@ def admin_list_users(
     current_admin: models.User = Depends(auth.get_current_admin),
     db: Session = Depends(get_db),
 ):
-    query = db.query(models.User)
-    if search:
-        query = query.filter(models.User.username.ilike(f"%{search}%"))
-    if role in ("user", "admin"):
-        query = query.filter(models.User.role == role)
-
-    users = query.all()
-
-    # user_id별 기록 수를 한 번의 집계 쿼리로 가져와 N+1 쿼리를 피함
-    record_counts = dict(
-        db.query(models.HealthRecord.user_id, func.count(models.HealthRecord.id))
-        .group_by(models.HealthRecord.user_id)
-        .all()
-    )
-
-    # user_id별 "가장 최근" 기록 1건만 추려서 위험도를 계산 (user_id, date desc 정렬 후
-    # 처음 등장하는 것만 채택 -> 사용자 수만큼의 개별 쿼리 없이 한 번의 조회로 해결)
-    latest_by_user: dict[int, models.HealthRecord] = {}
-    for r in (
-        db.query(models.HealthRecord)
-        .order_by(models.HealthRecord.user_id, models.HealthRecord.date.desc())
-        .all()
-    ):
-        latest_by_user.setdefault(r.user_id, r)
-    risk_by_user = {uid: _risk_level(rec) for uid, rec in latest_by_user.items()}
-
-    if risk in ("high", "moderate", "normal", "unknown"):
-        users = [u for u in users if risk_by_user.get(u.id, "unknown") == risk]
-
-    total = len(users)
-
-    def sort_key(u):
-        if sort_by == "username":
-            return u.username.lower()
-        if sort_by == "created_at":
-            return u.created_at or datetime.min
-        if sort_by == "record_count":
-            return record_counts.get(u.id, 0)
-        if sort_by == "risk_level":
-            return RISK_LEVEL_ORDER.get(risk_by_user.get(u.id, "unknown"), 0)
-        return u.id
-
-    users.sort(key=sort_key, reverse=(sort_dir == "desc"))
-
-    start = (page - 1) * page_size
-    page_users = users[start : start + page_size]
-
-    items = [
-        schemas.AdminUserOut(
-            id=u.id,
-            username=u.username,
-            role=u.role,
-            created_at=u.created_at,
-            record_count=record_counts.get(u.id, 0),
-            risk_level=risk_by_user.get(u.id, "unknown"),
-        )
-        for u in page_users
-    ]
-    return schemas.AdminUsersOut(count=total, page=page, page_size=page_size, users=items)
+    return admin_service.list_users(db, search, role, risk, sort_by, sort_dir, page, page_size)
 
 
 @app.get("/admin/stats", response_model=schemas.AdminStatsOut, tags=["Admin"])
@@ -710,56 +847,7 @@ def admin_stats(
     current_admin: models.User = Depends(auth.get_current_admin),
     db: Session = Depends(get_db),
 ):
-    users = db.query(models.User).all()
-    records = db.query(models.HealthRecord).all()
-
-    def distribution(values):
-        dist: dict = {}
-        for v in values:
-            dist[v] = dist.get(v, 0) + 1
-        return dist
-
-    role_distribution = distribution([u.role for u in users])
-
-    today = date_cls.today()
-    new_users_last_7_days = sum(
-        1 for u in users if u.created_at and u.created_at.date() >= today - timedelta(days=6)
-    )
-
-    signups_by_day: dict = {}
-    for u in users:
-        if u.created_at:
-            day = u.created_at.date().isoformat()
-            signups_by_day[day] = signups_by_day.get(day, 0) + 1
-    signup_trend = [
-        schemas.SignupTrendPoint(
-            date=(today - timedelta(days=i)).isoformat(),
-            count=signups_by_day.get((today - timedelta(days=i)).isoformat(), 0),
-        )
-        for i in range(13, -1, -1)
-    ]
-
-    latest_by_user: dict[int, models.HealthRecord] = {}
-    for r in sorted(records, key=lambda r: r.date, reverse=True):
-        latest_by_user.setdefault(r.user_id, r)
-    users_by_id = {u.id: u for u in users}
-    high_risk_usernames = sorted(
-        users_by_id[uid].username
-        for uid, rec in latest_by_user.items()
-        if uid in users_by_id and _risk_level(rec) == "high"
-    )
-
-    return schemas.AdminStatsOut(
-        total_users=len(users),
-        total_records=len(records),
-        role_distribution=role_distribution,
-        new_users_last_7_days=new_users_last_7_days,
-        signup_trend=signup_trend,
-        bmi_category_distribution=distribution([r.bmi_category for r in records]),
-        bp_category_distribution=distribution([r.bp_category for r in records]),
-        sugar_category_distribution=distribution([r.sugar_category for r in records]),
-        high_risk_usernames=high_risk_usernames,
-    )
+    return admin_service.compute_admin_stats(db)
 
 
 @app.get("/admin/users/{user_id}/records", response_model=schemas.RecordListOut, tags=["Admin"])
@@ -777,7 +865,7 @@ def admin_get_user_records(
         .order_by(models.HealthRecord.date.asc())
         .all()
     )
-    return schemas.RecordListOut(count=len(records), records=[record_to_out(r) for r in records])
+    return schemas.RecordListOut(count=len(records), records=[health_service.record_to_out(r) for r in records])
 
 
 @app.delete("/admin/users/{user_id}", tags=["Admin"])
@@ -794,7 +882,7 @@ def admin_delete_user(
     username = user.username
     db.delete(user)
     db.commit()
-    _log_admin_action(db, current_admin, "delete_user", target_username=username)
+    admin_service.log_admin_action(db, current_admin, "delete_user", target_username=username)
     return {"message": f"'{username}' 계정이 삭제되었습니다."}
 
 
@@ -813,7 +901,7 @@ def admin_force_logout(
         db.query(models.Session).filter(models.Session.user_id == user_id).delete()
     )
     db.commit()
-    _log_admin_action(
+    admin_service.log_admin_action(
         db, current_admin, "force_logout", target_username=user.username,
         detail=f"세션 {invalidated}개 무효화",
     )
