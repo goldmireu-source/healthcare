@@ -987,12 +987,18 @@ function showApp(user){
 async function checkAuth(){
   try{
     const res = await fetch('/auth/me', {credentials:'same-origin'});
-    if(res.ok){
-      const user = await res.json();
-      showApp(user);
-    }else{
+    if(!res.ok){ showAuthScreen(); return; }
+    const user = await res.json();
+    if(user.role === 'admin'){
+      // 유저 페이지와 관리자 페이지는 완전히 분리되어 있음 - 다른 탭에서 관리자로
+      // 로그인해 세션 쿠키가 겹쳤을 수 있으므로, 관리자 세션이면 로그아웃시키고
+      // 이 화면에서 바로 로그인하도록 함 (admin.html의 반대쪽 가드와 대칭)
+      await fetch('/auth/logout', {method:'POST', credentials:'same-origin'});
       showAuthScreen();
+      document.getElementById('auth-error').textContent = '관리자 계정입니다. 관리자 페이지(/app/admin.html)를 이용해주세요.';
+      return;
     }
+    showApp(user);
   }catch(e){
     showAuthScreen();
   }
@@ -1013,6 +1019,11 @@ async function doLogin(ev){
     });
     const data = await res.json();
     if(!res.ok) throw new Error(data.detail || '로그인에 실패했습니다.');
+    if(data.role === 'admin'){
+      await fetch('/auth/logout', {method:'POST', credentials:'same-origin'});
+      errEl.textContent = '관리자 계정입니다. 관리자 페이지(/app/admin.html)를 이용해주세요.';
+      return;
+    }
     toast(`${data.username}님, 환영합니다`, 'success');
     showApp(data);
   }catch(e){ errEl.textContent = e.message; }
