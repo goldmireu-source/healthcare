@@ -22,12 +22,12 @@
   }
 
   /* ---------- 로그인 화면 ---------- */
-  #admin-login-screen label{display:block;font-size:12px;color:var(--muted);margin-bottom:5px;}
+  #admin-login-screen label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px;}
   #admin-login-screen input{
-    width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:7px;font-size:14px;
+    width:100%;padding:10px 11px;border:1px solid var(--line);border-radius:7px;font-size:15px;
     font-family:'Pretendard Variable','Pretendard',-apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;
   }
-  .auth-error{color:var(--brick);font-size:12px;margin-top:12px;min-height:14px;}
+  .auth-error{color:var(--brick);font-size:13px;margin-top:12px;min-height:15px;}
 
   /* ---------- 대시보드 셸 (사이드바 + 컨텐츠) ---------- */
   .shell{display:flex;min-height:100vh;}
@@ -36,19 +36,19 @@
     display:flex;flex-direction:column;padding:24px 0;position:sticky;top:0;height:100vh;
   }
   .sidebar .brand{
-    font-weight:700;letter-spacing:-0.01em;font-size:16px;padding:0 22px 20px;
+    font-weight:700;letter-spacing:-0.01em;font-size:17px;padding:0 22px 20px;
     border-bottom:1px solid var(--line);margin-bottom:14px;
     display:flex;align-items:center;gap:8px;
   }
   .sidebar .brand .dot{width:9px;height:9px;border-radius:50%;background:var(--teal);box-shadow:0 0 0 3px var(--teal-soft);flex-shrink:0;}
   .sidebar .brand small{
-    display:block;font-family:'IBM Plex Mono', monospace;font-size:10px;color:var(--muted);
+    display:block;font-family:'IBM Plex Mono', monospace;font-size:11px;color:var(--muted);
     text-transform:uppercase;letter-spacing:0.07em;margin-top:5px;
   }
   nav.side-nav{display:flex;flex-direction:column;}
   .nav-item{
     display:flex;align-items:center;gap:8px;width:100%;text-align:left;padding:11px 22px;
-    border:none;background:none;cursor:pointer;font-size:14px;color:var(--muted);
+    border:none;background:none;cursor:pointer;font-size:15px;color:var(--muted);
     font-family:'Pretendard Variable','Pretendard',-apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;border-left:3px solid transparent;
   }
   .nav-item:hover{color:var(--ink);background:var(--paper);}
@@ -57,13 +57,13 @@
   .sidebar-footer{margin-top:auto;padding:16px 22px 0;border-top:1px solid var(--line);}
   .content{flex:1;padding:26px 32px 60px;min-width:0;}
   .topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;gap:12px;flex-wrap:wrap;}
-  .topbar h1{font-weight:700;letter-spacing:-0.01em;font-size:23px;margin:0;}
+  .topbar h1{font-weight:700;letter-spacing:-0.01em;font-size:25px;margin:0;}
   .user-switch{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end;}
   .user-switch button, .user-switch .theme-toggle{flex-shrink:0;}
-  .user-switch span{font-size:13px;color:var(--muted);}
+  .user-switch span{font-size:14px;color:var(--muted);}
   .theme-toggle{display:flex;gap:2px;background:var(--card-2);border:1px solid var(--line);border-radius:20px;padding:2px;}
   .theme-toggle button{
-    border:none;background:none;padding:5px 9px;border-radius:16px;cursor:pointer;font-size:12px;
+    border:none;background:none;padding:6px 10px;border-radius:16px;cursor:pointer;font-size:13px;
     color:var(--muted);font-family:inherit;line-height:1;
   }
   .theme-toggle button.active{background:var(--card);color:var(--ink);box-shadow:var(--shadow-sm);font-weight:600;}
@@ -73,20 +73,20 @@
 
   .card{
     background:var(--card);border:1px solid var(--line);border-radius:12px;
-    padding:20px 22px;
+    padding:22px 24px;
   }
   .card h2{
-    font-weight:700;letter-spacing:-0.01em;font-size:16px;margin:0 0 14px;
+    font-weight:700;letter-spacing:-0.01em;font-size:18px;margin:0 0 16px;
     display:flex;align-items:baseline;gap:8px;justify-content:space-between;
   }
   .card h2 .title-group{display:flex;align-items:baseline;gap:8px;}
   .card h2 .eyebrow{
-    font-family:'IBM Plex Mono', monospace;font-size:11px;color:var(--muted);
+    font-family:'IBM Plex Mono', monospace;font-size:12px;color:var(--muted);
     letter-spacing:0.06em;text-transform:uppercase;
   }
 
   .btn{
-    padding:8px 16px;border-radius:7px;border:none;cursor:pointer;font-size:13px;
+    padding:9px 17px;border-radius:7px;border:none;cursor:pointer;font-size:14px;
     font-weight:600;font-family:inherit;
   }
   .btn-primary{background:var(--teal);color:var(--on-accent);}
@@ -96,47 +96,47 @@
   .btn-danger{background:var(--brick);color:var(--on-accent);}
   .btn-danger:hover{filter:brightness(0.9);}
 
-  table{width:100%;border-collapse:collapse;font-size:13px;}
+  table{width:100%;border-collapse:collapse;font-size:14px;}
   thead th{
-    text-align:left;font-size:11px;color:var(--muted);text-transform:uppercase;
-    letter-spacing:0.03em;border-bottom:1px solid var(--line);padding:8px 6px;font-weight:500;
+    text-align:left;font-size:12px;color:var(--muted);text-transform:uppercase;
+    letter-spacing:0.03em;border-bottom:1px solid var(--line);padding:9px 8px;font-weight:500;
   }
   thead th.sortable{cursor:pointer;user-select:none;}
   thead th.sortable:hover{color:var(--ink);}
-  .sort-indicator{margin-left:3px;font-size:9px;color:var(--teal);}
-  tbody td{padding:10px 6px;border-bottom:1px solid var(--line);vertical-align:middle;}
+  .sort-indicator{margin-left:3px;font-size:10px;color:var(--teal);}
+  tbody td{padding:11px 8px;border-bottom:1px solid var(--line);vertical-align:middle;}
   tbody tr:last-child td{border-bottom:none;}
-  .badge{display:inline-block;padding:3px 8px;border-radius:20px;font-size:11px;font-weight:500;}
+  .badge{display:inline-block;padding:4px 9px;border-radius:20px;font-size:12px;font-weight:500;}
   .badge.good{background:var(--status-good-soft);color:var(--status-good);}
   .badge.warn{background:var(--amber-soft);color:var(--amber);}
   .badge.bad{background:var(--brick-soft);color:var(--brick);}
   .badge.neutral{background:var(--paper);color:var(--muted);}
   .row-actions button{
-    font-size:11px;padding:4px 9px;border-radius:5px;border:1px solid var(--line);
+    font-size:12px;padding:5px 10px;border-radius:5px;border:1px solid var(--line);
     background:var(--card);cursor:pointer;color:var(--muted);margin-right:4px;
   }
   .row-actions button:hover{border-color:var(--brick);color:var(--brick);}
-  .empty-note{color:var(--muted);font-size:13px;padding:16px 4px;}
+  .empty-note{color:var(--muted);font-size:14px;padding:16px 4px;}
 
   .search-bar{display:flex;gap:10px;align-items:flex-end;margin-bottom:16px;flex-wrap:wrap;}
   .search-bar div{display:flex;flex-direction:column;gap:5px;}
-  .search-bar label{font-size:12px;color:var(--muted);}
+  .search-bar label{font-size:13px;color:var(--muted);}
   .search-bar input, .search-bar select{
-    padding:8px 9px;border:1px solid var(--line);border-radius:7px;font-family:'IBM Plex Mono', monospace;
-    font-size:13px;min-width:170px;background:var(--card);color:var(--ink);
+    padding:9px 10px;border:1px solid var(--line);border-radius:7px;font-family:'IBM Plex Mono', monospace;
+    font-size:14px;min-width:170px;background:var(--card);color:var(--ink);
   }
-  .pagination{display:flex;align-items:center;gap:12px;margin-top:14px;font-size:12px;color:var(--muted);}
+  .pagination{display:flex;align-items:center;gap:12px;margin-top:14px;font-size:13px;color:var(--muted);}
 
   /* ---------- KPI ---------- */
   .kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:14px;margin-bottom:20px;}
   .kpi-card.risk-high{border-color:var(--brick-soft);background:var(--brick-soft);}
   .kpi-card.risk-high .v{color:var(--brick);}
   .kpi-card.risk-high .l{color:var(--brick);}
-  .kpi-card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 18px;}
-  .kpi-card .l{font-size:11px;color:var(--muted);letter-spacing:0.02em;margin-bottom:8px;}
-  .kpi-card .v{font-family:'IBM Plex Mono', monospace;font-size:26px;font-weight:600;overflow-wrap:break-word;}
-  #kpi-row-2 .kpi-card .v{font-size:21px;}
-  .kpi-card .d{font-size:11px;margin-top:6px;color:var(--muted);}
+  .kpi-card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px 20px;}
+  .kpi-card .l{font-size:12px;color:var(--muted);letter-spacing:0.02em;margin-bottom:9px;}
+  .kpi-card .v{font-family:'IBM Plex Mono', monospace;font-size:28px;font-weight:600;overflow-wrap:break-word;}
+  #kpi-row-2 .kpi-card .v{font-size:23px;}
+  .kpi-card .d{font-size:12px;margin-top:6px;color:var(--muted);}
   .kpi-card.clickable{cursor:pointer;transition:border-color .12s ease, box-shadow .12s ease;}
   .kpi-card.clickable:hover, .kpi-card.clickable:focus-visible{border-color:var(--teal);box-shadow:var(--shadow-sm);}
   .kpi-card.clickable:focus-visible{outline:2px solid var(--teal);outline-offset:2px;}
@@ -145,44 +145,44 @@
 
   .quick-filter-banner{
     display:flex;align-items:center;gap:10px;background:var(--teal-soft);color:var(--teal-strong);
-    border:1px solid var(--teal-soft);border-radius:9px;padding:9px 14px;margin-bottom:14px;font-size:12.5px;
+    border:1px solid var(--teal-soft);border-radius:9px;padding:10px 15px;margin-bottom:14px;font-size:13.5px;
   }
   .quick-filter-banner button{
     margin-left:auto;background:none;border:1px solid currentColor;color:inherit;border-radius:6px;
-    padding:4px 10px;font-size:11.5px;cursor:pointer;font-family:inherit;flex-shrink:0;
+    padding:5px 11px;font-size:12.5px;cursor:pointer;font-family:inherit;flex-shrink:0;
   }
 
   .panel-row{display:grid;grid-template-columns:1.6fr 1fr;gap:16px;margin-bottom:20px;align-items:stretch;}
   .panel-row.thirds{grid-template-columns:repeat(3,1fr);}
 
   /* ---------- 가입 추이 차트 ---------- */
-  .trend-summary{font-size:12px;color:var(--muted);margin-bottom:10px;}
+  .trend-summary{font-size:13px;color:var(--muted);margin-bottom:10px;}
   .trend-chart-wrap{position:relative;}
   .trend-chart{width:100%;height:130px;display:block;}
   .trend-bar{fill:var(--teal);cursor:pointer;}
   .trend-bar:hover{fill:#265b4d;}
   #chart-tooltip{
-    position:fixed;background:#16211D;color:#F3F7F5;font-size:11px;padding:5px 9px;border-radius:6px;
+    position:fixed;background:#16211D;color:#F3F7F5;font-size:12px;padding:6px 10px;border-radius:6px;
     pointer-events:none;z-index:1000;opacity:0;transition:opacity 0.1s;white-space:nowrap;
   }
   #chart-tooltip strong{font-family:'IBM Plex Mono', monospace;}
 
   /* ---------- 분포 패널 ---------- */
-  .dist-row{display:flex;align-items:center;gap:8px;margin-top:6px;font-size:12px;}
-  .dist-label{width:74px;flex-shrink:0;}
+  .dist-row{display:flex;align-items:center;gap:8px;margin-top:7px;font-size:13px;}
+  .dist-label{width:76px;flex-shrink:0;}
   .dist-bar{flex:1;height:8px;background:var(--paper);border-radius:4px;overflow:hidden;}
   .dist-bar span{display:block;height:100%;}
   .dist-bar span.good{background:var(--status-good);}
   .dist-bar span.warn{background:var(--amber);}
   .dist-bar span.bad{background:var(--brick);}
   .dist-bar span.neutral{background:var(--muted);}
-  .dist-count{color:var(--muted);width:22px;text-align:right;flex-shrink:0;}
+  .dist-count{color:var(--muted);width:24px;text-align:right;flex-shrink:0;}
 
   /* ---------- 최근 활동 ---------- */
-  .activity-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px dashed var(--line);font-size:12px;}
+  .activity-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px dashed var(--line);font-size:13px;}
   .activity-row:last-child{border-bottom:none;}
   .activity-detail{flex:1;color:var(--ink);}
-  .activity-time{color:var(--muted);font-family:'IBM Plex Mono', monospace;font-size:11px;}
+  .activity-time{color:var(--muted);font-family:'IBM Plex Mono', monospace;font-size:12px;}
 
   /* ---------- 드로어 (사용자 기록 보기) ---------- */
   .drawer-overlay{
@@ -194,7 +194,7 @@
     padding:26px 24px;box-shadow:-10px 0 30px rgba(0,0,0,0.18);
   }
   .drawer h3{
-    font-weight:700;letter-spacing:-0.01em;font-size:19px;margin:0 0 18px;
+    font-weight:700;letter-spacing:-0.01em;font-size:20px;margin:0 0 18px;
     display:flex;justify-content:space-between;align-items:center;gap:12px;
   }
 
@@ -207,13 +207,13 @@
     background:var(--card);border-radius:12px;padding:24px;max-width:400px;width:100%;
     box-shadow:0 12px 40px rgba(0,0,0,0.2);
   }
-  .modal-box h3{font-weight:700;letter-spacing:-0.01em;font-size:18px;margin:0 0 16px;}
+  .modal-box h3{font-weight:700;letter-spacing:-0.01em;font-size:19px;margin:0 0 16px;}
   .modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:18px;}
 
   /* ---------- 토스트 ---------- */
   #toast-box{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:999;display:flex;flex-direction:column;gap:8px;align-items:center;}
   .toast{
-    padding:10px 18px;border-radius:8px;font-size:13px;color:#F3F7F5;background:#16211D;
+    padding:11px 19px;border-radius:8px;font-size:14px;color:#F3F7F5;background:#16211D;
     box-shadow:0 6px 20px rgba(0,0,0,0.15);opacity:0;transform:translateY(8px);
     animation:toast-in 0.2s ease forwards;
   }
@@ -231,7 +231,7 @@
     .nav-label{display:none;}
     .sidebar-footer{padding:12px 8px 0;}
     .sidebar-footer .badge{font-size:0;padding:6px;}
-    .sidebar-footer .badge::before{content:'●';font-size:11px;}
+    .sidebar-footer .badge::before{content:'●';font-size:12px;}
     .kpi-row{grid-template-columns:repeat(3,1fr);}
     .panel-row, .panel-row.thirds{grid-template-columns:1fr;}
   }
@@ -247,7 +247,7 @@
     .sidebar .brand{display:none;}
     .side-nav{flex-direction:row;width:100%;justify-content:space-around;}
     .nav-item{
-      border-left:none;padding:6px 10px;white-space:nowrap;flex-direction:column;gap:3px;font-size:10.5px;
+      border-left:none;padding:6px 10px;white-space:nowrap;flex-direction:column;gap:3px;font-size:11.5px;
       border-radius:var(--radius-sm);
     }
     .nav-item.active{border-left:none;background:var(--teal-soft);color:var(--teal-strong);}
@@ -349,7 +349,7 @@
         </div>
         <div class="card">
           <h2><span class="eyebrow">Recent</span> 최근 활동</h2>
-          <div id="recent-activity-body"><span style="color:var(--muted);font-size:13px;">불러오는 중...</span></div>
+          <div id="recent-activity-body"><span style="color:var(--muted);font-size:14px;">불러오는 중...</span></div>
           <button class="btn btn-ghost" style="margin-top:12px;width:100%;" onclick="switchView('audit')">전체 감사 로그 보기</button>
         </div>
       </div>
@@ -467,7 +467,7 @@
 <div class="modal-overlay" id="confirm-modal" style="display:none;">
   <div class="modal-box">
     <h3 id="confirm-modal-title">확인</h3>
-    <p id="confirm-modal-message" style="font-size:13px;color:var(--muted);margin:0;"></p>
+    <p id="confirm-modal-message" style="font-size:14px;color:var(--muted);margin:0;"></p>
     <div class="modal-actions">
       <button type="button" class="btn btn-ghost" id="confirm-modal-cancel">취소</button>
       <button type="button" class="btn btn-danger" id="confirm-modal-ok">확인</button>
@@ -715,7 +715,7 @@ function renderKpis(s){
   const growth = s.high_risk_growth_rate;
   const growthText = growth === null || growth === undefined
     ? '데이터 부족'
-    : `${growth > 0 ? '▲' : growth < 0 ? '▼' : '–'} ${Math.abs(growth)}% (최근 7일)`;
+    : `${growth > 0 ? '▲' : growth < 0 ? '▼' : '–'} ${Math.abs(growth)}%`;
   const growthClass = growth === null || growth === undefined ? '' : growth > 0 ? 'risk-high' : '';
 
   document.getElementById('kpi-row-2').innerHTML = [
@@ -735,7 +735,7 @@ function renderKpis(s){
     }),
     kpiCardHtml({ label: '평균 혈당', value: s.avg_blood_sugar ?? '-', onClick: 'scrollToDistributions()' }),
     kpiCardHtml({
-      label: '위험 사용자 증가율', value: growthText, extraClass: growthClass,
+      label: '위험 사용자 증가율', value: growthText, detail: '최근 7일 기준', extraClass: growthClass,
       onClick: "applyQuickFilter({risk:'high'}, '고위험 사용자')",
     }),
     kpiCardHtml({
@@ -870,7 +870,7 @@ function renderAuditTable(logs){
       <td>${l.admin_username}</td>
       <td><span class="badge ${actionBadgeClass(l.action)}">${actionLabel(l.action)}</span></td>
       <td>${l.target_username || '-'}</td>
-      <td style="color:var(--muted);font-size:12px;">${l.detail || ''}</td>
+      <td style="color:var(--muted);font-size:13px;">${l.detail || ''}</td>
     </tr>`).join('');
 }
 
@@ -1040,7 +1040,7 @@ async function loadUsers(page = currentPage){
         return `
       <tr>
         <td>${u.id}</td>
-        <td>${u.username}${isSelf ? ' <span style="color:var(--muted);font-size:11px;">(나)</span>' : ''}</td>
+        <td>${u.username}${isSelf ? ' <span style="color:var(--muted);font-size:12px;">(나)</span>' : ''}</td>
         <td><span class="badge ${roleBadgeClass(u.role)}">${u.role}</span></td>
         <td>${u.created_at ? u.created_at.slice(0,10) : '-'}</td>
         <td>${u.record_count}</td>
