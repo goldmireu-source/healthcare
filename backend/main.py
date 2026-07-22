@@ -3,12 +3,14 @@ import io
 import json
 import logging
 import os
+from datetime import date
 from typing import Optional
 
 from fastapi import FastAPI, HTTPException, Depends, Query, Response, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, RedirectResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
+from pydantic import ValidationError
 from sqlalchemy.orm import Session
 
 from database import get_db, SessionLocal
@@ -604,14 +606,27 @@ def export_records_json(
 
 
 # ---------- 고도화 기능: AI Health Coach ----------
-# 지금은 health_coach.py의 규칙 기반 로직만 사용하고, LLM API는 연결하지 않는다.
-# (추후 OpenAI 등으로 교체하기 쉽도록 health_coach.py에서 provider 인터페이스로 분리해둠)
+# OPENAI_API_KEY 환경변수가 설정되어 있으면 health_coach.OpenAICoachingProvider가
+# 실제 OpenAI API를 호출하고, 키가 없거나 호출이 실패/타임아웃되면 자동으로
+# RuleBasedCoachingProvider로 폴백한다 (health_coach.build_default_coaching_provider 참고).
 
 @app.get("/health-coaching", response_model=schemas.HealthCoachingOut, tags=["AI Coach"])
 def get_health_coaching(
     current_user: models.User = Depends(auth.get_current_user),
     db: Session = Depends(get_db),
 ):
+    # OpenAI 연동 시 매 요청마다 호출하면 비용이 계속 나가므로, 하루에 한 번만
+    # 생성하고 같은 날 재요청은 캐시를 그대로 재사용한다 (badges.py의 지연 평가
+    # 패턴과 동일 — 배경 스케줄러 없이 이 조회 시점에만 "오늘 이미 만들었는지" 확인).
+    today = date.today().isoformat()
+    cache = (
+        db.query(models.CoachingCache)
+        .filter(models.CoachingCache.user_id == current_user.id)
+        .first()
+    )
+    if cache is not None and cache.generated_date == today:
+        return schemas.HealthCoachingOut(messages=json.loads(cache.messages_json))
+
     records = (
         db.query(models.HealthRecord)
         .filter(models.HealthRecord.user_id == current_user.id)
@@ -621,6 +636,15 @@ def get_health_coaching(
     goal = db.query(models.Goal).filter(models.Goal.user_id == current_user.id).first()
 
     messages = generate_health_coaching(records, goal)
+    messages_json = json.dumps(messages, ensure_ascii=False)
+
+    if cache is None:
+        db.add(models.CoachingCache(user_id=current_user.id, generated_date=today, messages_json=messages_json))
+    else:
+        cache.generated_date = today
+        cache.messages_json = messages_json
+    db.commit()
+
     return schemas.HealthCoachingOut(messages=messages)
 
 
@@ -801,10 +825,15 @@ def get_badges(
 
 @app.get("/integrations/status", response_model=schemas.IntegrationsStatusOut, tags=["Integrations"])
 def integrations_status(current_user: models.User = Depends(auth.get_current_user)):
+    openai_configured = bool(os.getenv("OPENAI_API_KEY"))
     return schemas.IntegrationsStatusOut(integrations=[
         schemas.IntegrationStatusOut(
-            name="OpenAI", category="llm", status="mock",
-            description="AI Health Coach를 LLM 기반으로 교체 가능 (health_coach.CoachingProvider 구현)",
+            name="OpenAI", category="llm", status="available" if openai_configured else "mock",
+            description=(
+                "AI Health Coach가 실제 OpenAI API로 코칭 메시지를 생성 중 (호출 실패 시 규칙 기반 자동 폴백)"
+                if openai_configured
+                else "OPENAI_API_KEY 환경변수를 설정하면 실제 OpenAI 연동으로 전환됨 (지금은 규칙 기반)"
+            ),
         ),
         schemas.IntegrationStatusOut(
             name="Claude", category="llm", status="mock",
@@ -828,7 +857,7 @@ def integrations_status(current_user: models.User = Depends(auth.get_current_use
         ),
         schemas.IntegrationStatusOut(
             name="CSV Import", category="import", status="available",
-            description="실제로 CSV를 파싱해 미리보기까지 제공 (DB 저장 연동은 후속 작업)",
+            description="CSV 파싱 + 미리보기 + 실제 DB 저장(POST /integrations/import/csv/commit)까지 지원",
         ),
         schemas.IntegrationStatusOut(
             name="건강검진 PDF", category="import", status="mock",
@@ -868,11 +897,82 @@ def integrations_import_csv_preview(
         count=len(records),
         records=[
             schemas.ImportedRecordOut(
-                date=r.date, weight=r.weight, systolic=r.systolic, diastolic=r.diastolic,
-                blood_sugar=r.blood_sugar, steps=r.steps, sleep_hours=r.sleep_hours,
+                date=r.date, weight=r.weight, height=r.height, systolic=r.systolic,
+                diastolic=r.diastolic, blood_sugar=r.blood_sugar, steps=r.steps,
+                sleep_hours=r.sleep_hours,
             )
             for r in records
         ],
+    )
+
+
+@app.post("/integrations/import/csv/commit", response_model=schemas.ImportCommitOut, tags=["Integrations"])
+def integrations_import_csv_commit(
+    payload: schemas.CsvImportIn,
+    current_user: models.User = Depends(auth.get_current_user),
+    db: Session = Depends(get_db),
+):
+    """CSV를 실제로 DB에 저장한다.
+
+    POST /records와 완전히 동일한 검증(schemas.RecordIn)과 BMI 계산 로직
+    (health_service.apply_evaluation)을 재사용해, 형식이 깨졌거나 범위를
+    벗어난 값이 그대로 저장되는 일이 없게 한다. 한 행이라도 검증에 실패하면
+    아무것도 저장하지 않고 전체 행의 오류 목록을 반환한다(부분 저장으로 인한
+    혼란 방지).
+    """
+    importer = CsvHealthDataImporter()
+    parsed = importer.parse(payload.csv_content)
+
+    validated: list[schemas.RecordIn] = []
+    errors: list[schemas.ImportRowError] = []
+    for i, r in enumerate(parsed, start=1):
+        try:
+            validated.append(schemas.RecordIn(
+                date=r.date,
+                weight=r.weight,
+                height=r.height,
+                systolic=r.systolic,
+                diastolic=r.diastolic,
+                blood_sugar=r.blood_sugar,
+                steps=r.steps if r.steps is not None else 0,
+                sleep_hours=r.sleep_hours if r.sleep_hours is not None else 0.0,
+            ))
+        except ValidationError as exc:
+            first = exc.errors()[0]
+            field = first["loc"][-1] if first["loc"] else "값"
+            errors.append(schemas.ImportRowError(row=i, date=r.date, error=f"{field}: {first['msg']}"))
+
+    if errors:
+        raise HTTPException(
+            status_code=422,
+            detail={"message": "CSV 검증에 실패한 행이 있어 아무것도 저장하지 않았습니다.", "errors": [e.model_dump() for e in errors]},
+        )
+
+    created: list[models.HealthRecord] = []
+    for payload_in in validated:
+        record = models.HealthRecord(
+            user_id=current_user.id,
+            date=payload_in.date,
+            weight=payload_in.weight,
+            height=payload_in.height,
+            systolic=payload_in.systolic,
+            diastolic=payload_in.diastolic,
+            blood_sugar=payload_in.blood_sugar,
+            steps=payload_in.steps,
+            sleep_hours=payload_in.sleep_hours,
+            memo=payload_in.memo,
+        )
+        health_service.apply_evaluation(record)
+        db.add(record)
+        created.append(record)
+
+    db.commit()
+    for record in created:
+        db.refresh(record)
+
+    return schemas.ImportCommitOut(
+        count=len(created),
+        records=[health_service.record_to_out(r) for r in created],
     )
 
 

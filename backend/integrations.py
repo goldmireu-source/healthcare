@@ -5,33 +5,21 @@
 Mock(또는 최소한의 실제 파싱만 가능한) 구현만 제공한다.
 
   1. LLM 기반 AI 코칭 (OpenAI / Claude / Gemini)
-     -> 이미 health_coach.py의 CoachingProvider(ABC)가 이 역할을 한다.
-        여기서는 확장 방법만 문서로 남긴다 (아래 모듈 docstring 하단 참고).
+     -> health_coach.py의 CoachingProvider(ABC)가 이 역할을 한다.
+        OpenAI는 OpenAICoachingProvider로 실제 연동 완료(OPENAI_API_KEY 환경변수
+        필요, 없거나 실패 시 FallbackCoachingProvider가 규칙 기반으로 자동 대체).
+        Claude/Gemini는 아직 Mock이며, 동일한 CoachingProvider를 구현하면
+        똑같은 방식으로 추가할 수 있다 (API 호출 부분만 다름).
   2. 웨어러블 연동 (Apple Health / Samsung Health / Google Fit)
      -> WearableDataSource(ABC) + MockWearableDataSource
   3. 외부 데이터 가져오기 (CSV Import / 건강검진 PDF)
-     -> HealthDataImporter(ABC) + CsvHealthDataImporter(실제 동작) +
+     -> HealthDataImporter(ABC) + CsvHealthDataImporter(파싱 + DB 저장까지 실제 동작,
+        main.py의 /integrations/import/csv/preview, /commit 참고) +
         MockHealthCheckupPdfImporter(목)
 
 실제 연동 시에는 각 ABC를 구현하는 새 클래스만 추가하면 되고, 호출부
 (main.py)는 provider/importer 객체만 바꿔 끼우면 나머지 로직은 그대로
 재사용된다 — 이번 프로젝트 전반에서 쓴 "Provider 인터페이스" 패턴과 동일하다.
-
----
-LLM 코칭 확장 예시 (실제로 존재하는 코드는 아님, 향후 연동 시 참고용):
-
-    class OpenAICoachingProvider(health_coach.CoachingProvider):
-        def __init__(self, api_key: str, model: str = "gpt-4o-mini"):
-            self.api_key = api_key
-            self.model = model
-
-        def generate(self, records, goal=None):
-            trends = analyze_trends(records)          # 기존 분석 결과를 프롬프트 재료로 재사용
-            prompt = _build_prompt(trends, goal)
-            response = call_openai_api(self.api_key, self.model, prompt)
-            return _parse_bullet_messages(response)
-
-Claude/Gemini도 API 호출 부분만 다를 뿐 동일한 패턴으로 추가할 수 있다.
 """
 
 import csv
@@ -113,6 +101,7 @@ class ImportedRecord:
 
     date: str
     weight: Optional[float] = None
+    height: Optional[float] = None
     systolic: Optional[int] = None
     diastolic: Optional[int] = None
     blood_sugar: Optional[int] = None
@@ -145,9 +134,10 @@ def _to_int(value) -> Optional[int]:
 class CsvHealthDataImporter(HealthDataImporter):
     """실제로 동작하는 CSV 가져오기 구현체.
 
-    Export 기능(고도화 10번)이 만드는 CSV와 같은 헤더(date, weight, systolic,
-    diastolic, blood_sugar, steps, sleep_hours, ...)를 그대로 읽어들인다.
-    지금은 "미리보기(파싱 결과 반환)"까지만 하고, DB 저장 연동은 후속 작업이다.
+    Export 기능(고도화 10번)이 만드는 CSV와 같은 헤더(date, weight, height,
+    systolic, diastolic, blood_sugar, steps, sleep_hours, ...)를 그대로 읽어들인다.
+    파싱 결과는 아직 검증 전 원시값이라, 실제 DB 저장은 호출부(main.py의
+    /integrations/import/csv/commit)가 schemas.RecordIn으로 재검증한 뒤 수행한다.
     """
 
     def parse(self, raw_content: str) -> List[ImportedRecord]:
@@ -157,6 +147,7 @@ class CsvHealthDataImporter(HealthDataImporter):
             records.append(ImportedRecord(
                 date=(row.get("date") or "").strip(),
                 weight=_to_float(row.get("weight")),
+                height=_to_float(row.get("height")),
                 systolic=_to_int(row.get("systolic")),
                 diastolic=_to_int(row.get("diastolic")),
                 blood_sugar=_to_int(row.get("blood_sugar")),

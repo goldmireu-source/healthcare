@@ -122,6 +122,16 @@ healthcare/
 - `goals` — 사용자별 목표 체중/혈압/혈당
 - `audit_logs` — 관리자 조치 이력 (대상 계정이 삭제돼도 이력은 남도록 username을 문자열로 저장)
 - `badges` — 자동 획득 배지(연속 기록/첫 정상 지표/첫 목표 달성)
+- `coaching_cache` — AI Health Coach 메시지 캐시 (사용자당 1건, 하루 1회만 재생성)
+
+### 환경변수
+
+| 변수 | 기본값 | 설명 |
+|---|---|---|
+| `ALLOWED_ORIGINS` | (빈 값 = 전부 차단) | CORS 허용 origin, 콤마로 구분. 지금처럼 프론트를 같은 origin에서 서빙하면 필요 없음 |
+| `OPENAI_API_KEY` | (없음) | 설정하면 AI Health Coach가 규칙 기반 대신 실제 OpenAI API를 사용 (키가 없거나 호출 실패/타임아웃 시 자동으로 규칙 기반 폴백) |
+| `OPENAI_COACHING_MODEL` | `gpt-4o-mini` | `OPENAI_API_KEY` 설정 시 사용할 모델 |
+| `COOKIE_SECURE` | `false` | HTTPS 배포 시 `true`로 설정 권장 |
 
 ### DB 스키마 변경 (Alembic)
 

@@ -36,6 +36,9 @@ class User(Base):
     badges = relationship(
         "Badge", back_populates="user", cascade="all, delete-orphan"
     )
+    coaching_cache = relationship(
+        "CoachingCache", back_populates="user", cascade="all, delete-orphan", uselist=False
+    )
 
 
 class Session(Base):
@@ -133,3 +136,22 @@ class Badge(Base):
     earned_at = Column(DateTime(timezone=True), server_default=func.now())
 
     user = relationship("User", back_populates="badges")
+
+
+class CoachingCache(Base):
+    """AI Health Coach 메시지 캐시 (사용자당 최신 1건만 보관).
+
+    OpenAI 등 외부 LLM 호출은 비용이 발생하므로, 하루에 한 번만 생성하고 같은 날
+    재요청이 오면 이 캐시를 그대로 재사용한다 — badges.py와 동일하게, 배경 스케줄러
+    없이 GET /health-coaching 조회 시점에 "오늘 이미 생성했는지"만 확인하는 지연
+    평가 방식(main.py 참고).
+    """
+
+    __tablename__ = "coaching_cache"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, unique=True, index=True)
+    generated_date = Column(String(10), nullable=False)  # "YYYY-MM-DD"
+    messages_json = Column(Text, nullable=False)  # JSON 문자열로 저장된 메시지 리스트
+
+    user = relationship("User", back_populates="coaching_cache")

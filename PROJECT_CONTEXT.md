@@ -263,11 +263,20 @@ healthcare/
   - **검증**: 통합 전(`git stash`로 원본 복원) / 통합 후 각각 Playwright로 `index.html`/`admin.html` × 라이트/다크(OS 설정 기준) 스크린샷 4쌍을 비교 — 전부 픽셀 단위로 동일(사용자 요구사항인 "시각적 차이 없음" 충족). 추가로 `data-theme="dark"`를 강제 토글한 스크린샷으로 위 버그가 고쳐졌음을(로그인 버튼이 진한 잉크색 글씨로 표시) 별도 확인. 이후 서버 재시작 + curl 엔드포인트 스모크 테스트 + pytest 9개 전체 통과 확인.
   - **신규 파일**: `frontend/static/theme.css`
 
+- [x] **AUDIT_REPORT.md 기반 고도화 — Phase D (기능 추가)** (2026-07-22)
+  8. **CSV Import를 실제 DB 저장으로 연결** — `POST /integrations/import/csv/commit` 신설. `CsvHealthDataImporter.parse()`가 만드는 원시값을 `POST /records`와 완전히 동일한 `schemas.RecordIn` 검증(범위/필수값)과 `health_service.apply_evaluation()` BMI 계산 로직으로 재검증한 뒤 저장 — 잘못된 값이 검증을 우회해 저장되는 경로 자체가 없음. 한 행이라도 검증에 실패하면 **아무것도 저장하지 않고**(부분 저장으로 인한 혼란 방지) 실패한 행 번호/날짜/사유를 전부 반환. CSV export가 이미 `height` 컬럼을 내보내고 있었는데 기존 import 파서에는 `height` 파싱이 아예 빠져 있던 것을 이번에 발견해 `integrations.ImportedRecord`/`schemas.ImportedRecordOut`에 추가(export↔import 왕복 시 데이터가 온전히 보존되도록). 검증: 정상 CSV 2건 저장 후 `GET /records`로 실제 반영 확인, 값 범위 초과(체중 99999)·`height` 컬럼 누락 케이스 각각 422 + 아무 것도 저장되지 않음을 확인, pytest 9개 전체 통과.
+  9. **OpenAI 실연동** — `health_coach.OpenAICoachingProvider`가 표준 라이브러리 `urllib`만으로 실제 OpenAI Chat Completions API를 호출(새 런타임 의존성 추가 안 함 — rate limiter 때 Redis를 안 쓴 것과 같은 이유로 requirements.txt에 HTTP 클라이언트 라이브러리를 넣지 않음). `health_coach.FallbackCoachingProvider`가 1차(OpenAI) 호출의 모든 실패(키 없음/네트워크 오류/타임아웃/응답 형식 이상)를 잡아 2차(규칙 기반)로 자동 대체 — 실제로 유효하지 않은 API 키로 호출해 OpenAI가 401을 반환하는 것까지 확인했고, 그 경우에도 `/health-coaching`이 500이 아니라 200 + 규칙 기반 메시지를 정상 반환함을 검증. `OPENAI_API_KEY` 환경변수가 없으면 지금까지와 100% 동일하게 규칙 기반만 사용(기본 동작 변화 없음), 있으면 자동으로 OpenAI 우선 사용. 모델은 `OPENAI_COACHING_MODEL`(기본 `gpt-4o-mini`)로 조정 가능. `.env`는 이미 `.gitignore`에 포함되어 있음을 재확인.
+     - **하루 1회 캐싱** — 새 테이블 `coaching_cache`(사용자당 1행, `user_id` unique) 신설(Alembic 마이그레이션 `5f05c74ee344`). badges.py와 동일한 지연 평가 패턴: `GET /health-coaching` 조회 시점에 "오늘 이미 생성했는지"만 확인하고, 아니면 새로 생성해 저장 — 배경 스케줄러 없음. `User` 삭제 시 `cascade="all, delete-orphan"`으로 함께 삭제되도록 관계 추가(회원 탈퇴 시 cascade 삭제 확인 테스트로 이미 검증되는 3개 테이블과 동일한 패턴).
+     - **프론트엔드 안내 문구** — `index.html`의 AI Health Coach 카드 하단에 "코칭 메시지 생성을 위해 건강 기록 요약이 외부 AI API(OpenAI)로 전송될 수 있습니다." 한 줄 추가(연한 구분선 + muted 텍스트로, 기존 디자인 시스템 톤 유지).
+  - 두 항목 반영 후 서버 재시작 → 기존 엔드포인트 curl 스모크 테스트 + pytest 9개 전체 통과 + Playwright로 대시보드(코칭 카드 + 안내 문구) 렌더링 확인, 서버 로그 500/Traceback 0건. `alembic upgrade head` 적용 후에도 기존 데이터(14명/62건) 그대로임을 재확인.
+  - **신규 파일**: `backend/alembic/versions/5f05c74ee344_add_coaching_cache_table.py`
+  - **README.md 추가**: DB 테이블 목록에 `coaching_cache` 추가, 환경변수 표(`ALLOWED_ORIGINS`/`OPENAI_API_KEY`/`OPENAI_COACHING_MODEL`/`COOKIE_SECURE`) 신설
+
 ## 7. 다음 작업
 
 1. (제안) 관리자 대시보드에도 사용자 화면처럼 시각화가 있으니, 향후 필요시 이 Playwright 스크린샷 검증 방식을 `/run-skill-generator`로 프로젝트 스킬화하는 것을 고려 — 매번 임시 Node 프로젝트를 새로 만들 필요 없어짐
-2. AWS Lightsail 배포 단계로 진행 (8번 섹션 참고) — **AUDIT_REPORT.md 기반 Phase A~D 작업 완료 후 진행 예정**
-3. Phase D(CSV Import 저장 연결, OpenAI 실연동) 진행 중
+2. AWS Lightsail 배포 단계로 진행 (8번 섹션 참고) — **AUDIT_REPORT.md 기반 Phase A~D 작업 완료, 사용자 확인 후 진행 예정**
+3. Phase E(백로그 정리) 다음 순서로 진행
 
 ## 8. 이후 계획 (미착수)
 

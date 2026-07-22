@@ -386,6 +386,7 @@ class WearableMockOut(BaseModel):
 class ImportedRecordOut(BaseModel):
     date: str
     weight: Optional[float] = None
+    height: Optional[float] = None
     systolic: Optional[int] = None
     diastolic: Optional[int] = None
     blood_sugar: Optional[int] = None
@@ -400,3 +401,14 @@ class CsvImportIn(BaseModel):
 class ImportPreviewOut(BaseModel):
     count: int
     records: List[ImportedRecordOut]
+
+
+class ImportRowError(BaseModel):
+    row: int = Field(..., description="CSV 데이터 행 번호(헤더 제외, 1부터 시작)")
+    date: str
+    error: str
+
+
+class ImportCommitOut(BaseModel):
+    count: int
+    records: List[RecordOut]
