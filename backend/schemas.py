@@ -101,6 +101,9 @@ class AdminUserOut(BaseModel):
     # 가장 최근 건강기록의 BMI/혈압/혈당 분류 중 하나라도 "위험" 등급이면 high,
     # "주의" 등급이 있으면 moderate, 전부 정상이면 normal, 기록이 없으면 unknown.
     risk_level: str = "unknown"
+    # 만료되지 않은(sessions.expires_at > 지금) 세션이 하나라도 있으면 True.
+    # 실시간 접속 여부(하트비트/웹소켓)가 아니라 "유효한 로그인 세션 보유" 기준.
+    is_online: bool = False
 
     class Config:
         from_attributes = True
@@ -121,6 +124,9 @@ class AdminUserDetailOut(BaseModel):
     locked_until: Optional[datetime] = None
     record_count: int
     risk_level: str = "unknown"
+    is_online: bool = False
+    active_session_count: int = 0
+    last_login_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
@@ -158,6 +164,7 @@ class AdminStatsOut(BaseModel):
     avg_blood_sugar: Optional[float] = None
     high_risk_growth_rate: Optional[float] = None  # 7일 전 대비 고위험 사용자 증가율(%)
     signup_to_record_rate: float = 0.0  # 최근 30일 가입자 중 기록 작성 비율(%)
+    online_users_count: int = 0  # 만료되지 않은 세션을 보유한(로그인 상태인) 사용자 수
 
 
 class AuditLogOut(BaseModel):

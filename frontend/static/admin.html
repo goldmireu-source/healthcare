@@ -400,6 +400,14 @@
               <option value="unknown">기록 없음</option>
             </select>
           </div>
+          <div>
+            <label>접속 상태</label>
+            <select id="online-filter" onchange="onOnlineFilterChange()">
+              <option value="">전체</option>
+              <option value="true">온라인</option>
+              <option value="false">오프라인</option>
+            </select>
+          </div>
           <button class="btn btn-ghost" onclick="resetFilters()">초기화</button>
         </div>
         <div style="overflow-x:auto;">
@@ -410,6 +418,7 @@
                 <th class="sortable" onclick="setSort('username')">아이디<span class="sort-indicator" id="sort-username"></span></th>
                 <th>이름</th>
                 <th>권한</th>
+                <th>접속</th>
                 <th class="sortable" onclick="setSort('created_at')">가입일<span class="sort-indicator" id="sort-created_at"></span></th>
                 <th class="sortable" onclick="setSort('record_count')">기록 수<span class="sort-indicator" id="sort-record_count"></span></th>
                 <th class="sortable" onclick="setSort('risk_level')">위험도<span class="sort-indicator" id="sort-risk_level"></span></th>
@@ -526,6 +535,7 @@ const PAGE_SIZE = 10;
 let currentSearch = '';
 let currentRoleFilter = '';
 let currentRiskFilter = '';
+let currentOnlineFilter = '';
 let currentSortBy = 'id';
 let currentSortDir = 'asc';
 let searchDebounce = null;
@@ -724,6 +734,10 @@ function renderKpis(s){
       onClick: "applyQuickFilter({}, '전체 사용자')",
     }),
     kpiCardHtml({ label: '총 건강기록 수', value: s.total_records }),
+    kpiCardHtml({
+      label: '현재 접속중', value: s.online_users_count, detail: '유효한 로그인 세션 보유',
+      onClick: "applyQuickFilter({online:true}, '현재 접속중인 사용자')",
+    }),
     kpiCardHtml({
       label: '최근 7일 신규가입', value: s.new_users_last_7_days,
       onClick: "applyQuickFilter({signup_days:7}, '최근 7일 신규가입')",
@@ -937,6 +951,14 @@ function riskBadge(level){
   return `<span class="badge ${cls}">${label}</span>`;
 }
 
+// 실시간 접속 여부(하트비트/웹소켓)가 아니라 "만료되지 않은 로그인 세션 보유"를
+// 대리 지표로 쓴다 - 로그아웃하지 않고 창만 닫아도 세션 만료 전까지는 온라인으로 표시됨.
+function onlineBadge(isOnline){
+  return isOnline
+    ? '<span class="badge good">● 온라인</span>'
+    : '<span class="badge neutral">오프라인</span>';
+}
+
 function setSort(column){
   if(currentSortBy === column){
     currentSortDir = currentSortDir === 'asc' ? 'desc' : 'asc';
@@ -987,13 +1009,21 @@ function onRiskFilterChange(){
   loadUsers(1);
 }
 
+function onOnlineFilterChange(){
+  currentOnlineFilter = document.getElementById('online-filter').value;
+  clearQuickFilterSilently();
+  loadUsers(1);
+}
+
 function resetFilters(){
   document.getElementById('user-search').value = '';
   document.getElementById('role-filter').value = '';
   document.getElementById('risk-filter').value = '';
+  document.getElementById('online-filter').value = '';
   currentSearch = '';
   currentRoleFilter = '';
   currentRiskFilter = '';
+  currentOnlineFilter = '';
   currentSortBy = 'id';
   currentSortDir = 'asc';
   quickFilter = {};
@@ -1004,7 +1034,7 @@ function resetFilters(){
 }
 
 // 개요 화면의 KPI 카드/가입 추이 차트를 클릭했을 때 호출된다. 기존 검색/역할 필터는
-// 비우고(위험도 필터는 quickFilter.risk가 있으면 UI 셀렉트에도 반영해 일치시킨다),
+// 비우고(위험도/접속 상태 필터는 quickFilter에 있으면 UI 셀렉트에도 반영해 일치시킨다),
 // 사용자 관리 화면으로 이동해 해당 조건으로 바로 필터링된 목록을 보여준다.
 function applyQuickFilter(filters, label){
   quickFilter = filters || {};
@@ -1012,9 +1042,11 @@ function applyQuickFilter(filters, label){
   document.getElementById('user-search').value = '';
   document.getElementById('role-filter').value = '';
   document.getElementById('risk-filter').value = quickFilter.risk || '';
+  document.getElementById('online-filter').value = quickFilter.online !== undefined ? String(quickFilter.online) : '';
   currentSearch = '';
   currentRoleFilter = '';
   currentRiskFilter = quickFilter.risk || '';
+  currentOnlineFilter = quickFilter.online !== undefined ? String(quickFilter.online) : '';
   renderQuickFilterBanner();
   switchView('users');
   loadUsers(1);
@@ -1046,6 +1078,7 @@ async function loadUsers(page = currentPage){
     if(currentSearch) params.set('search', currentSearch);
     if(currentRoleFilter) params.set('role', currentRoleFilter);
     if(currentRiskFilter) params.set('risk', currentRiskFilter);
+    if(currentOnlineFilter) params.set('online', currentOnlineFilter);
     if(quickFilter.signup_days) params.set('signup_days', quickFilter.signup_days);
     if(quickFilter.signup_date) params.set('signup_date', quickFilter.signup_date);
     if(quickFilter.active_days) params.set('active_days', quickFilter.active_days);
@@ -1073,6 +1106,7 @@ async function loadUsers(page = currentPage){
         <td>${u.username}${isSelf ? ' <span style="color:var(--muted);font-size:12px;">(나)</span>' : ''}</td>
         <td>${u.name ? escapeHtml(u.name) : '<span style="color:var(--muted);">-</span>'}</td>
         <td><span class="badge ${roleBadgeClass(u.role)}">${u.role}</span></td>
+        <td>${onlineBadge(u.is_online)}</td>
         <td>${u.created_at ? u.created_at.slice(0,10) : '-'}</td>
         <td>${u.record_count}</td>
         <td>${riskBadge(u.risk_level)}</td>
@@ -1143,6 +1177,9 @@ async function viewUserDetail(id, username){
       ['이름', u.name ? escapeHtml(u.name) : '-'],
       ['권한', `<span class="badge ${roleBadgeClass(u.role)}">${u.role}</span>`],
       ['가입일', u.created_at ? u.created_at.replace('T', ' ').slice(0, 16) : '-'],
+      ['접속 상태', onlineBadge(u.is_online)],
+      ['활성 세션 수', `${u.active_session_count}개`],
+      ['최근 로그인', u.last_login_at ? u.last_login_at.replace('T', ' ').slice(0, 16) : '기록 없음'],
       ['보안질문', escapeHtml(u.security_question)],
       ['로그인 실패 횟수', `${u.failed_login_attempts}회`],
       ['계정 잠금 상태', lockText],
