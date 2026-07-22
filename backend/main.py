@@ -1035,6 +1035,18 @@ def admin_stats(
     return admin_service.compute_admin_stats(db)
 
 
+@app.get("/admin/users/{user_id}", response_model=schemas.AdminUserDetailOut, tags=["Admin"])
+def admin_get_user_detail(
+    user_id: int,
+    current_admin: models.User = Depends(auth.get_current_admin),
+    db: Session = Depends(get_db),
+):
+    detail = admin_service.get_user_detail(db, user_id)
+    if detail is None:
+        raise HTTPException(status_code=404, detail="사용자를 찾을 수 없습니다.")
+    return detail
+
+
 @app.get("/admin/users/{user_id}/records", response_model=schemas.RecordListOut, tags=["Admin"])
 def admin_get_user_records(
     user_id: int,

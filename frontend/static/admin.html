@@ -209,6 +209,14 @@
   }
   .modal-box h3{font-weight:700;letter-spacing:-0.01em;font-size:19px;margin:0 0 16px;}
   .modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:18px;}
+  .modal-box.wide{max-width:480px;}
+  .detail-row{
+    display:flex;justify-content:space-between;align-items:center;gap:16px;
+    padding:10px 0;border-bottom:1px solid var(--line);font-size:14px;
+  }
+  .detail-row:last-child{border-bottom:none;}
+  .detail-row .detail-label{color:var(--muted);flex-shrink:0;}
+  .detail-row .detail-value{text-align:right;}
 
   /* ---------- 토스트 ---------- */
   #toast-box{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:999;display:flex;flex-direction:column;gap:8px;align-items:center;}
@@ -461,6 +469,17 @@
       </table>
     </div>
     <div id="user-records-empty" class="empty-note" style="display:none;">기록이 없습니다.</div>
+  </div>
+</div>
+
+<!-- 회원정보 보기 모달 (건강기록이 아니라 계정 자체의 상세 정보) -->
+<div class="modal-overlay" id="user-detail-modal" style="display:none;">
+  <div class="modal-box wide">
+    <h3><span id="user-detail-title"></span></h3>
+    <div id="user-detail-body"></div>
+    <div class="modal-actions">
+      <button type="button" class="btn btn-ghost" onclick="closeUserDetail()">닫기</button>
+    </div>
   </div>
 </div>
 
@@ -1042,8 +1061,10 @@ async function loadUsers(page = currentPage){
       body.innerHTML = data.users.map(u => {
         const isSelf = u.username === adminUsername;
         const actions = isSelf
-          ? `<button onclick="viewUserRecords(${u.id}, '${escapeAttr(u.username)}')">기록 보기</button>`
+          ? `<button onclick="viewUserRecords(${u.id}, '${escapeAttr(u.username)}')">기록 보기</button>
+             <button onclick="viewUserDetail(${u.id}, '${escapeAttr(u.username)}')">회원정보 보기</button>`
           : `<button onclick="viewUserRecords(${u.id}, '${escapeAttr(u.username)}')">기록 보기</button>
+             <button onclick="viewUserDetail(${u.id}, '${escapeAttr(u.username)}')">회원정보 보기</button>
              <button onclick="forceLogout(${u.id}, '${escapeAttr(u.username)}')">강제 로그아웃</button>
              <button onclick="deleteUser(${u.id}, '${escapeAttr(u.username)}')">계정 삭제</button>`;
         return `
@@ -1101,6 +1122,45 @@ async function viewUserRecords(id, username){
   }catch(e){
     toast(e.message, 'error');
   }
+}
+
+// ---------- 회원정보 보기 (계정 자체의 상세 정보 - 건강기록과 별개) ----------
+async function viewUserDetail(id, username){
+  const modal = document.getElementById('user-detail-modal');
+  const body = document.getElementById('user-detail-body');
+  document.getElementById('user-detail-title').textContent = `${username}님의 회원정보`;
+  body.innerHTML = '<span style="color:var(--muted);">불러오는 중...</span>';
+  modal.style.display = 'flex';
+  try{
+    const res = await fetch(`/admin/users/${id}`, {credentials:'same-origin'});
+    if(!res.ok) throw new Error((await res.json()).detail || '회원정보를 불러올 수 없습니다.');
+    const u = await res.json();
+    const lockText = u.locked_until
+      ? `잠김 (${u.locked_until.replace('T', ' ').slice(0, 16)}까지)`
+      : '잠기지 않음';
+    const rows = [
+      ['아이디', escapeHtml(u.username)],
+      ['이름', u.name ? escapeHtml(u.name) : '-'],
+      ['권한', `<span class="badge ${roleBadgeClass(u.role)}">${u.role}</span>`],
+      ['가입일', u.created_at ? u.created_at.replace('T', ' ').slice(0, 16) : '-'],
+      ['보안질문', escapeHtml(u.security_question)],
+      ['로그인 실패 횟수', `${u.failed_login_attempts}회`],
+      ['계정 잠금 상태', lockText],
+      ['건강기록 수', `${u.record_count}건`],
+      ['위험도', riskBadge(u.risk_level)],
+    ];
+    body.innerHTML = rows.map(([label, value]) => `
+      <div class="detail-row">
+        <span class="detail-label">${label}</span>
+        <span class="detail-value">${value}</span>
+      </div>`).join('');
+  }catch(e){
+    body.innerHTML = `<span style="color:var(--brick);">${escapeHtml(e.message)}</span>`;
+  }
+}
+
+function closeUserDetail(){
+  document.getElementById('user-detail-modal').style.display = 'none';
 }
 
 function closeUserRecords(){

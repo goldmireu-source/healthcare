@@ -106,6 +106,26 @@ class AdminUserOut(BaseModel):
         from_attributes = True
 
 
+class AdminUserDetailOut(BaseModel):
+    """관리자의 "회원정보 보기" 상세 화면용. 목록(AdminUserOut)에는 없는 계정 상태
+    정보(보안질문/로그인 실패 횟수/잠금 상태)까지 포함한다. 비밀번호 해시나 보안질문
+    답 해시는 절대 포함하지 않는다(운영상 필요 없고, 굳이 응답에 실을 이유가 없음)."""
+
+    id: int
+    username: str
+    name: Optional[str] = None
+    role: str
+    created_at: Optional[datetime] = None
+    security_question: str
+    failed_login_attempts: int
+    locked_until: Optional[datetime] = None
+    record_count: int
+    risk_level: str = "unknown"
+
+    class Config:
+        from_attributes = True
+
+
 class AdminUsersOut(BaseModel):
     count: int  # 검색 조건에 맞는 전체 사용자 수 (페이지네이션 기준)
     page: int

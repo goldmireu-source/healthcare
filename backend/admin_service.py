@@ -161,6 +161,43 @@ def list_users(
     return schemas.AdminUsersOut(count=total, page=page, page_size=page_size, users=items)
 
 
+def get_user_detail(db: Session, user_id: int) -> Optional[schemas.AdminUserDetailOut]:
+    """"회원정보 보기" 상세 조회 - 목록에는 없는 보안질문/로그인 실패·잠금 상태까지 포함.
+
+    사용자가 없으면 None을 반환하고, 404 처리는 호출부(main.py)가 담당한다
+    (다른 admin_service 함수들과 마찬가지로 HTTP 관심사는 라우트 핸들러에 남겨둠).
+    """
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if user is None:
+        return None
+
+    record_count = (
+        db.query(func.count(models.HealthRecord.id))
+        .filter(models.HealthRecord.user_id == user_id)
+        .scalar()
+    ) or 0
+
+    latest = (
+        db.query(models.HealthRecord)
+        .filter(models.HealthRecord.user_id == user_id)
+        .order_by(models.HealthRecord.date.desc())
+        .first()
+    )
+
+    return schemas.AdminUserDetailOut(
+        id=user.id,
+        username=user.username,
+        name=user.name,
+        role=user.role,
+        created_at=user.created_at,
+        security_question=user.security_question,
+        failed_login_attempts=user.failed_login_attempts,
+        locked_until=user.locked_until,
+        record_count=record_count,
+        risk_level=risk_level_for_record(latest),
+    )
+
+
 def _distribution(values) -> Dict:
     dist: dict = {}
     for v in values:
