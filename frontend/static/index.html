@@ -586,6 +586,9 @@ function switchView(view){
   document.getElementById(`view-${view}`).classList.add('active');
   document.querySelectorAll('.nav-item').forEach(el => el.classList.toggle('active', el.dataset.view === view));
   document.getElementById('view-title').textContent = VIEW_TITLES[view];
+  // 차트는 뷰가 display:none인 동안엔 실제 렌더링 너비를 잴 수 없어서 그릴 수 없었음(그래서 예전 고정
+  // viewBox가 실제 카드 너비에 억지로 늘어나 붙으며 일그러짐) — 뷰가 보이게 된 지금 다시 그린다.
+  if(view === 'stats-report') renderTrendChart();
 }
 
 function statusClass(cat){
@@ -903,12 +906,19 @@ function renderTrendChart(){
   }
   emptyEl.style.display = 'none';
 
+  // 뷰가 display:none인 동안엔 실제 렌더링 너비가 0이라 그릴 수 없음 — 이 뷰가 다시
+  // 보이게 될 때 switchView()에서 renderTrendChart()를 재호출하므로 여기서는 그냥 건너뛴다.
+  const measuredWidth = svgEl.getBoundingClientRect().width;
+  if(measuredWidth < 10) return;
+
   const series = trendSeriesFor(trendMetric, sorted);
   legendEl.innerHTML = series.length > 1
     ? series.map(s => `<span class="key"><span class="line" style="background:${s.color}"></span>${s.label}</span>`).join('')
     : '';
 
-  const W = 700, H = 240, padTop = 16, padBottom = 32, padLeft = 8, padRight = 8;
+  // viewBox를 실제 렌더링 픽셀 크기와 똑같이 맞춰서, preserveAspectRatio="none"이
+  // 비율을 억지로 늘리며 그래프/글자를 일그러뜨리는 일이 없게 한다.
+  const W = Math.round(measuredWidth), H = 240, padTop = 16, padBottom = 32, padLeft = 8, padRight = 8;
   const allValues = series.flatMap(s => s.values);
   let minV = Math.min(...allValues);
   let maxV = Math.max(...allValues);
@@ -987,6 +997,16 @@ document.getElementById('line-chart-wrap').addEventListener('pointermove', (e) =
 });
 document.getElementById('line-chart-wrap').addEventListener('pointerleave', () => {
   document.getElementById('line-chart-tooltip').style.opacity = '0';
+});
+
+// 창 크기가 바뀌면 viewBox 기준이 된 실제 픽셀 너비도 바뀌므로 다시 그려서 비율이 안 맞는 걸 방지
+let trendResizeTimer = null;
+window.addEventListener('resize', () => {
+  clearTimeout(trendResizeTimer);
+  trendResizeTimer = setTimeout(() => {
+    const statsView = document.getElementById('view-stats-report');
+    if(statsView && statsView.classList.contains('active')) renderTrendChart();
+  }, 150);
 });
 
 let allRecordsCache = [];
