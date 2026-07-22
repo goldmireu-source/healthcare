@@ -521,6 +521,7 @@
   </div>
 </div>
 
+<script src="shared.js"></script>
 <script>
 // ---------- 테마 (라이트/다크/시스템) ----------
 const THEME_STORAGE_KEY = 'healthlog-admin-theme';
@@ -564,14 +565,7 @@ let quickFilterLabel = '';
 
 const VIEW_TITLES = {overview: '개요', users: '사용자 관리', audit: '감사 로그'};
 
-function toast(message, type){
-  const box = document.getElementById('toast-box');
-  const el = document.createElement('div');
-  el.className = 'toast' + (type ? ' ' + type : '');
-  el.textContent = message;
-  box.appendChild(el);
-  setTimeout(() => el.remove(), 3200);
-}
+// toast()는 shared.js 참고
 
 function statusClass(cat){
   const good = ['정상','적정','우수'];
@@ -587,13 +581,9 @@ function escapeAttr(s){
   return String(s).replace(/'/g, "\\'");
 }
 
-// username과 달리 name(실명)은 입력 형식 제약이 없는 자유 텍스트라, 목록에 innerHTML로
-// 그대로 꽂으면 저장형 XSS가 될 수 있다 - 항상 이 함수를 거쳐서 렌더링한다.
-function escapeHtml(s){
-  const div = document.createElement('div');
-  div.textContent = String(s);
-  return div.innerHTML;
-}
+// escapeHtml()은 shared.js 참고 (username과 달리 name(실명)은 입력 형식 제약이
+// 없는 자유 텍스트라, 목록에 innerHTML로 그대로 꽂으면 저장형 XSS가 될 수 있어
+// 항상 이 함수를 거쳐서 렌더링한다)
 
 // ---------- 인증 ----------
 async function checkAdmin(){
@@ -621,6 +611,8 @@ function showAdminLogin(){
   document.getElementById('admin-login-form').reset();
   document.getElementById('admin-auth-error').textContent = '';
 }
+// apiGet/apiSend(shared.js)가 401을 받으면 이 화면으로 되돌린다
+window.onSessionExpired = showAdminLogin;
 
 function enterDashboard(user){
   adminUsername = user.username;

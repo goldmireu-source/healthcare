@@ -23,7 +23,7 @@ if _BACKEND_DIR not in sys.path:
 _RELOAD_MODULE_PREFIXES = (
     "database", "main", "models", "schemas", "auth", "rate_limit",
     "health_", "goal_", "report_", "admin_", "risk_detection",
-    "badges", "integrations",
+    "badges", "integrations", "routers",
 )
 
 

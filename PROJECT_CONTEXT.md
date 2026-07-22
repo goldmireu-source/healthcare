@@ -295,11 +295,22 @@ healthcare/
   - 검증: 서버 재시작 → pytest 9개 전체 통과 → curl로 자기 자신 재설정 차단(400)/실제 재설정 성공/기존 세션 401/기존 비밀번호 401/새 임시 비밀번호로 로그인 성공까지 확인 → 감사 로그에 비밀번호 미노출 확인(grep) → Playwright로 XSS 무실행 + 임시 비밀번호 발급 UI 플로우(확인 모달→결과 모달) + 로그인 화면 안내 문구까지 렌더링 확인.
   - **신규 파일**: 없음(기존 파일 수정만)
 
+- [x] **AUDIT_REPORT.md + CTO_AUDIT_REPORT.md 기반 종합 개선 — Phase 2 (코드 구조/기술부채)** (2026-07-22)
+  - **순서 조정 및 사유**: 계획상 2-3(라우터 분리) → 2-4(ConfigDict) → 2-5(shared.js) 순이었으나, 실제로는 **2-4를 가장 먼저** 처리함 — Pydantic `Config`→`ConfigDict` 전환은 `schemas.py` 한 파일만 건드리는 독립적인 변경이라 먼저 끝내 두면 2-3(라우터 분리) 작업 중 발생하는 diff에 이 변경이 섞여 원인 추적이 어려워지는 걸 피할 수 있었음. 이후 2-3 → 2-5 순으로 원래 계획대로 진행.
+  1. **Pydantic `class Config` → `ConfigDict` 전환** — `schemas.py`의 `class Config: from_attributes = True` 6곳을 전부 `model_config = ConfigDict(from_attributes=True)`로 교체. `pytest -q` 결과 9 passed, **경고 54건 → 0건**으로 확인.
+  2. **`main.py`를 도메인별 `APIRouter`로 분리** — 기존 1,125줄짜리 `main.py`에 있던 40개 라우트를 `backend/routers/` 아래 8개 모듈(auth/records/goals/reports/export/ai_coach/integrations/admin)로 이동, `main.py`는 앱 설정(미들웨어·예외 핸들러·라우터 등록·정적 마운트)만 남아 ~120줄로 축소. 각 라우터는 원본 로직을 그대로 옮기고 `@app.X` → `@router.X`만 변경(경로/동작 100% 동일 유지가 목표).
+     - **검증 중 실제 회귀 발견 및 수정**: 분리 직후 `pytest -q`가 9개 중 7개 실패(스푸리어스 429, sqlalchemy 오류) — 원인은 `backend/tests/conftest.py`의 `_RELOAD_MODULE_PREFIXES`에 새로 생긴 `routers` 패키지가 빠져 있어, 테스트마다 새 임시 DB로 격리해야 할 `routers.*` 서브모듈이 `sys.modules`에 캐시된 채 남아있던 것(예: `routers.auth_router`가 첫 테스트 때 import한 `rate_limit` 모듈 인스턴스를 계속 참조 → rate limit 카운터가 테스트 간 누적). `_RELOAD_MODULE_PREFIXES`에 `"routers"` 추가로 해결, 9 passed 재확인.
+     - **분리 전/후 응답 diff 검증**: `router_split_snapshot.py`로 읽기 전용 20여 개 + 쓰기 경로(회원가입→기록/목표/CSV 가져오기→이름/비밀번호 변경→삭제) 전체 사이클, 관리자 전용 9개 엔드포인트 등 53개 호출을 분리 전/후 각각 기록해 비교. **`admin_user_detail`의 `last_login_at` 한 필드만 차이**(두 스냅샷 사이에 시드 계정이 실제로 재로그인해 생긴 정상적인 값 변화) 있었고 나머지는 전부 일치 — 라우터 분리로 인한 동작 변화 없음을 확인. 검증에 쓴 임시 계정(`routersplit_before_user`/`routersplit_after_user`/`router_split_admin`)은 전부 삭제해 DB를 50명/62건 기준선으로 복원.
+  3. **프론트 JS 공통 로직을 `frontend/static/shared.js`로 분리** — `index.html`에만 있던 `apiGet`/`apiSend`, 양쪽에 중복돼 있던 `toast()`, `admin.html`에만 있던 `escapeHtml()`을 새 `shared.js`로 이동하고 두 HTML 모두 `<script src="shared.js">`로 로드. `apiGet`/`apiSend`는 401 응답 시 `index.html`(`showAuthScreen`)과 `admin.html`(`showAdminLogin`)의 서로 다른 로그인 화면 복귀 로직을 그대로 타도록, 하드코딩 대신 각 페이지가 등록하는 `window.onSessionExpired` 훅을 호출하는 방식으로 설계 — 두 페이지의 인증 흐름 차이를 유지하면서 중복만 제거함. `admin.html`의 기존 raw `fetch()` 호출부(약 30곳)는 이번 스코프에서 건드리지 않음(중복 로직이 아니라 단지 다른 스타일이라 리스크 대비 이득이 낮다고 판단).
+     - **검증**: Playwright로 두 페이지 모두 실제 로그인(성공/실패)·대시보드 렌더링·토스트 표시·관리자 사용자 목록의 `escapeHtml` 렌더링·강제 세션 만료(쿠키 삭제 후 `apiGet` 호출) 시 각 페이지의 올바른 로그인 화면 복귀까지 확인 — 콘솔에 남은 401/404는 전부 의도된 네거티브 테스트 결과이며 실제 JS 오류 없음.
+  - 회귀: `pytest -q` 9 passed, 0 warnings / curl 스모크(로그인·기록·통계·헬스스코어·배지·미인증 401·관리자 미인증 401·`/docs` 200·`/` 307) 전부 정상 / DB 50명·62건 기준선 유지 확인.
+  - **신규 파일**: `backend/routers/__init__.py`, `backend/routers/{auth,records,goals,reports,export,ai_coach,integrations,admin}_router.py`, `frontend/static/shared.js`
+
 ## 7. 다음 작업
 
 1. (제안) 관리자 대시보드에도 사용자 화면처럼 시각화가 있으니, 향후 필요시 이 Playwright 스크린샷 검증 방식을 `/run-skill-generator`로 프로젝트 스킬화하는 것을 고려 — 매번 임시 Node 프로젝트를 새로 만들 필요 없어짐
 2. AWS Lightsail 배포 단계로 진행 (8번 섹션 참고) — **CTO_AUDIT_REPORT.md 기반 Phase 1~6 작업 완료, 사용자 확인 후 진행 예정. Phase 7(관리자 시각화 확장/알림)은 시작 전 반드시 재확인 필요**
-3. Phase 2(코드 구조/기술부채) 진행 중
+3. Phase 3(성능/DB) 진행 예정
 
 ## 8. 이후 계획 (미착수)
 

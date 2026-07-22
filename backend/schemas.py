@@ -1,7 +1,7 @@
 from datetime import datetime, date as _date, timedelta
 from typing import Optional, List, Dict
 
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 _MIN_RECORD_DATE = _date(1900, 1, 1)
 
@@ -62,8 +62,7 @@ class UserOut(BaseModel):
     name: Optional[str] = None
     role: str
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class NameChangeIn(BaseModel):
@@ -105,8 +104,7 @@ class AdminUserOut(BaseModel):
     # 실시간 접속 여부(하트비트/웹소켓)가 아니라 "유효한 로그인 세션 보유" 기준.
     is_online: bool = False
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class AdminUserDetailOut(BaseModel):
@@ -128,8 +126,7 @@ class AdminUserDetailOut(BaseModel):
     active_session_count: int = 0
     last_login_at: Optional[datetime] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class AdminUsersOut(BaseModel):
@@ -175,8 +172,7 @@ class AuditLogOut(BaseModel):
     detail: str
     created_at: Optional[datetime] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class AuditLogsOut(BaseModel):
@@ -253,8 +249,7 @@ class RecordOut(BaseModel):
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class RecordListOut(BaseModel):
@@ -294,8 +289,7 @@ class GoalOut(BaseModel):
     target_blood_sugar: Optional[int]
     achievement: Dict = {}
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # ---------- Weekly report (고도화) ----------

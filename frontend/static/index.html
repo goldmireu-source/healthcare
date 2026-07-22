@@ -747,6 +747,7 @@
 
 <footer>마이 헬스 로그 · 학습용 프로젝트 · 건강 기준은 단순화된 값이며 의학적 진단이 아닙니다</footer>
 
+<script src="shared.js"></script>
 <script>
 // ---------- 테마 (라이트/다크/시스템) ----------
 const THEME_STORAGE_KEY = 'healthlog-theme';
@@ -805,15 +806,7 @@ function statusClass(cat){
   return 'neutral';
 }
 
-// ---------- 토스트 알림 ----------
-function toast(message, type){
-  const box = document.getElementById('toast-box');
-  const el = document.createElement('div');
-  el.className = 'toast' + (type ? ' ' + type : '');
-  el.textContent = message;
-  box.appendChild(el);
-  setTimeout(() => el.remove(), 3200);
-}
+// toast()는 shared.js 참고
 
 // ---------- 인증 ----------
 function switchAuthTab(which){
@@ -955,6 +948,8 @@ function showAuthScreen(){
   document.getElementById('dashboard-shell').style.display = 'none';
   username = null;
 }
+// apiGet/apiSend(shared.js)가 401을 받으면 이 화면으로 되돌린다
+window.onSessionExpired = showAuthScreen;
 
 function showApp(user){
   username = user.username;
@@ -1214,18 +1209,7 @@ async function loadRiskDetection(){
   }
 }
 
-async function apiGet(path){
-  const res = await fetch(path, {credentials:'same-origin'});
-  if(res.status === 401){ showAuthScreen(); throw new Error('세션이 만료되었습니다. 다시 로그인해주세요.'); }
-  if(!res.ok){ throw new Error((await res.json()).detail || res.statusText); }
-  return res.json();
-}
-async function apiSend(path, method, body){
-  const res = await fetch(path, {method, credentials:'same-origin', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
-  if(res.status === 401){ showAuthScreen(); throw new Error('세션이 만료되었습니다. 다시 로그인해주세요.'); }
-  if(!res.ok){ throw new Error((await res.json()).detail || res.statusText); }
-  return res.json();
-}
+// apiGet/apiSend()는 shared.js 참고
 
 // ---------- 대시보드 히어로 (건강 스코어 + 핵심 지표) ----------
 // 참고용으로 계산한 단순 지표이며 의학적 진단이 아님 - 5개 분류값(BMI/혈압/혈당/활동량/수면)의
