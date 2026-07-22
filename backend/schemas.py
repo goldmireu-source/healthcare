@@ -91,6 +91,9 @@ class AdminUserOut(BaseModel):
     role: str
     created_at: Optional[datetime] = None
     record_count: int
+    # 가장 최근 건강기록의 BMI/혈압/혈당 분류 중 하나라도 "위험" 등급이면 high,
+    # "주의" 등급이 있으면 moderate, 전부 정상이면 normal, 기록이 없으면 unknown.
+    risk_level: str = "unknown"
 
     class Config:
         from_attributes = True
@@ -117,6 +120,7 @@ class AdminStatsOut(BaseModel):
     bmi_category_distribution: Dict[str, int] = {}
     bp_category_distribution: Dict[str, int] = {}
     sugar_category_distribution: Dict[str, int] = {}
+    high_risk_usernames: List[str] = []
 
 
 class AuditLogOut(BaseModel):

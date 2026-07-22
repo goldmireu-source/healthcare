@@ -4,31 +4,81 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>마이 헬스 로그</title>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=IBM+Plex+Sans+KR:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
 <style>
   :root{
-    --ink:#1B2430;
-    --paper:#EFF2F1;
+    --ink:#101B18;
+    --paper:#F5F8F7;
     --card:#FFFFFF;
-    --line:#D8DDD9;
-    --teal:#2F6F5E;
-    --teal-soft:#E4EEEB;
-    --amber:#C98A2E;
-    --amber-soft:#F6EADA;
-    --brick:#C1443D;
-    --brick-soft:#F5E1DF;
-    --muted:#6B7680;
+    --card-2:#EEF3F1;
+    --line:#DEE6E3;
+    --line-strong:#C7D2CD;
+    --teal:#0D9488;
+    --teal-strong:#0B7A70;
+    --teal-soft:#E6F7F7;
+    --on-accent:#FFFFFF;
+    --status-good:#17A34A;
+    --status-good-soft:#DDF7E6;
+    --amber:#D97706;
+    --amber-soft:#FCEED2;
+    --brick:#DC2626;
+    --brick-soft:#FBE2E1;
+    --muted:#5C6B67;
+    --shadow-sm:0 2px 8px rgba(16,27,24,.07);
+    --shadow-md:0 8px 24px rgba(16,27,24,.10);
+    --radius-sm:8px; --radius-md:12px; --radius-lg:16px;
+    color-scheme:light;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --ink:#EAF4F1; --paper:#0A1211; --card:#0F1B19; --card-2:#16241F;
+      --line:#243733; --line-strong:#334843;
+      --teal:#2DD4C6; --teal-strong:#48E0D3; --teal-soft:#103330; --on-accent:#04201D;
+      --status-good:#34D66F; --status-good-soft:#0F2B1A;
+      --amber:#F5A524; --amber-soft:#332208;
+      --brick:#F0605C; --brick-soft:#341412;
+      --muted:#9FB6AF;
+      --shadow-sm:0 2px 10px rgba(0,0,0,.35); --shadow-md:0 10px 28px rgba(0,0,0,.45);
+      color-scheme:dark;
+    }
+  }
+  html[data-theme="dark"]{
+    --ink:#EAF4F1; --paper:#0A1211; --card:#0F1B19; --card-2:#16241F;
+    --line:#243733; --line-strong:#334843;
+    --teal:#2DD4C6; --teal-strong:#48E0D3; --teal-soft:#103330;
+    --status-good:#34D66F; --status-good-soft:#0F2B1A;
+    --amber:#F5A524; --amber-soft:#332208;
+    --brick:#F0605C; --brick-soft:#341412;
+    --muted:#9FB6AF;
+    --shadow-sm:0 2px 10px rgba(0,0,0,.35); --shadow-md:0 10px 28px rgba(0,0,0,.45);
+    color-scheme:dark;
+  }
+  html[data-theme="light"]{
+    --ink:#101B18; --paper:#F5F8F7; --card:#FFFFFF; --card-2:#EEF3F1;
+    --line:#DEE6E3; --line-strong:#C7D2CD;
+    --teal:#0D9488; --teal-strong:#0B7A70; --teal-soft:#E6F7F7; --on-accent:#FFFFFF;
+    --status-good:#17A34A; --status-good-soft:#DDF7E6;
+    --amber:#D97706; --amber-soft:#FCEED2;
+    --brick:#DC2626; --brick-soft:#FBE2E1;
+    --muted:#5C6B67;
+    --shadow-sm:0 2px 8px rgba(16,27,24,.07); --shadow-md:0 8px 24px rgba(16,27,24,.10);
+    color-scheme:light;
   }
   *{box-sizing:border-box;}
   html,body{margin:0;height:100%;}
   body{
     background:var(--paper);
     color:var(--ink);
-    font-family:'IBM Plex Sans KR', sans-serif;
+    font-family:'Pretendard Variable','Pretendard',-apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;
     line-height:1.5;
+    transition:background .15s ease, color .15s ease;
   }
+  input, select, textarea{background:var(--card-2);color:var(--ink);border-color:var(--line);}
+  input::placeholder{color:var(--muted);}
   .wrap{max-width:1040px;margin:0 auto;padding:32px 20px 80px;}
 
   header.top{
@@ -36,11 +86,12 @@
     margin-bottom:28px;flex-wrap:wrap;gap:12px;
   }
   header.top h1{
-    font-family:'Fraunces', serif;font-weight:600;font-size:34px;margin:0 0 4px;
-    letter-spacing:-0.01em;
+    font-weight:700;font-size:34px;margin:0 0 4px;
+    letter-spacing:-0.02em;
   }
   header.top p{margin:0;color:var(--muted);font-size:14px;}
-  .user-switch{display:flex;align-items:center;gap:8px;}
+  .user-switch{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end;}
+  .user-switch button, .user-switch .theme-toggle{flex-shrink:0;}
   .user-switch label{font-size:12px;color:var(--muted);}
   .user-switch input{
     font-family:'IBM Plex Mono', monospace;font-size:13px;
@@ -48,9 +99,10 @@
     background:var(--card);width:120px;
   }
   .user-switch button{
-    font-size:13px;padding:7px 12px;border-radius:6px;border:1px solid var(--ink);
-    background:var(--ink);color:#fff;cursor:pointer;
+    font-size:13px;padding:7px 12px;border-radius:6px;border:1px solid var(--line);
+    background:var(--card-2);color:var(--ink);cursor:pointer;
   }
+  .user-switch button:hover{border-color:var(--line-strong);}
 
   section{margin-bottom:28px;}
   .card{
@@ -59,8 +111,8 @@
   }
   .card + .card{margin-top:20px;}
   .card h2{
-    font-family:'Fraunces', serif;font-weight:600;font-size:18px;margin:0 0 16px;
-    display:flex;align-items:baseline;gap:8px;
+    font-weight:700;font-size:17px;margin:0 0 16px;
+    display:flex;align-items:baseline;gap:8px;letter-spacing:-0.01em;
   }
   .card h2 .eyebrow{
     font-family:'IBM Plex Mono', monospace;font-size:11px;color:var(--muted);
@@ -74,9 +126,11 @@
     display:flex;flex-direction:column;padding:24px 0;position:sticky;top:0;height:100vh;
   }
   .sidebar .brand{
-    font-family:'Fraunces', serif;font-weight:600;font-size:17px;padding:0 22px 20px;
-    border-bottom:1px solid var(--line);margin-bottom:14px;
+    font-weight:700;font-size:16px;padding:0 22px 20px;
+    border-bottom:1px solid var(--line);margin-bottom:14px;letter-spacing:-0.01em;
+    display:flex;align-items:center;gap:8px;
   }
+  .sidebar .brand .dot{width:9px;height:9px;border-radius:50%;background:var(--teal);box-shadow:0 0 0 3px var(--teal-soft);flex-shrink:0;}
   .sidebar .brand small{
     display:block;font-family:'IBM Plex Mono', monospace;font-size:10px;color:var(--muted);
     text-transform:uppercase;letter-spacing:0.07em;margin-top:5px;
@@ -85,13 +139,20 @@
   .nav-item{
     display:flex;align-items:center;gap:8px;width:100%;text-align:left;padding:11px 22px;
     border:none;background:none;cursor:pointer;font-size:14px;color:var(--muted);
-    font-family:'IBM Plex Sans KR', sans-serif;border-left:3px solid transparent;
+    font-family:'Pretendard Variable','Pretendard',-apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;border-left:3px solid transparent;
   }
   .nav-item:hover{color:var(--ink);background:var(--paper);}
   .nav-item.active{color:var(--ink);font-weight:600;border-left-color:var(--teal);background:var(--paper);}
+  .nav-icon{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;}
   .content{flex:1;padding:26px 32px 60px;min-width:0;}
   .topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;gap:12px;flex-wrap:wrap;}
-  .topbar h1{font-family:'Fraunces', serif;font-weight:600;font-size:26px;margin:0;}
+  .topbar h1{font-weight:700;font-size:23px;margin:0;letter-spacing:-0.01em;}
+  .theme-toggle{display:flex;gap:2px;background:var(--card-2);border:1px solid var(--line);border-radius:20px;padding:2px;}
+  .theme-toggle button{
+    border:none;background:none;padding:5px 9px;border-radius:16px;cursor:pointer;font-size:12px;
+    color:var(--muted);font-family:inherit;line-height:1;
+  }
+  .theme-toggle button.active{background:var(--card);color:var(--ink);box-shadow:var(--shadow-sm);font-weight:600;}
 
   .view{display:none;}
   .view.active{display:block;}
@@ -102,33 +163,69 @@
   form.entry label{display:block;font-size:12px;color:var(--muted);margin-bottom:5px;}
   form.entry input{
     width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:7px;
-    font-size:14px;font-family:'IBM Plex Mono', monospace;background:#FBFCFB;
+    font-size:14px;font-family:'IBM Plex Mono', monospace;
   }
-  form.entry input[type="text"]{font-family:'IBM Plex Sans KR', sans-serif;}
+  form.entry input[type="text"]{font-family:'Pretendard Variable','Pretendard',-apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;}
   form.entry .actions{grid-column:1 / -1;display:flex;gap:10px;align-items:center;margin-top:4px;}
   .btn{
     padding:10px 18px;border-radius:7px;border:none;cursor:pointer;font-size:14px;
-    font-weight:500;font-family:'IBM Plex Sans KR', sans-serif;
+    font-weight:500;font-family:'Pretendard Variable','Pretendard',-apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;
   }
-  .btn-primary{background:var(--teal);color:#fff;}
-  .btn-primary:hover{background:#265b4d;}
+  .btn-primary{background:var(--teal);color:var(--on-accent);}
+  .btn-primary:hover{background:var(--teal-strong);}
   .btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--line);}
   .btn-ghost:hover{border-color:var(--muted);}
   #editing-flag{font-size:12px;color:var(--amber);display:none;}
 
-  /* 바이탈 스트립 (시그니처 요소) */
-  .vitals-strip{display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:var(--line);
-    border:1px solid var(--line);border-radius:12px;overflow:hidden;margin-bottom:28px;}
-  .vital{background:var(--card);padding:16px 14px;text-align:center;}
-  .vital .label{font-size:11px;color:var(--muted);letter-spacing:0.04em;text-transform:uppercase;margin-bottom:8px;}
-  .vital .value{font-family:'IBM Plex Mono', monospace;font-size:22px;font-weight:600;margin-bottom:6px;}
+  /* 대시보드 히어로 (건강 스코어 링 + 핵심 지표 카드) */
+  .hero-row{display:grid;grid-template-columns:172px repeat(3,1fr);gap:14px;margin-bottom:14px;}
+  .hero-card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius-md);padding:18px 20px;box-shadow:var(--shadow-sm);}
+  .score-card{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:16px;}
+  .score-card svg{width:104px;height:104px;}
+  .score-card .score-num{font-family:'IBM Plex Mono', monospace;font-weight:700;}
+  .score-card .score-label{font-size:10px;color:var(--muted);}
+  .metric-card{display:flex;flex-direction:column;gap:8px;}
+  .metric-card .mc-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;}
+  .metric-card .mc-label{font-size:11.5px;color:var(--muted);letter-spacing:0.02em;}
+  .metric-card .mc-value{font-family:'IBM Plex Mono', monospace;font-size:27px;font-weight:700;line-height:1;}
+  .metric-card .mc-value small{font-size:13px;color:var(--muted);font-weight:500;}
+  .metric-card .mc-sub{font-size:11.5px;color:var(--muted);}
+  .hero-secondary{display:flex;gap:12px;margin-bottom:24px;flex-wrap:wrap;}
+  .hero-chip{flex:1;min-width:150px;background:var(--card);border:1px solid var(--line);border-radius:var(--radius-sm);
+    padding:11px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px;}
+  .hero-chip .hc-label{font-size:11.5px;color:var(--muted);}
+  .hero-chip .hc-value{font-family:'IBM Plex Mono', monospace;font-size:14px;font-weight:600;}
+
   .dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:6px;vertical-align:middle;}
   .status-tag{font-size:12px;font-weight:500;}
-  .good .dot{background:var(--teal);} .good .status-tag{color:var(--teal);}
+  .good .dot{background:var(--status-good);} .good .status-tag{color:var(--status-good);}
   .warn .dot{background:var(--amber);} .warn .status-tag{color:var(--amber);}
   .bad .dot{background:var(--brick);} .bad .status-tag{color:var(--brick);}
   .neutral .dot{background:var(--muted);} .neutral .status-tag{color:var(--muted);}
+  .status-tag.good{color:var(--status-good);} .status-tag.good .dot{background:var(--status-good);}
+  .status-tag.warn{color:var(--amber);} .status-tag.warn .dot{background:var(--amber);}
+  .status-tag.bad{color:var(--brick);} .status-tag.bad .dot{background:var(--brick);}
+  .status-tag.neutral{color:var(--muted);} .status-tag.neutral .dot{background:var(--muted);}
   .empty-note{color:var(--muted);font-size:13px;padding:18px 4px;}
+
+  /* 기록 타임라인 카드 */
+  .timeline-list{display:flex;flex-direction:column;gap:9px;}
+  .timeline-card{
+    display:flex;align-items:center;gap:16px;background:var(--card);border:1px solid var(--line);
+    border-left:3px solid transparent;border-radius:var(--radius-sm);padding:13px 16px;flex-wrap:wrap;
+  }
+  .timeline-card.has-warning{border-left-color:var(--brick);}
+  .timeline-date{width:52px;flex-shrink:0;text-align:center;}
+  .timeline-date .m{font-size:10.5px;color:var(--muted);}
+  .timeline-date .d{font-family:'IBM Plex Mono', monospace;font-size:19px;font-weight:700;}
+  .timeline-metrics{display:flex;gap:16px;flex-wrap:wrap;flex:1;font-size:12.5px;}
+  .timeline-metrics b{font-family:'IBM Plex Mono', monospace;font-weight:600;}
+  .timeline-actions{display:flex;gap:4px;margin-left:auto;}
+  .timeline-actions button{
+    font-size:11px;padding:4px 9px;border-radius:5px;border:1px solid var(--line);
+    background:var(--card);cursor:pointer;color:var(--muted);
+  }
+  .timeline-actions button:hover{border-color:var(--ink);color:var(--ink);}
 
   /* 검색/통계 */
   .search-bar{display:flex;gap:10px;align-items:flex-end;margin-bottom:16px;flex-wrap:wrap;}
@@ -146,13 +243,13 @@
   .badge{
     display:inline-block;padding:3px 8px;border-radius:20px;font-size:11px;font-weight:500;
   }
-  .badge.good{background:var(--teal-soft);color:var(--teal);}
+  .badge.good{background:var(--status-good-soft);color:var(--status-good);}
   .badge.warn{background:var(--amber-soft);color:var(--amber);}
   .badge.bad{background:var(--brick-soft);color:var(--brick);}
   .warn-msg{font-size:11px;color:var(--brick);margin-top:2px;}
   .row-actions button{
     font-size:11px;padding:4px 9px;border-radius:5px;border:1px solid var(--line);
-    background:#fff;cursor:pointer;margin-right:4px;color:var(--muted);
+    background:var(--card);cursor:pointer;margin-right:4px;color:var(--muted);
   }
   .row-actions button:hover{border-color:var(--ink);color:var(--ink);}
 
@@ -170,7 +267,7 @@
   .goal-form label{font-size:11px;color:var(--muted);display:block;margin-bottom:4px;}
   .achv{display:flex;gap:10px;flex-wrap:wrap;margin-top:4px;}
   .achv .chip{font-size:12px;padding:5px 10px;border-radius:20px;background:var(--paper);}
-  .achv .chip.yes{background:var(--teal-soft);color:var(--teal);}
+  .achv .chip.yes{background:var(--status-good-soft);color:var(--status-good);}
   .achv .chip.no{background:var(--brick-soft);color:var(--brick);}
 
   /* 주간 리포트 (막대 그래프) */
@@ -184,7 +281,7 @@
   .weekly-bar-track.last span{background:var(--muted);}
   .weekly-bar-track.this span{background:var(--teal);}
   .weekly-bar-value{width:48px;text-align:right;font-family:'IBM Plex Mono', monospace;color:var(--ink);flex-shrink:0;}
-  .delta.up{color:var(--brick);} .delta.down{color:var(--teal);} .delta.flat{color:var(--muted);}
+  .delta.up{color:var(--brick);} .delta.down{color:var(--status-good);} .delta.flat{color:var(--muted);}
 
   footer{text-align:center;color:var(--muted);font-size:12px;margin:40px 0;}
 
@@ -192,25 +289,25 @@
   #auth-screen .auth-tabs{display:flex;gap:4px;margin-bottom:20px;border-bottom:1px solid var(--line);}
   #auth-screen .auth-tab{
     flex:1;padding:10px;border:none;background:none;cursor:pointer;font-size:14px;
-    color:var(--muted);border-bottom:2px solid transparent;font-family:'IBM Plex Sans KR', sans-serif;
+    color:var(--muted);border-bottom:2px solid transparent;font-family:'Pretendard Variable','Pretendard',-apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;
   }
   #auth-screen .auth-tab.active{color:var(--ink);border-bottom-color:var(--teal);font-weight:600;}
   #auth-screen label{display:block;font-size:12px;color:var(--muted);margin-bottom:5px;}
   #auth-screen input{
     width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:7px;font-size:14px;
-    font-family:'IBM Plex Sans KR', sans-serif;
+    font-family:'Pretendard Variable','Pretendard',-apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;
   }
   .auth-error{color:var(--brick);font-size:12px;margin-top:12px;min-height:14px;}
 
   /* 토스트 */
   #toast-box{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:999;display:flex;flex-direction:column;gap:8px;align-items:center;}
   .toast{
-    padding:10px 18px;border-radius:8px;font-size:13px;color:#fff;background:var(--ink);
+    padding:10px 18px;border-radius:8px;font-size:13px;color:#F3F7F5;background:#16211D;
     box-shadow:0 6px 20px rgba(0,0,0,0.15);opacity:0;transform:translateY(8px);
     animation:toast-in 0.2s ease forwards;
   }
-  .toast.success{background:var(--teal);}
-  .toast.error{background:var(--brick);}
+  .toast.success{background:var(--status-good);color:var(--on-accent);}
+  .toast.error{background:var(--brick);color:var(--on-accent);}
   @keyframes toast-in{ to{opacity:1;transform:translateY(0);} }
 
   /* 모달 (계정 설정 / 확인창) */
@@ -222,16 +319,16 @@
     background:var(--card);border-radius:12px;padding:24px;max-width:400px;width:100%;
     box-shadow:0 12px 40px rgba(0,0,0,0.2);max-height:90vh;overflow-y:auto;
   }
-  .modal-box h3{font-family:'Fraunces', serif;font-weight:600;font-size:18px;margin:0 0 16px;}
+  .modal-box h3{font-weight:700;font-size:18px;margin:0 0 16px;letter-spacing:-0.01em;}
   .modal-box h4{font-size:13px;margin:0 0 10px;color:var(--muted);}
   .modal-box label{display:block;font-size:12px;color:var(--muted);margin-bottom:5px;}
   .modal-box input{
     width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:7px;font-size:14px;
-    font-family:'IBM Plex Sans KR', sans-serif;
+    font-family:'Pretendard Variable','Pretendard',-apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;
   }
   .modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:18px;}
-  .btn-danger{background:var(--brick);color:#fff;}
-  .btn-danger:hover{background:#a3352f;}
+  .btn-danger{background:var(--brick);color:var(--on-accent);}
+  .btn-danger:hover{filter:brightness(0.9);}
   .danger-zone{border-top:1px dashed var(--line);padding-top:16px;margin-top:20px;}
   .danger-zone p{font-size:12px;color:var(--muted);margin:0 0 10px;}
 
@@ -241,39 +338,57 @@
   /* 측정 추이 차트 */
   .trend-tabs{display:flex;gap:6px;margin-bottom:14px;}
   .trend-tab{
-    padding:6px 14px;border-radius:20px;border:1px solid var(--line);background:#fff;
-    cursor:pointer;font-size:12px;color:var(--muted);font-family:'IBM Plex Sans KR', sans-serif;
+    padding:6px 14px;border-radius:20px;border:1px solid var(--line);background:var(--card);
+    cursor:pointer;font-size:12px;color:var(--muted);font-family:'Pretendard Variable','Pretendard',-apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;
   }
-  .trend-tab.active{background:var(--ink);color:#fff;border-color:var(--ink);}
+  .trend-tab.active{background:var(--teal);color:var(--on-accent);border-color:var(--teal);}
   .trend-legend{display:flex;gap:16px;margin-bottom:10px;font-size:11px;color:var(--muted);min-height:14px;}
   .trend-legend .key{display:inline-flex;align-items:center;gap:6px;}
   .trend-legend .key .line{display:inline-block;width:14px;height:2px;border-radius:1px;}
   .line-chart-wrap{position:relative;}
   .line-chart{width:100%;height:240px;display:block;}
   #line-chart-tooltip{
-    position:fixed;background:var(--ink);color:#fff;font-size:11px;padding:7px 10px;border-radius:6px;
+    position:fixed;background:#16211D;color:#F3F7F5;font-size:11px;padding:7px 10px;border-radius:6px;
     pointer-events:none;z-index:1000;opacity:0;transition:opacity 0.1s;white-space:nowrap;line-height:1.6;
   }
   #line-chart-tooltip strong{font-family:'IBM Plex Mono', monospace;}
 
-  @media (max-width:900px){
-    .shell{flex-direction:column;}
-    .sidebar{
-      width:100%;height:auto;position:static;flex-direction:row;align-items:center;
-      padding:10px 14px;overflow-x:auto;gap:6px;
-    }
-    .sidebar .brand{display:none;}
-    .side-nav{flex-direction:row;}
-    .nav-item{border-left:none;border-bottom:3px solid transparent;padding:9px 12px;white-space:nowrap;}
-    .nav-item.active{border-left:none;border-bottom-color:var(--teal);}
-    .content{padding:20px 16px 50px;}
+  /* 태블릿(721~1024px): 사이드바를 아이콘 전용 레일로 축소 */
+  @media (max-width:1024px) and (min-width:721px){
+    .sidebar{width:68px;padding:20px 0;align-items:center;}
+    .sidebar .brand{padding:0 0 18px;justify-content:center;}
+    .sidebar .brand span:not(.dot){display:none;}
+    .nav-item{padding:12px;justify-content:center;border-left:none;width:44px;border-radius:var(--radius-sm);margin:0 auto;}
+    .nav-item.active{border-left:none;background:var(--teal-soft);color:var(--teal-strong);}
+    .nav-label{display:none;}
+    .hero-row{grid-template-columns:1fr 1fr;}
+    .hero-row .score-card{grid-column:1/-1;flex-direction:row;gap:20px;}
   }
 
+  /* 모바일(~720px): 사이드바가 하단 고정 탭바로 전환 */
   @media (max-width:720px){
+    .shell{flex-direction:column;}
+    .sidebar{
+      width:100%;height:auto;position:fixed;left:0;top:auto;bottom:0;flex-direction:row;align-items:center;
+      justify-content:space-around;padding:6px 8px calc(6px + env(safe-area-inset-bottom));gap:2px;
+      border-right:none;border-top:1px solid var(--line);z-index:80;
+    }
+    .sidebar .brand{display:none;}
+    .side-nav{flex-direction:row;width:100%;justify-content:space-around;}
+    .nav-item{
+      border-left:none;padding:6px 10px;white-space:nowrap;flex-direction:column;gap:3px;font-size:10.5px;
+      border-radius:var(--radius-sm);
+    }
+    .nav-item.active{border-left:none;background:var(--teal-soft);color:var(--teal-strong);}
+    .nav-label{display:block;}
+    .content{padding:20px 16px 84px;}
     form.entry, .goal-form{grid-template-columns:1fr 1fr;}
-    .vitals-strip{grid-template-columns:repeat(2,1fr);}
+    .hero-row{grid-template-columns:1fr;}
+    .hero-row .score-card{flex-direction:column;gap:8px;}
     .stat-grid{grid-template-columns:1fr 1fr;}
     .weekly-grid{grid-template-columns:1fr;}
+    .timeline-card{padding:12px;}
+    .timeline-actions{margin-left:0;width:100%;justify-content:flex-end;}
   }
 </style>
 </head>
@@ -324,7 +439,7 @@
         </div>
         <div style="margin-bottom:12px;">
           <label>보안질문 (비밀번호를 잊었을 때 본인 확인용)</label>
-          <select id="signup-security-question" required style="width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:7px;font-size:14px;font-family:'IBM Plex Sans KR', sans-serif;">
+          <select id="signup-security-question" required style="width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:7px;font-size:14px;font-family:'Pretendard Variable','Pretendard',-apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;">
             <option value="">선택하세요</option>
             <option>가장 좋아하는 음식은?</option>
             <option>첫 반려동물의 이름은?</option>
@@ -423,11 +538,20 @@
 <!-- 로그인 후: 사이드바 대시보드 셸 -->
 <div id="dashboard-shell" class="shell" style="display:none;">
   <aside class="sidebar">
-    <div class="brand">마이 헬스 로그<small>PERSONAL LOG</small></div>
+    <div class="brand"><span class="dot"></span><span>마이 헬스 로그<small>PERSONAL LOG</small></span></div>
     <nav class="side-nav">
-      <button class="nav-item active" data-view="records" onclick="switchView('records')">기록</button>
-      <button class="nav-item" data-view="stats-report" onclick="switchView('stats-report')">통계 &amp; 리포트</button>
-      <button class="nav-item" data-view="goals" onclick="switchView('goals')">목표</button>
+      <button class="nav-item active" data-view="records" onclick="switchView('records')">
+        <svg class="nav-icon" viewBox="0 0 24 24"><path d="M9 11l3 3L22 4M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        <span class="nav-label">기록</span>
+      </button>
+      <button class="nav-item" data-view="stats-report" onclick="switchView('stats-report')">
+        <svg class="nav-icon" viewBox="0 0 24 24"><path d="M3 3v18h18M8 17V10m5 7V6m5 11v-4"/></svg>
+        <span class="nav-label">통계 &amp; 리포트</span>
+      </button>
+      <button class="nav-item" data-view="goals" onclick="switchView('goals')">
+        <svg class="nav-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg>
+        <span class="nav-label">목표</span>
+      </button>
     </nav>
   </aside>
 
@@ -435,6 +559,11 @@
     <header class="topbar">
       <h1 id="view-title">기록</h1>
       <div class="user-switch" id="whoami-box">
+        <div class="theme-toggle" id="theme-toggle">
+          <button type="button" data-theme-choice="light" onclick="setThemeChoice('light')">라이트</button>
+          <button type="button" data-theme-choice="system" onclick="setThemeChoice('system')">시스템</button>
+          <button type="button" data-theme-choice="dark" onclick="setThemeChoice('dark')">다크</button>
+        </div>
         <span id="whoami-text"></span>
         <button onclick="openAccountSettings()">계정 설정</button>
         <button onclick="logout()">로그아웃</button>
@@ -443,6 +572,9 @@
 
     <!-- ---------- 기록 ---------- -->
     <section id="view-records" class="view active">
+      <div class="hero-row" id="hero-row"></div>
+      <div class="hero-secondary" id="hero-secondary"></div>
+
       <div class="card">
         <h2><span class="eyebrow">Entry</span> 오늘의 기록</h2>
         <form class="entry" id="record-form" onsubmit="submitRecord(event)">
@@ -491,9 +623,6 @@
         </form>
       </div>
 
-      <h2 style="font-family:'Fraunces',serif;font-size:16px;margin:24px 0 10px;color:var(--muted);font-weight:500;">최신 측정값</h2>
-      <div id="vitals-strip" class="vitals-strip"></div>
-
       <div class="card">
         <h2><span class="eyebrow">Records</span> 전체 기록</h2>
         <div class="search-bar">
@@ -508,14 +637,7 @@
           <button class="btn btn-ghost" onclick="searchRecords()">검색</button>
           <button class="btn btn-ghost" onclick="loadRecords()">전체보기</button>
         </div>
-        <div style="overflow-x:auto;">
-          <table>
-            <thead>
-              <tr><th>날짜</th><th>체중/BMI</th><th>혈압</th><th>혈당</th><th>활동/수면</th><th></th></tr>
-            </thead>
-            <tbody id="records-body"></tbody>
-          </table>
-        </div>
+        <div class="timeline-list" id="records-body"></div>
         <div id="records-loading" class="empty-note" style="display:none;">불러오는 중...</div>
         <div id="records-empty" class="empty-note" style="display:none;">아직 기록이 없습니다. 위에서 첫 기록을 추가해보세요.</div>
         <div class="pagination" id="records-pagination" style="display:none;">
@@ -575,6 +697,30 @@
 <footer>마이 헬스 로그 · 학습용 프로젝트 · 건강 기준은 단순화된 값이며 의학적 진단이 아닙니다</footer>
 
 <script>
+// ---------- 테마 (라이트/다크/시스템) ----------
+const THEME_STORAGE_KEY = 'healthlog-theme';
+
+function applyThemeChoice(choice){
+  if(choice === 'system'){
+    document.documentElement.removeAttribute('data-theme');
+  }else{
+    document.documentElement.setAttribute('data-theme', choice);
+  }
+  document.querySelectorAll('#theme-toggle button').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.themeChoice === choice);
+  });
+}
+
+function setThemeChoice(choice){
+  localStorage.setItem(THEME_STORAGE_KEY, choice);
+  applyThemeChoice(choice);
+}
+
+(function initTheme(){
+  const saved = localStorage.getItem(THEME_STORAGE_KEY) || 'system';
+  applyThemeChoice(saved);
+})();
+
 let username = null;
 let editingId = null;
 let recordsCache = {};
@@ -823,7 +969,8 @@ async function logout(){
 const LOADING_HTML = '<span style="color:var(--muted);font-size:13px;">불러오는 중...</span>';
 
 function refreshAll(){
-  document.getElementById('vitals-strip').innerHTML = `<div class="empty-note" style="grid-column:1/-1;">${LOADING_HTML}</div>`;
+  document.getElementById('hero-row').innerHTML = `<div class="empty-note" style="grid-column:1/-1;">${LOADING_HTML}</div>`;
+  document.getElementById('hero-secondary').innerHTML = '';
   document.getElementById('records-body').innerHTML = '';
   document.getElementById('records-empty').style.display = 'none';
   document.getElementById('records-loading').style.display = 'block';
@@ -849,25 +996,86 @@ async function apiSend(path, method, body){
   return res.json();
 }
 
-function renderVitals(latest){
-  const el = document.getElementById('vitals-strip');
-  if(!latest){
-    el.innerHTML = '<div class="empty-note" style="grid-column:1/-1;">기록을 추가하면 최신 측정값이 여기 표시됩니다</div>';
+// ---------- 대시보드 히어로 (건강 스코어 + 핵심 지표) ----------
+// 참고용으로 계산한 단순 지표이며 의학적 진단이 아님 - 5개 분류값(BMI/혈압/혈당/활동량/수면)의
+// 상태 등급(양호/주의/위험)에 페널티를 매겨 100점에서 차감하는 방식.
+function computeHealthScore(latest){
+  const penalty = {good:0, warn:8, bad:16, neutral:4};
+  const cats = [latest.bmi_category, latest.bp_category, latest.sugar_category, latest.activity_level, latest.sleep_status];
+  const total = cats.reduce((sum, c) => sum + (penalty[statusClass(c)] ?? 4), 0);
+  return Math.max(0, Math.min(100, 100 - total));
+}
+
+function scoreRingSvg(score){
+  const r = 46, circumference = 2 * Math.PI * r;
+  const offset = circumference - (score / 100) * circumference;
+  const colorVar = score >= 70 ? 'var(--status-good)' : score >= 45 ? 'var(--amber)' : 'var(--brick)';
+  return `<svg viewBox="0 0 112 112">
+    <circle cx="56" cy="56" r="${r}" fill="none" stroke="var(--card-2)" stroke-width="10"/>
+    <circle cx="56" cy="56" r="${r}" fill="none" stroke="${colorVar}" stroke-width="10" stroke-linecap="round"
+      stroke-dasharray="${circumference.toFixed(1)}" stroke-dashoffset="${offset.toFixed(1)}" transform="rotate(-90 56 56)"/>
+  </svg>`;
+}
+
+// 최신 기록과 비교할 대상: 6일 이상 이전 기록 중 가장 가까운 것(없으면 가장 오래된 기록)
+function findComparisonRecord(sorted){
+  if(sorted.length < 2) return null;
+  const latest = sorted[sorted.length - 1];
+  const latestDate = new Date(latest.date);
+  for(let i = sorted.length - 2; i >= 0; i--){
+    const days = (latestDate - new Date(sorted[i].date)) / 86400000;
+    if(days >= 6) return sorted[i];
+  }
+  return sorted[0];
+}
+
+function renderHero(sorted){
+  const heroRow = document.getElementById('hero-row');
+  const heroSecondary = document.getElementById('hero-secondary');
+  if(!sorted.length){
+    heroRow.innerHTML = '<div class="empty-note" style="grid-column:1/-1;">기록을 추가하면 오늘의 상태가 여기 표시됩니다</div>';
+    heroSecondary.innerHTML = '';
     return;
   }
-  const items = [
-    {label:'BMI', value: latest.bmi, cat: latest.bmi_category},
-    {label:'혈압', value: `${latest.systolic}/${latest.diastolic}`, cat: latest.bp_category},
-    {label:'공복혈당', value: latest.blood_sugar, cat: latest.sugar_category},
-    {label:'활동량', value: `${latest.steps} 보`, cat: latest.activity_level},
-    {label:'수면', value: `${latest.sleep_hours}h`, cat: latest.sleep_status},
-  ];
-  el.innerHTML = items.map(it => `
-    <div class="vital ${statusClass(it.cat)}">
-      <div class="label">${it.label}</div>
-      <div class="value">${it.value}</div>
-      <div class="status-tag"><span class="dot"></span>${it.cat}</div>
-    </div>`).join('');
+  const latest = sorted[sorted.length - 1];
+  const compare = findComparisonRecord(sorted);
+  const score = computeHealthScore(latest);
+  const scoreLabel = score >= 70 ? '양호' : score >= 45 ? '주의' : '점검 필요';
+  const scoreClass = score >= 70 ? 'good' : score >= 45 ? 'warn' : 'bad';
+
+  let weightSub = '기록이 더 쌓이면 변화 추이를 보여드려요';
+  if(compare){
+    const diff = Math.round((latest.weight - compare.weight) * 10) / 10;
+    if(diff === 0) weightSub = `${compare.date} 대비 변화 없음`;
+    else weightSub = `${compare.date} 대비 ${Math.abs(diff)}kg ${diff > 0 ? '증가' : '감소'}`;
+  }
+
+  heroRow.innerHTML = `
+    <div class="hero-card score-card">
+      ${scoreRingSvg(score)}
+      <div class="score-num" style="font-size:22px;">${score}</div>
+      <div class="score-label">건강 스코어</div>
+      <span class="status-tag ${scoreClass}"><span class="dot"></span>${scoreLabel}</span>
+    </div>
+    <div class="hero-card metric-card">
+      <div class="mc-top"><span class="mc-label">체중 · BMI</span><span class="status-tag ${statusClass(latest.bmi_category)}"><span class="dot"></span>${latest.bmi_category}</span></div>
+      <div class="mc-value">${latest.weight}<small> kg</small></div>
+      <div class="mc-sub">${weightSub}</div>
+    </div>
+    <div class="hero-card metric-card">
+      <div class="mc-top"><span class="mc-label">혈압</span><span class="status-tag ${statusClass(latest.bp_category)}"><span class="dot"></span>${latest.bp_category}</span></div>
+      <div class="mc-value">${latest.systolic}<small>/${latest.diastolic}</small></div>
+      <div class="mc-sub">최근 측정(${latest.date}) 기준</div>
+    </div>
+    <div class="hero-card metric-card">
+      <div class="mc-top"><span class="mc-label">공복 혈당</span><span class="status-tag ${statusClass(latest.sugar_category)}"><span class="dot"></span>${latest.sugar_category}</span></div>
+      <div class="mc-value">${latest.blood_sugar}<small> mg/dL</small></div>
+      <div class="mc-sub">최근 측정(${latest.date}) 기준</div>
+    </div>`;
+
+  heroSecondary.innerHTML = `
+    <div class="hero-chip"><span class="hc-label">활동량</span><span class="hc-value">${latest.steps} 보 · <span class="status-tag ${statusClass(latest.activity_level)}">${latest.activity_level}</span></span></div>
+    <div class="hero-chip"><span class="hc-label">수면</span><span class="hc-value">${latest.sleep_hours}h · <span class="status-tag ${statusClass(latest.sleep_status)}">${latest.sleep_status}</span></span></div>`;
 }
 
 // ---------- 측정 추이 차트 ----------
@@ -935,13 +1143,27 @@ function renderTrendChart(){
   const baselineY = padTop + chartH;
 
   let svg = `<line x1="${padLeft}" y1="${baselineY}" x2="${W - padRight}" y2="${baselineY}" style="stroke:var(--line);stroke-width:1"/>`;
-  series.forEach(s => {
+  // 은은한 가로 그리드 (기준선 위로 3등분) — 값을 눈대중으로 가늠하기 쉽게
+  for(let g = 1; g <= 2; g++){
+    const gy = padTop + (chartH / 3) * g;
+    svg += `<line x1="${padLeft}" y1="${gy}" x2="${W - padRight}" y2="${gy}" style="stroke:var(--line);stroke-width:1;stroke-dasharray:2 4;opacity:0.6"/>`;
+  }
+  series.forEach((s, si) => {
     const points = s.values.map((v, i) => `${xAt(i)},${yAt(v)}`).join(' ');
-    svg += `<polyline points="${points}" fill="none" style="stroke:${s.color};stroke-width:2" stroke-linejoin="round" stroke-linecap="round"/>`;
+    // 첫 번째(주 지표) 시리즈에만 영역 채움을 넣어 추세를 더 뚜렷하게 보여줌
+    if(si === 0){
+      svg += `<path d="M${xAt(0)},${baselineY} L${points.split(' ').join(' L')} L${xAt(n - 1)},${baselineY} Z" fill="${s.color}" opacity="0.10"/>`;
+    }
+    svg += `<polyline points="${points}" fill="none" style="stroke:${s.color};stroke-width:2.5" stroke-linejoin="round" stroke-linecap="round"/>`;
     // 각 지점에 마커(점) 표시 — 마우스를 올려볼 수 있는 지점이라는 걸 눈으로 알 수 있게
     s.values.forEach((v, i) => {
-      svg += `<circle cx="${xAt(i)}" cy="${yAt(v)}" r="4" fill="${s.color}" stroke="var(--card)" stroke-width="2"/>`;
+      const isLast = i === s.values.length - 1;
+      const r = isLast ? 5.5 : 4;
+      svg += `<circle cx="${xAt(i)}" cy="${yAt(v)}" r="${r}" fill="${isLast ? 'var(--card)' : s.color}" stroke="${s.color}" stroke-width="2"/>`;
     });
+    // 마지막(최신) 값은 숫자로 직접 라벨링 — 끝점을 강조
+    const lastV = s.values[s.values.length - 1];
+    svg += `<text x="${xAt(n - 1)}" y="${yAt(lastV) - 11}" text-anchor="end" style="font-size:12px;font-weight:700;fill:${s.color};font-family:'IBM Plex Mono', monospace;">${lastV}</text>`;
   });
 
   // x축 날짜 라벨 — 겹치지 않을 만큼만 간격을 두고 선택적으로 표시, 처음/끝은 항상 표시.
@@ -1027,19 +1249,26 @@ function renderRecordsTable(pageItems, totalCount){
   // 수정 버튼이 다른 페이지의 기록도 가리킬 수 있도록 캐시는 전체 데이터 기준으로 유지
   recordsCache = {};
   allRecordsCache.forEach(r => { recordsCache[r.id] = r; });
-  body.innerHTML = pageItems.map(r => `
-    <tr>
-      <td>${r.date}</td>
-      <td>${r.weight}kg<br/><span class="badge ${statusClass(r.bmi_category)}">${r.bmi} · ${r.bmi_category}</span></td>
-      <td>${r.systolic}/${r.diastolic}<br/><span class="badge ${statusClass(r.bp_category)}">${r.bp_category}</span></td>
-      <td>${r.blood_sugar}<br/><span class="badge ${statusClass(r.sugar_category)}">${r.sugar_category}</span></td>
-      <td><span class="badge ${statusClass(r.activity_level)}">${r.activity_level}</span> <span class="badge ${statusClass(r.sleep_status)}">${r.sleep_status}</span>
-        ${r.warnings.length ? `<div class="warn-msg">⚠ ${r.warnings.length}건 경고</div>` : ''}</td>
-      <td class="row-actions">
+  body.innerHTML = pageItems.map(r => {
+    const [y, m, d] = r.date.split('-');
+    return `
+    <div class="timeline-card${r.warnings.length ? ' has-warning' : ''}">
+      <div class="timeline-date"><div class="m">${m}월</div><div class="d">${d}</div></div>
+      <div class="timeline-metrics">
+        <span>체중 <b>${r.weight}kg</b></span>
+        <span>BMI <b>${r.bmi}</b> <span class="badge ${statusClass(r.bmi_category)}">${r.bmi_category}</span></span>
+        <span>혈압 <b>${r.systolic}/${r.diastolic}</b> <span class="badge ${statusClass(r.bp_category)}">${r.bp_category}</span></span>
+        <span>혈당 <b>${r.blood_sugar}</b> <span class="badge ${statusClass(r.sugar_category)}">${r.sugar_category}</span></span>
+        <span class="badge ${statusClass(r.activity_level)}">${r.activity_level}</span>
+        <span class="badge ${statusClass(r.sleep_status)}">${r.sleep_status}</span>
+        ${r.warnings.length ? `<span class="badge bad">⚠ 경고 ${r.warnings.length}건</span>` : ''}
+      </div>
+      <div class="timeline-actions">
         <button onclick="editRecord(${r.id})">수정</button>
         <button onclick="deleteRecord(${r.id})">삭제</button>
-      </td>
-    </tr>`).join('');
+      </div>
+    </div>`;
+  }).join('');
 }
 
 function renderRecordsPage(){
@@ -1069,7 +1298,7 @@ async function loadRecords(){
     recordsPage = 1;
     renderRecordsPage();
     const sorted = [...data.records].sort((a,b) => a.date.localeCompare(b.date));
-    renderVitals(sorted[sorted.length - 1]);
+    renderHero(sorted);
   }catch(e){
     document.getElementById('records-loading').style.display = 'none';
     document.getElementById('records-body').innerHTML = '';

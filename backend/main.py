@@ -616,11 +616,28 @@ def _log_admin_action(
     db.commit()
 
 
+RISK_BAD_CATEGORIES = {"고혈압", "비만", "당뇨 의심"}
+RISK_WARN_CATEGORIES = {"주의", "과체중", "공복혈당장애", "부족", "과다", "저체중"}
+RISK_LEVEL_ORDER = {"high": 3, "moderate": 2, "normal": 1, "unknown": 0}
+
+
+def _risk_level(record: Optional[models.HealthRecord]) -> str:
+    if record is None:
+        return "unknown"
+    cats = {record.bmi_category, record.bp_category, record.sugar_category}
+    if cats & RISK_BAD_CATEGORIES:
+        return "high"
+    if cats & RISK_WARN_CATEGORIES:
+        return "moderate"
+    return "normal"
+
+
 @app.get("/admin/users", response_model=schemas.AdminUsersOut, tags=["Admin"])
 def admin_list_users(
     search: Optional[str] = Query(None, description="아이디 부분 검색"),
     role: Optional[str] = Query(None, description="user 또는 admin으로 필터링"),
-    sort_by: str = Query("id", description="id | username | created_at | record_count"),
+    risk: Optional[str] = Query(None, description="high | moderate | normal | unknown 위험도 필터"),
+    sort_by: str = Query("id", description="id | username | created_at | record_count | risk_level"),
     sort_dir: str = Query("asc", description="asc | desc"),
     page: int = Query(1, ge=1),
     page_size: int = Query(10, ge=1, le=100),
@@ -634,7 +651,6 @@ def admin_list_users(
         query = query.filter(models.User.role == role)
 
     users = query.all()
-    total = len(users)
 
     # user_id별 기록 수를 한 번의 집계 쿼리로 가져와 N+1 쿼리를 피함
     record_counts = dict(
@@ -643,6 +659,22 @@ def admin_list_users(
         .all()
     )
 
+    # user_id별 "가장 최근" 기록 1건만 추려서 위험도를 계산 (user_id, date desc 정렬 후
+    # 처음 등장하는 것만 채택 -> 사용자 수만큼의 개별 쿼리 없이 한 번의 조회로 해결)
+    latest_by_user: dict[int, models.HealthRecord] = {}
+    for r in (
+        db.query(models.HealthRecord)
+        .order_by(models.HealthRecord.user_id, models.HealthRecord.date.desc())
+        .all()
+    ):
+        latest_by_user.setdefault(r.user_id, r)
+    risk_by_user = {uid: _risk_level(rec) for uid, rec in latest_by_user.items()}
+
+    if risk in ("high", "moderate", "normal", "unknown"):
+        users = [u for u in users if risk_by_user.get(u.id, "unknown") == risk]
+
+    total = len(users)
+
     def sort_key(u):
         if sort_by == "username":
             return u.username.lower()
@@ -650,6 +682,8 @@ def admin_list_users(
             return u.created_at or datetime.min
         if sort_by == "record_count":
             return record_counts.get(u.id, 0)
+        if sort_by == "risk_level":
+            return RISK_LEVEL_ORDER.get(risk_by_user.get(u.id, "unknown"), 0)
         return u.id
 
     users.sort(key=sort_key, reverse=(sort_dir == "desc"))
@@ -664,6 +698,7 @@ def admin_list_users(
             role=u.role,
             created_at=u.created_at,
             record_count=record_counts.get(u.id, 0),
+            risk_level=risk_by_user.get(u.id, "unknown"),
         )
         for u in page_users
     ]
@@ -704,6 +739,16 @@ def admin_stats(
         for i in range(13, -1, -1)
     ]
 
+    latest_by_user: dict[int, models.HealthRecord] = {}
+    for r in sorted(records, key=lambda r: r.date, reverse=True):
+        latest_by_user.setdefault(r.user_id, r)
+    users_by_id = {u.id: u for u in users}
+    high_risk_usernames = sorted(
+        users_by_id[uid].username
+        for uid, rec in latest_by_user.items()
+        if uid in users_by_id and _risk_level(rec) == "high"
+    )
+
     return schemas.AdminStatsOut(
         total_users=len(users),
         total_records=len(records),
@@ -713,6 +758,7 @@ def admin_stats(
         bmi_category_distribution=distribution([r.bmi_category for r in records]),
         bp_category_distribution=distribution([r.bp_category for r in records]),
         sugar_category_distribution=distribution([r.sugar_category for r in records]),
+        high_risk_usernames=high_risk_usernames,
     )
 
 

@@ -4,37 +4,90 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>관리자 대시보드 · 마이 헬스 로그</title>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=IBM+Plex+Sans+KR:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
 <style>
   :root{
-    --ink:#1B2430;
-    --paper:#EFF2F1;
+    --ink:#101B18;
+    --paper:#F5F8F7;
     --card:#FFFFFF;
-    --line:#D8DDD9;
-    --teal:#2F6F5E;
-    --teal-soft:#E4EEEB;
-    --amber:#C98A2E;
-    --amber-soft:#F6EADA;
-    --brick:#C1443D;
-    --brick-soft:#F5E1DF;
-    --muted:#6B7680;
+    --card-2:#EEF3F1;
+    --line:#DEE6E3;
+    --line-strong:#C7D2CD;
+    --teal:#0D9488;
+    --teal-strong:#0B7A70;
+    --teal-soft:#E6F7F7;
+    --on-accent:#FFFFFF;
+    --cyan:#0EA5C4;
+    --cyan-soft:#D8F1F7;
+    --status-good:#17A34A;
+    --status-good-soft:#DDF7E6;
+    --amber:#D97706;
+    --amber-soft:#FCEED2;
+    --brick:#DC2626;
+    --brick-soft:#FBE2E1;
+    --muted:#5C6B67;
+    --shadow-sm:0 2px 8px rgba(16,27,24,.07);
+    --shadow-md:0 8px 24px rgba(16,27,24,.10);
+    --radius-sm:8px; --radius-md:12px; --radius-lg:16px;
+    color-scheme:light;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --ink:#EAF4F1; --paper:#0A1211; --card:#0F1B19; --card-2:#16241F;
+      --line:#243733; --line-strong:#334843;
+      --teal:#2DD4C6; --teal-strong:#48E0D3; --teal-soft:#103330; --on-accent:#04201D;
+      --cyan:#3FC3E0; --cyan-soft:#0E2C33;
+      --status-good:#34D66F; --status-good-soft:#0F2B1A;
+      --amber:#F5A524; --amber-soft:#332208;
+      --brick:#F0605C; --brick-soft:#341412;
+      --muted:#9FB6AF;
+      --shadow-sm:0 2px 10px rgba(0,0,0,.35); --shadow-md:0 10px 28px rgba(0,0,0,.45);
+      color-scheme:dark;
+    }
+  }
+  html[data-theme="dark"]{
+    --ink:#EAF4F1; --paper:#0A1211; --card:#0F1B19; --card-2:#16241F;
+    --line:#243733; --line-strong:#334843;
+    --teal:#2DD4C6; --teal-strong:#48E0D3; --teal-soft:#103330; --on-accent:#04201D;
+    --cyan:#3FC3E0; --cyan-soft:#0E2C33;
+    --status-good:#34D66F; --status-good-soft:#0F2B1A;
+    --amber:#F5A524; --amber-soft:#332208;
+    --brick:#F0605C; --brick-soft:#341412;
+    --muted:#9FB6AF;
+    --shadow-sm:0 2px 10px rgba(0,0,0,.35); --shadow-md:0 10px 28px rgba(0,0,0,.45);
+    color-scheme:dark;
+  }
+  html[data-theme="light"]{
+    --ink:#101B18; --paper:#F5F8F7; --card:#FFFFFF; --card-2:#EEF3F1;
+    --line:#DEE6E3; --line-strong:#C7D2CD;
+    --teal:#0D9488; --teal-strong:#0B7A70; --teal-soft:#E6F7F7; --on-accent:#FFFFFF;
+    --cyan:#0EA5C4; --cyan-soft:#D8F1F7;
+    --status-good:#17A34A; --status-good-soft:#DDF7E6;
+    --amber:#D97706; --amber-soft:#FCEED2;
+    --brick:#DC2626; --brick-soft:#FBE2E1;
+    --muted:#5C6B67;
+    --shadow-sm:0 2px 8px rgba(16,27,24,.07); --shadow-md:0 8px 24px rgba(16,27,24,.10);
+    color-scheme:light;
   }
   *{box-sizing:border-box;}
   html,body{margin:0;height:100%;}
   body{
     background:var(--paper);
     color:var(--ink);
-    font-family:'IBM Plex Sans KR', sans-serif;
+    font-family:'Pretendard Variable','Pretendard',-apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;
     line-height:1.5;
+    transition:background .15s ease, color .15s ease;
   }
 
   /* ---------- 로그인 화면 ---------- */
   #admin-login-screen label{display:block;font-size:12px;color:var(--muted);margin-bottom:5px;}
   #admin-login-screen input{
     width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:7px;font-size:14px;
-    font-family:'IBM Plex Sans KR', sans-serif;
+    font-family:'Pretendard Variable','Pretendard',-apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;
   }
   .auth-error{color:var(--brick);font-size:12px;margin-top:12px;min-height:14px;}
 
@@ -45,9 +98,11 @@
     display:flex;flex-direction:column;padding:24px 0;position:sticky;top:0;height:100vh;
   }
   .sidebar .brand{
-    font-family:'Fraunces', serif;font-weight:600;font-size:17px;padding:0 22px 20px;
+    font-weight:700;letter-spacing:-0.01em;font-size:16px;padding:0 22px 20px;
     border-bottom:1px solid var(--line);margin-bottom:14px;
+    display:flex;align-items:center;gap:8px;
   }
+  .sidebar .brand .dot{width:9px;height:9px;border-radius:50%;background:var(--teal);box-shadow:0 0 0 3px var(--teal-soft);flex-shrink:0;}
   .sidebar .brand small{
     display:block;font-family:'IBM Plex Mono', monospace;font-size:10px;color:var(--muted);
     text-transform:uppercase;letter-spacing:0.07em;margin-top:5px;
@@ -56,16 +111,24 @@
   .nav-item{
     display:flex;align-items:center;gap:8px;width:100%;text-align:left;padding:11px 22px;
     border:none;background:none;cursor:pointer;font-size:14px;color:var(--muted);
-    font-family:'IBM Plex Sans KR', sans-serif;border-left:3px solid transparent;
+    font-family:'Pretendard Variable','Pretendard',-apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;border-left:3px solid transparent;
   }
   .nav-item:hover{color:var(--ink);background:var(--paper);}
   .nav-item.active{color:var(--ink);font-weight:600;border-left-color:var(--teal);background:var(--paper);}
+  .nav-icon{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;}
   .sidebar-footer{margin-top:auto;padding:16px 22px 0;border-top:1px solid var(--line);}
   .content{flex:1;padding:26px 32px 60px;min-width:0;}
   .topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;gap:12px;flex-wrap:wrap;}
-  .topbar h1{font-family:'Fraunces', serif;font-weight:600;font-size:26px;margin:0;}
-  .user-switch{display:flex;align-items:center;gap:8px;}
+  .topbar h1{font-weight:700;letter-spacing:-0.01em;font-size:23px;margin:0;}
+  .user-switch{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end;}
+  .user-switch button, .user-switch .theme-toggle{flex-shrink:0;}
   .user-switch span{font-size:13px;color:var(--muted);}
+  .theme-toggle{display:flex;gap:2px;background:var(--card-2);border:1px solid var(--line);border-radius:20px;padding:2px;}
+  .theme-toggle button{
+    border:none;background:none;padding:5px 9px;border-radius:16px;cursor:pointer;font-size:12px;
+    color:var(--muted);font-family:inherit;line-height:1;
+  }
+  .theme-toggle button.active{background:var(--card);color:var(--ink);box-shadow:var(--shadow-sm);font-weight:600;}
 
   .view{display:none;}
   .view.active{display:block;}
@@ -75,7 +138,7 @@
     padding:20px 22px;
   }
   .card h2{
-    font-family:'Fraunces', serif;font-weight:600;font-size:16px;margin:0 0 14px;
+    font-weight:700;letter-spacing:-0.01em;font-size:16px;margin:0 0 14px;
     display:flex;align-items:baseline;gap:8px;justify-content:space-between;
   }
   .card h2 .title-group{display:flex;align-items:baseline;gap:8px;}
@@ -86,14 +149,14 @@
 
   .btn{
     padding:8px 16px;border-radius:7px;border:none;cursor:pointer;font-size:13px;
-    font-weight:500;font-family:'IBM Plex Sans KR', sans-serif;
+    font-weight:600;font-family:inherit;
   }
-  .btn-primary{background:var(--teal);color:#fff;}
-  .btn-primary:hover{background:#265b4d;}
+  .btn-primary{background:var(--teal);color:var(--on-accent);}
+  .btn-primary:hover{background:var(--teal-strong);}
   .btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--line);}
   .btn-ghost:hover{border-color:var(--muted);}
-  .btn-danger{background:var(--brick);color:#fff;}
-  .btn-danger:hover{background:#a3352f;}
+  .btn-danger{background:var(--brick);color:var(--on-accent);}
+  .btn-danger:hover{filter:brightness(0.9);}
 
   table{width:100%;border-collapse:collapse;font-size:13px;}
   thead th{
@@ -106,13 +169,13 @@
   tbody td{padding:10px 6px;border-bottom:1px solid var(--line);vertical-align:middle;}
   tbody tr:last-child td{border-bottom:none;}
   .badge{display:inline-block;padding:3px 8px;border-radius:20px;font-size:11px;font-weight:500;}
-  .badge.good{background:var(--teal-soft);color:var(--teal);}
+  .badge.good{background:var(--status-good-soft);color:var(--status-good);}
   .badge.warn{background:var(--amber-soft);color:var(--amber);}
   .badge.bad{background:var(--brick-soft);color:var(--brick);}
   .badge.neutral{background:var(--paper);color:var(--muted);}
   .row-actions button{
     font-size:11px;padding:4px 9px;border-radius:5px;border:1px solid var(--line);
-    background:#fff;cursor:pointer;color:var(--muted);margin-right:4px;
+    background:var(--card);cursor:pointer;color:var(--muted);margin-right:4px;
   }
   .row-actions button:hover{border-color:var(--brick);color:var(--brick);}
   .empty-note{color:var(--muted);font-size:13px;padding:16px 4px;}
@@ -122,12 +185,15 @@
   .search-bar label{font-size:12px;color:var(--muted);}
   .search-bar input, .search-bar select{
     padding:8px 9px;border:1px solid var(--line);border-radius:7px;font-family:'IBM Plex Mono', monospace;
-    font-size:13px;min-width:170px;background:#fff;
+    font-size:13px;min-width:170px;background:var(--card);color:var(--ink);
   }
   .pagination{display:flex;align-items:center;gap:12px;margin-top:14px;font-size:12px;color:var(--muted);}
 
   /* ---------- KPI ---------- */
-  .kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px;}
+  .kpi-row{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:20px;}
+  .kpi-card.risk-high{border-color:var(--brick-soft);background:var(--brick-soft);}
+  .kpi-card.risk-high .v{color:var(--brick);}
+  .kpi-card.risk-high .l{color:var(--brick);}
   .kpi-card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 18px;}
   .kpi-card .l{font-size:11px;color:var(--muted);letter-spacing:0.02em;margin-bottom:8px;}
   .kpi-card .v{font-family:'IBM Plex Mono', monospace;font-size:26px;font-weight:600;}
@@ -143,7 +209,7 @@
   .trend-bar{fill:var(--teal);cursor:pointer;}
   .trend-bar:hover{fill:#265b4d;}
   #chart-tooltip{
-    position:fixed;background:var(--ink);color:#fff;font-size:11px;padding:5px 9px;border-radius:6px;
+    position:fixed;background:#16211D;color:#F3F7F5;font-size:11px;padding:5px 9px;border-radius:6px;
     pointer-events:none;z-index:1000;opacity:0;transition:opacity 0.1s;white-space:nowrap;
   }
   #chart-tooltip strong{font-family:'IBM Plex Mono', monospace;}
@@ -153,7 +219,7 @@
   .dist-label{width:74px;flex-shrink:0;}
   .dist-bar{flex:1;height:8px;background:var(--paper);border-radius:4px;overflow:hidden;}
   .dist-bar span{display:block;height:100%;}
-  .dist-bar span.good{background:var(--teal);}
+  .dist-bar span.good{background:var(--status-good);}
   .dist-bar span.warn{background:var(--amber);}
   .dist-bar span.bad{background:var(--brick);}
   .dist-bar span.neutral{background:var(--muted);}
@@ -175,7 +241,7 @@
     padding:26px 24px;box-shadow:-10px 0 30px rgba(0,0,0,0.18);
   }
   .drawer h3{
-    font-family:'Fraunces', serif;font-weight:600;font-size:19px;margin:0 0 18px;
+    font-weight:700;letter-spacing:-0.01em;font-size:19px;margin:0 0 18px;
     display:flex;justify-content:space-between;align-items:center;gap:12px;
   }
 
@@ -188,32 +254,53 @@
     background:var(--card);border-radius:12px;padding:24px;max-width:400px;width:100%;
     box-shadow:0 12px 40px rgba(0,0,0,0.2);
   }
-  .modal-box h3{font-family:'Fraunces', serif;font-weight:600;font-size:18px;margin:0 0 16px;}
+  .modal-box h3{font-weight:700;letter-spacing:-0.01em;font-size:18px;margin:0 0 16px;}
   .modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:18px;}
 
   /* ---------- 토스트 ---------- */
   #toast-box{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:999;display:flex;flex-direction:column;gap:8px;align-items:center;}
   .toast{
-    padding:10px 18px;border-radius:8px;font-size:13px;color:#fff;background:var(--ink);
+    padding:10px 18px;border-radius:8px;font-size:13px;color:#F3F7F5;background:#16211D;
     box-shadow:0 6px 20px rgba(0,0,0,0.15);opacity:0;transform:translateY(8px);
     animation:toast-in 0.2s ease forwards;
   }
-  .toast.success{background:var(--teal);}
-  .toast.error{background:var(--brick);}
+  .toast.success{background:var(--status-good);color:var(--on-accent);}
+  .toast.error{background:var(--brick);color:var(--on-accent);}
   @keyframes toast-in{ to{opacity:1;transform:translateY(0);} }
 
-  @media (max-width:900px){
+  /* 태블릿(721~1024px): 사이드바를 아이콘 전용 레일로 축소 */
+  @media (max-width:1024px) and (min-width:721px){
+    .sidebar{width:68px;padding:20px 0;align-items:center;}
+    .sidebar .brand{padding:0 0 18px;justify-content:center;}
+    .sidebar .brand span:not(.dot){display:none;}
+    .nav-item{padding:12px;justify-content:center;border-left:none;width:44px;border-radius:var(--radius-sm);margin:0 auto;}
+    .nav-item.active{border-left:none;background:var(--teal-soft);color:var(--teal-strong);}
+    .nav-label{display:none;}
+    .sidebar-footer{padding:12px 8px 0;}
+    .sidebar-footer .badge{font-size:0;padding:6px;}
+    .sidebar-footer .badge::before{content:'●';font-size:11px;}
+    .kpi-row{grid-template-columns:repeat(3,1fr);}
+    .panel-row, .panel-row.thirds{grid-template-columns:1fr;}
+  }
+
+  /* 모바일(~720px): 사이드바가 하단 고정 탭바로 전환 */
+  @media (max-width:720px){
     .shell{flex-direction:column;}
     .sidebar{
-      width:100%;height:auto;position:static;flex-direction:row;align-items:center;
-      padding:10px 14px;overflow-x:auto;gap:6px;
+      width:100%;height:auto;position:fixed;left:0;top:auto;bottom:0;flex-direction:row;align-items:center;
+      justify-content:space-around;padding:6px 8px calc(6px + env(safe-area-inset-bottom));gap:2px;
+      border-right:none;border-top:1px solid var(--line);z-index:80;
     }
     .sidebar .brand{display:none;}
-    .side-nav{flex-direction:row;}
-    .nav-item{border-left:none;border-bottom:3px solid transparent;padding:9px 12px;white-space:nowrap;}
-    .nav-item.active{border-left:none;border-bottom-color:var(--teal);}
-    .sidebar-footer{margin:0 0 0 auto;padding:0;border:none;}
-    .content{padding:20px 16px 50px;}
+    .side-nav{flex-direction:row;width:100%;justify-content:space-around;}
+    .nav-item{
+      border-left:none;padding:6px 10px;white-space:nowrap;flex-direction:column;gap:3px;font-size:10.5px;
+      border-radius:var(--radius-sm);
+    }
+    .nav-item.active{border-left:none;background:var(--teal-soft);color:var(--teal-strong);}
+    .nav-label{display:block;}
+    .sidebar-footer{display:none;}
+    .content{padding:20px 16px 84px;}
     .kpi-row{grid-template-columns:1fr 1fr;}
     .panel-row, .panel-row.thirds{grid-template-columns:1fr;}
   }
@@ -245,11 +332,20 @@
 <!-- 대시보드 셸 -->
 <div id="dashboard-shell" class="shell" style="display:none;">
   <aside class="sidebar">
-    <div class="brand">마이 헬스 로그<small>ADMIN CONSOLE</small></div>
+    <div class="brand"><span class="dot"></span><span>마이 헬스 로그<small>ADMIN CONSOLE</small></span></div>
     <nav class="side-nav">
-      <button class="nav-item active" data-view="overview" onclick="switchView('overview')">개요</button>
-      <button class="nav-item" data-view="users" onclick="switchView('users')">사용자 관리</button>
-      <button class="nav-item" data-view="audit" onclick="switchView('audit')">감사 로그</button>
+      <button class="nav-item active" data-view="overview" onclick="switchView('overview')">
+        <svg class="nav-icon" viewBox="0 0 24 24"><path d="M3 12l9-9 9 9M5 10v10a1 1 0 0 0 1 1h3m10-11l2 2m-2-2v10a1 1 0 0 1-1 1h-3m-6 0a1 1 0 0 0 1-1v-4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v4a1 1 0 0 0 1 1m-6 0h6"/></svg>
+        <span class="nav-label">개요</span>
+      </button>
+      <button class="nav-item" data-view="users" onclick="switchView('users')">
+        <svg class="nav-icon" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        <span class="nav-label">사용자 관리</span>
+      </button>
+      <button class="nav-item" data-view="audit" onclick="switchView('audit')">
+        <svg class="nav-icon" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M4 19.5A2.5 2.5 0 0 0 6.5 22H20V2H6.5A2.5 2.5 0 0 0 4 4.5v15z"/></svg>
+        <span class="nav-label">감사 로그</span>
+      </button>
     </nav>
     <div class="sidebar-footer">
       <span id="server-status" class="badge neutral">서버 상태 확인 중</span>
@@ -260,6 +356,11 @@
     <header class="topbar">
       <h1 id="view-title">개요</h1>
       <div class="user-switch">
+        <div class="theme-toggle" id="theme-toggle">
+          <button type="button" data-theme-choice="light" onclick="setThemeChoice('light')">라이트</button>
+          <button type="button" data-theme-choice="system" onclick="setThemeChoice('system')">시스템</button>
+          <button type="button" data-theme-choice="dark" onclick="setThemeChoice('dark')">다크</button>
+        </div>
         <span id="whoami-text"></span>
         <button class="btn btn-ghost" onclick="logout()">로그아웃</button>
       </div>
@@ -271,6 +372,7 @@
         <div class="kpi-card"><div class="l">총 사용자 수</div><div class="v">-</div></div>
         <div class="kpi-card"><div class="l">총 건강기록 수</div><div class="v">-</div></div>
         <div class="kpi-card"><div class="l">최근 7일 신규가입</div><div class="v">-</div></div>
+        <div class="kpi-card"><div class="l">고위험 사용자</div><div class="v">-</div></div>
         <div class="kpi-card"><div class="l">감사 로그 건수</div><div class="v">-</div></div>
       </div>
 
@@ -313,6 +415,16 @@
               <option value="admin">관리자</option>
             </select>
           </div>
+          <div>
+            <label>위험도</label>
+            <select id="risk-filter" onchange="onRiskFilterChange()">
+              <option value="">전체</option>
+              <option value="high">높음</option>
+              <option value="moderate">주의</option>
+              <option value="normal">정상</option>
+              <option value="unknown">기록 없음</option>
+            </select>
+          </div>
           <button class="btn btn-ghost" onclick="resetFilters()">초기화</button>
         </div>
         <div style="overflow-x:auto;">
@@ -324,6 +436,7 @@
                 <th>권한</th>
                 <th class="sortable" onclick="setSort('created_at')">가입일<span class="sort-indicator" id="sort-created_at"></span></th>
                 <th class="sortable" onclick="setSort('record_count')">기록 수<span class="sort-indicator" id="sort-record_count"></span></th>
+                <th class="sortable" onclick="setSort('risk_level')">위험도<span class="sort-indicator" id="sort-risk_level"></span></th>
                 <th></th>
               </tr>
             </thead>
@@ -396,11 +509,36 @@
 </div>
 
 <script>
+// ---------- 테마 (라이트/다크/시스템) ----------
+const THEME_STORAGE_KEY = 'healthlog-admin-theme';
+
+function applyThemeChoice(choice){
+  if(choice === 'system'){
+    document.documentElement.removeAttribute('data-theme');
+  }else{
+    document.documentElement.setAttribute('data-theme', choice);
+  }
+  document.querySelectorAll('#theme-toggle button').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.themeChoice === choice);
+  });
+}
+
+function setThemeChoice(choice){
+  localStorage.setItem(THEME_STORAGE_KEY, choice);
+  applyThemeChoice(choice);
+}
+
+(function initTheme(){
+  const saved = localStorage.getItem(THEME_STORAGE_KEY) || 'system';
+  applyThemeChoice(saved);
+})();
+
 let adminUsername = null;
 let currentPage = 1;
 const PAGE_SIZE = 10;
 let currentSearch = '';
 let currentRoleFilter = '';
+let currentRiskFilter = '';
 let currentSortBy = 'id';
 let currentSortDir = 'asc';
 let searchDebounce = null;
@@ -574,6 +712,10 @@ function renderKpis(s){
     </div>
     <div class="kpi-card"><div class="l">총 건강기록 수</div><div class="v">${s.total_records}</div></div>
     <div class="kpi-card"><div class="l">최근 7일 신규가입</div><div class="v">${s.new_users_last_7_days}</div></div>
+    <div class="kpi-card${s.high_risk_usernames.length ? ' risk-high' : ''}">
+      <div class="l">고위험 사용자</div><div class="v">${s.high_risk_usernames.length}</div>
+      <div class="d">${s.high_risk_usernames.length ? s.high_risk_usernames.join(', ') : '없음'}</div>
+    </div>
     <div class="kpi-card"><div class="l">감사 로그 건수</div><div class="v" id="kpi-audit-count">-</div></div>
   `;
 }
@@ -715,6 +857,15 @@ function roleBadgeClass(role){
   return role === 'admin' ? 'good' : 'neutral';
 }
 
+const RISK_LABELS = {high: '높음', moderate: '주의', normal: '정상', unknown: '기록 없음'};
+const RISK_BADGE_CLASS = {high: 'bad', moderate: 'warn', normal: 'good', unknown: 'neutral'};
+
+function riskBadge(level){
+  const cls = RISK_BADGE_CLASS[level] || 'neutral';
+  const label = RISK_LABELS[level] || level;
+  return `<span class="badge ${cls}">${label}</span>`;
+}
+
 function setSort(column){
   if(currentSortBy === column){
     currentSortDir = currentSortDir === 'asc' ? 'desc' : 'asc';
@@ -727,7 +878,7 @@ function setSort(column){
 }
 
 function updateSortIndicators(){
-  ['id','username','created_at','record_count'].forEach(col => {
+  ['id','username','created_at','record_count','risk_level'].forEach(col => {
     const el = document.getElementById(`sort-${col}`);
     if(!el) return;
     el.textContent = col === currentSortBy ? (currentSortDir === 'asc' ? '▲' : '▼') : '';
@@ -747,11 +898,18 @@ function onRoleFilterChange(){
   loadUsers(1);
 }
 
+function onRiskFilterChange(){
+  currentRiskFilter = document.getElementById('risk-filter').value;
+  loadUsers(1);
+}
+
 function resetFilters(){
   document.getElementById('user-search').value = '';
   document.getElementById('role-filter').value = '';
+  document.getElementById('risk-filter').value = '';
   currentSearch = '';
   currentRoleFilter = '';
+  currentRiskFilter = '';
   currentSortBy = 'id';
   currentSortDir = 'asc';
   updateSortIndicators();
@@ -773,6 +931,7 @@ async function loadUsers(page = currentPage){
     });
     if(currentSearch) params.set('search', currentSearch);
     if(currentRoleFilter) params.set('role', currentRoleFilter);
+    if(currentRiskFilter) params.set('risk', currentRiskFilter);
     const res = await fetch(`/admin/users?${params}`, {credentials:'same-origin'});
     if(!res.ok) throw new Error((await res.json()).detail || '사용자 목록을 불러올 수 없습니다.');
     const data = await res.json();
@@ -795,6 +954,7 @@ async function loadUsers(page = currentPage){
         <td><span class="badge ${roleBadgeClass(u.role)}">${u.role}</span></td>
         <td>${u.created_at ? u.created_at.slice(0,10) : '-'}</td>
         <td>${u.record_count}</td>
+        <td>${riskBadge(u.risk_level)}</td>
         <td class="row-actions">${actions}</td>
       </tr>`;
       }).join('');
