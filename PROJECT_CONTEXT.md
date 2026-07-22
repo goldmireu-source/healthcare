@@ -315,11 +315,24 @@ healthcare/
   - 회귀: `pytest -q` 9 passed, 0 warnings / curl 스모크(로그인·페이지네이션 응답 형태·Cache-Control 헤더) 전부 정상.
   - **신규 파일**: `backend/alembic/versions/c1df83b2dad1_add_composite_index_on_health_records_.py`
 
+- [x] **AUDIT_REPORT.md + CTO_AUDIT_REPORT.md 기반 종합 개선 — Phase 4 (테스트/CI)** (2026-07-22)
+  1. **pytest 커버리지 확장** — 기존 9개(계정/인증/기록 CRUD)에서 **41개**로 확장. 신규 파일 6개:
+     - `test_goals_reports.py`(4개) — 목표 미설정 시 404, 목표 설정/부분 갱신, 주간 리포트 응답 형태, 미인증 401.
+     - `test_ai_coach.py`(9개) — AI Health Coach 7개 엔드포인트(코칭/추세/이상징후/스코어/캘린더/타임라인/배지) 전부: 코칭 메시지가 같은 날 캐시 재사용되는지, 건강 스코어는 기록이 없으면 404, 배지는 기록 추가 후 최소 1개 이상 획득되는지 확인.
+     - `test_export_import.py`(7개) — CSV/JSON 내보내기, CSV 수식 인젝션 방어(`=1+1` → `'=1+1`로 저장되는지), CSV 가져오기 미리보기(저장 안 함)/커밋(저장함)/검증 실패 시 전체 롤백(all-or-nothing), 연동 상태/웨어러블 mock.
+     - `test_admin.py`(7개) — 사용자 목록 검색, 통계, 회원 상세/기록 조회, 강제 로그아웃(실제 세션 무효화 확인), 임시 비밀번호 발급(발급된 비밀번호로 실제 로그인까지 확인), 계정 삭제, 감사 로그 기록 확인. 회원가입으로는 admin이 될 수 없어(설계상 의도) 테스트 DB에서 직접 role을 승격시키는 `_make_admin()` 헬퍼로 관리자 계정을 만듦.
+     - `test_password_recovery.py`(5개) — 보안질문 조회, 오답 시 401(+기존 비밀번호 유지 확인), 정답 시 재설정 성공(대소문자/공백 정규화 확인 + 기존 세션 전부 무효화 확인), **비밀번호 재설정 rate limit(5회/900초) 실제 429 확인**, **회원가입 rate limit(5회/600초) 실제 429 확인**.
+     - 버그 아님, 테스트 작성 중 발견한 API 사실 확인: `TrendDirection`/`RiskLevel` enum 값은 대문자(`"UP"`/`"DOWN"`/`"STABLE"`, `"LOW"`/`"MODERATE"`/`"HIGH"`)로 응답됨 — 소문자로 잘못 가정했던 첫 버전의 테스트를 수정.
+     - 테스트 작성 중 발견한 내 테스트 코드의 버그: force-logout 테스트에서 대상 계정을 만든 뒤 `client.post("/auth/logout")`을 호출하면 관리자로 전환되기도 전에 대상의 세션 자체가 사라져 "무효화할 세션이 0개"가 되는 실수 — `test_records.py`의 IDOR 테스트가 이미 쓰던 패턴(로그아웃 없이 다음 계정으로 signup/login만 하면 클라이언트 쿠키만 바뀌고 이전 세션은 서버에 그대로 남음)으로 수정.
+  2. **GitHub Actions CI** — `.github/workflows/backend-tests.yml` 신설. `push`/`pull_request` 전부에서 `backend/` 디렉터리 기준으로 `pip install -r requirements-dev.txt` 후 `pytest -q` 실행. 배포(서버에 올리는 작업)가 아니라 GitHub 저장소 자체의 CI 설정이라 이번 작업 범위에 포함됨(사용자가 명시적으로 제외한 것은 AWS Lightsail 배포/HTTPS/COOKIE_SECURE뿐).
+  - 회귀: `pytest -q` **41 passed, 0 warnings** / curl 스모크(로그인·`/health`·`/docs`) 정상. 이번 Phase는 테스트/CI 파일만 추가해 런타임 코드 변경이 없음.
+  - **신규 파일**: `backend/tests/test_goals_reports.py`, `backend/tests/test_ai_coach.py`, `backend/tests/test_export_import.py`, `backend/tests/test_admin.py`, `backend/tests/test_password_recovery.py`, `.github/workflows/backend-tests.yml`
+
 ## 7. 다음 작업
 
 1. (제안) 관리자 대시보드에도 사용자 화면처럼 시각화가 있으니, 향후 필요시 이 Playwright 스크린샷 검증 방식을 `/run-skill-generator`로 프로젝트 스킬화하는 것을 고려 — 매번 임시 Node 프로젝트를 새로 만들 필요 없어짐
 2. AWS Lightsail 배포 단계로 진행 (8번 섹션 참고) — **CTO_AUDIT_REPORT.md 기반 Phase 1~6 작업 완료, 사용자 확인 후 진행 예정. Phase 7(관리자 시각화 확장/알림)은 시작 전 반드시 재확인 필요**
-3. Phase 4(테스트/CI) 진행 예정
+3. Phase 5(UX/접근성/디자인 폴리시) 진행 예정
 
 ## 8. 이후 계획 (미착수)
 
