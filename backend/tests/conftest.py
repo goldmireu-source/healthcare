@@ -71,9 +71,10 @@ def client(app_context):
 
 # ---------- 공용 테스트 데이터 헬퍼 ----------
 
-def signup(client, username: str, password: str = "TestPass123!") -> dict:
+def signup(client, username: str, password: str = "TestPass123!", name: str = "테스트유저") -> dict:
     res = client.post("/auth/signup", json={
         "username": username,
+        "name": name,
         "password": password,
         "security_question": "가장 좋아하는 색은?",
         "security_answer": "blue",

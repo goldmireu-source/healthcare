@@ -443,6 +443,10 @@
           <input type="text" id="signup-username" required pattern="^[a-zA-Z0-9_]{3,30}$" autocomplete="username" />
         </div>
         <div style="margin-bottom:12px;">
+          <label>이름</label>
+          <input type="text" id="signup-name" required maxlength="50" autocomplete="name" />
+        </div>
+        <div style="margin-bottom:12px;">
           <label>비밀번호 (6자 이상)</label>
           <input type="password" id="signup-password" required minlength="6" autocomplete="new-password" />
         </div>
@@ -504,6 +508,15 @@
 <div class="modal-overlay" id="account-modal" style="display:none;">
   <div class="modal-box">
     <h3>계정 설정</h3>
+    <h4>이름 변경</h4>
+    <form id="change-name-form" onsubmit="submitChangeName(event)" style="margin-bottom:20px;">
+      <div style="margin-bottom:10px;">
+        <label>이름</label>
+        <input type="text" id="cn-name" required maxlength="50" />
+      </div>
+      <button type="submit" class="btn btn-primary" style="width:100%;">이름 변경</button>
+    </form>
+
     <h4>비밀번호 변경</h4>
     <form id="change-password-form" onsubmit="submitChangePassword(event)">
       <div style="margin-bottom:10px;">
@@ -757,6 +770,7 @@ function setThemeChoice(choice){
 })();
 
 let username = null;
+let currentUser = null; // /auth/me·login·signup 응답 전체 (이름 변경 폼 초기값 등에 사용)
 let editingId = null;
 let recordsCache = {};
 
@@ -881,12 +895,24 @@ async function submitPasswordReset(){
 // ---------- 계정 설정 (비밀번호 변경 / 탈퇴) ----------
 function openAccountSettings(){
   document.getElementById('account-modal').style.display = 'flex';
+  document.getElementById('cn-name').value = (currentUser && currentUser.name) || '';
   document.getElementById('change-password-form').reset();
   document.getElementById('delete-account-password').value = '';
 }
 
 function closeAccountSettings(){
   document.getElementById('account-modal').style.display = 'none';
+}
+
+async function submitChangeName(ev){
+  ev.preventDefault();
+  const name = document.getElementById('cn-name').value.trim();
+  if(!name){ toast('이름을 입력해주세요.', 'error'); return; }
+  try{
+    const data = await apiSend('/auth/change-name', 'POST', {name});
+    currentUser = data;
+    toast('이름이 변경되었습니다.', 'success');
+  }catch(e){ toast('변경 실패: ' + e.message, 'error'); }
 }
 
 async function submitChangePassword(ev){
@@ -923,6 +949,7 @@ function showAuthScreen(){
 
 function showApp(user){
   username = user.username;
+  currentUser = user;
   document.getElementById('auth-wrap').style.display = 'none';
   document.getElementById('dashboard-shell').style.display = 'flex';
   document.getElementById('whoami-text').textContent = `${user.username}님`;
@@ -984,10 +1011,13 @@ async function doSignup(ev){
   if(p1 !== p2){ errEl.textContent = '비밀번호가 서로 일치하지 않습니다.'; return; }
   const securityQuestion = document.getElementById('signup-security-question').value;
   const securityAnswer = document.getElementById('signup-security-answer').value.trim();
+  const name = document.getElementById('signup-name').value.trim();
+  if(!name){ errEl.textContent = '이름을 입력해주세요.'; return; }
   if(!securityQuestion){ errEl.textContent = '보안질문을 선택해주세요.'; return; }
   if(!securityAnswer){ errEl.textContent = '보안질문 답을 입력해주세요.'; return; }
   const payload = {
     username: document.getElementById('signup-username').value.trim(),
+    name: name,
     password: p1,
     security_question: securityQuestion,
     security_answer: securityAnswer,

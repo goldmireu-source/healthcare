@@ -371,8 +371,8 @@
         </div>
         <div class="search-bar">
           <div>
-            <label>아이디 검색</label>
-            <input type="text" id="user-search" placeholder="아이디 일부 입력" oninput="onSearchInput()" />
+            <label>아이디/이름 검색</label>
+            <input type="text" id="user-search" placeholder="아이디 또는 이름 일부 입력" oninput="onSearchInput()" />
           </div>
           <div>
             <label>권한</label>
@@ -400,6 +400,7 @@
               <tr>
                 <th class="sortable" onclick="setSort('id')">ID<span class="sort-indicator" id="sort-id"></span></th>
                 <th class="sortable" onclick="setSort('username')">아이디<span class="sort-indicator" id="sort-username"></span></th>
+                <th>이름</th>
                 <th>권한</th>
                 <th class="sortable" onclick="setSort('created_at')">가입일<span class="sort-indicator" id="sort-created_at"></span></th>
                 <th class="sortable" onclick="setSort('record_count')">기록 수<span class="sort-indicator" id="sort-record_count"></span></th>
@@ -536,6 +537,14 @@ function statusClass(cat){
 
 function escapeAttr(s){
   return String(s).replace(/'/g, "\\'");
+}
+
+// username과 달리 name(실명)은 입력 형식 제약이 없는 자유 텍스트라, 목록에 innerHTML로
+// 그대로 꽂으면 저장형 XSS가 될 수 있다 - 항상 이 함수를 거쳐서 렌더링한다.
+function escapeHtml(s){
+  const div = document.createElement('div');
+  div.textContent = String(s);
+  return div.innerHTML;
 }
 
 // ---------- 인증 ----------
@@ -1041,6 +1050,7 @@ async function loadUsers(page = currentPage){
       <tr>
         <td>${u.id}</td>
         <td>${u.username}${isSelf ? ' <span style="color:var(--muted);font-size:12px;">(나)</span>' : ''}</td>
+        <td>${u.name ? escapeHtml(u.name) : '<span style="color:var(--muted);">-</span>'}</td>
         <td><span class="badge ${roleBadgeClass(u.role)}">${u.role}</span></td>
         <td>${u.created_at ? u.created_at.slice(0,10) : '-'}</td>
         <td>${u.record_count}</td>

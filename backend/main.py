@@ -164,6 +164,7 @@ def signup(
     )
     user = models.User(
         username=payload.username,
+        name=payload.name,
         password_hash=password_hash,
         password_salt=salt,
         security_question=payload.security_question,
@@ -313,6 +314,21 @@ def change_password(
     ).delete()
     db.commit()
     return {"message": "비밀번호가 변경되었습니다."}
+
+
+@app.post("/auth/change-name", response_model=schemas.UserOut, tags=["Auth"])
+def change_name(
+    payload: schemas.NameChangeIn,
+    current_user: models.User = Depends(auth.get_current_user),
+    db: Session = Depends(get_db),
+):
+    """기존 계정에는 이름이 없을 수 있어(회원가입에 이름 항목이 없던 시절 가입) 언제든
+    직접 설정/수정할 수 있게 별도 엔드포인트로 분리했다 (관리자 사용자 관리 화면에서
+    이름으로 검색/식별할 수 있게 하기 위함)."""
+    current_user.name = payload.name
+    db.commit()
+    db.refresh(current_user)
+    return current_user
 
 
 @app.delete("/auth/me", tags=["Auth"])

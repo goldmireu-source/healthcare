@@ -12,6 +12,9 @@ class User(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     username = Column(String(50), unique=True, index=True, nullable=False)
+    # 로그인 아이디(username)와 별개인 실명/표시 이름. 기존 계정에는 값이 없을 수 있어
+    # nullable(관리자 화면에서는 "-"로 표시) - 새 회원가입부터는 필수로 받는다.
+    name = Column(String(50), nullable=True, index=True)
     password_hash = Column(String(200), nullable=False)
     password_salt = Column(String(64), nullable=False)
     role = Column(String(10), nullable=False, default="user")  # "user" | "admin"

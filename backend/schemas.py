@@ -32,6 +32,7 @@ _COMMON_WEAK_PASSWORDS = {
 
 class UserSignup(BaseModel):
     username: str = Field(..., min_length=3, max_length=30, pattern=r"^[a-zA-Z0-9_]+$")
+    name: str = Field(..., min_length=1, max_length=50)
     password: str = Field(..., min_length=6, max_length=100)
     security_question: str = Field(..., min_length=2, max_length=200)
     security_answer: str = Field(..., min_length=1, max_length=200)
@@ -58,10 +59,15 @@ class UserLogin(BaseModel):
 class UserOut(BaseModel):
     id: int
     username: str
+    name: Optional[str] = None
     role: str
 
     class Config:
         from_attributes = True
+
+
+class NameChangeIn(BaseModel):
+    name: str = Field(..., min_length=1, max_length=50)
 
 
 class SecurityQuestionOut(BaseModel):
@@ -88,6 +94,7 @@ class AccountDeleteIn(BaseModel):
 class AdminUserOut(BaseModel):
     id: int
     username: str
+    name: Optional[str] = None
     role: str
     created_at: Optional[datetime] = None
     record_count: int
