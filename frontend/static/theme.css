@@ -1,0 +1,68 @@
+/* 마이 헬스 로그 — 공용 디자인 토큰 (라이트/다크 모드)
+   index.html / admin.html 이 공유한다. 두 파일에 중복 정의되어 있던 것을
+   여기 하나로 모아 유지보수 시 값이 서로 어긋나는 것을 방지한다.
+   (병합 과정에서 index.html의 html[data-theme="dark"] 블록에 --on-accent가
+   누락되어 있던 기존 버그를 admin.html 쪽의 완전한 정의로 통일해 수정했다.) */
+:root{
+  --ink:#101B18;
+  --paper:#F5F8F7;
+  --card:#FFFFFF;
+  --card-2:#EEF3F1;
+  --line:#DEE6E3;
+  --line-strong:#C7D2CD;
+  --teal:#0D9488;
+  --teal-strong:#0B7A70;
+  --teal-soft:#E6F7F7;
+  --on-accent:#FFFFFF;
+  --cyan:#0EA5C4;
+  --cyan-soft:#D8F1F7;
+  --status-good:#17A34A;
+  --status-good-soft:#DDF7E6;
+  --amber:#D97706;
+  --amber-soft:#FCEED2;
+  --brick:#DC2626;
+  --brick-soft:#FBE2E1;
+  --muted:#5C6B67;
+  --shadow-sm:0 2px 8px rgba(16,27,24,.07);
+  --shadow-md:0 8px 24px rgba(16,27,24,.10);
+  --radius-sm:8px; --radius-md:12px; --radius-lg:16px;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --ink:#EAF4F1; --paper:#0A1211; --card:#0F1B19; --card-2:#16241F;
+    --line:#243733; --line-strong:#334843;
+    --teal:#2DD4C6; --teal-strong:#48E0D3; --teal-soft:#103330; --on-accent:#04201D;
+    --cyan:#3FC3E0; --cyan-soft:#0E2C33;
+    --status-good:#34D66F; --status-good-soft:#0F2B1A;
+    --amber:#F5A524; --amber-soft:#332208;
+    --brick:#F0605C; --brick-soft:#341412;
+    --muted:#9FB6AF;
+    --shadow-sm:0 2px 10px rgba(0,0,0,.35); --shadow-md:0 10px 28px rgba(0,0,0,.45);
+    color-scheme:dark;
+  }
+}
+html[data-theme="dark"]{
+  --ink:#EAF4F1; --paper:#0A1211; --card:#0F1B19; --card-2:#16241F;
+  --line:#243733; --line-strong:#334843;
+  --teal:#2DD4C6; --teal-strong:#48E0D3; --teal-soft:#103330; --on-accent:#04201D;
+  --cyan:#3FC3E0; --cyan-soft:#0E2C33;
+  --status-good:#34D66F; --status-good-soft:#0F2B1A;
+  --amber:#F5A524; --amber-soft:#332208;
+  --brick:#F0605C; --brick-soft:#341412;
+  --muted:#9FB6AF;
+  --shadow-sm:0 2px 10px rgba(0,0,0,.35); --shadow-md:0 10px 28px rgba(0,0,0,.45);
+  color-scheme:dark;
+}
+html[data-theme="light"]{
+  --ink:#101B18; --paper:#F5F8F7; --card:#FFFFFF; --card-2:#EEF3F1;
+  --line:#DEE6E3; --line-strong:#C7D2CD;
+  --teal:#0D9488; --teal-strong:#0B7A70; --teal-soft:#E6F7F7; --on-accent:#FFFFFF;
+  --cyan:#0EA5C4; --cyan-soft:#D8F1F7;
+  --status-good:#17A34A; --status-good-soft:#DDF7E6;
+  --amber:#D97706; --amber-soft:#FCEED2;
+  --brick:#DC2626; --brick-soft:#FBE2E1;
+  --muted:#5C6B67;
+  --shadow-sm:0 2px 8px rgba(16,27,24,.07); --shadow-md:0 8px 24px rgba(16,27,24,.10);
+  color-scheme:light;
+}

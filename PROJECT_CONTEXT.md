@@ -257,11 +257,17 @@ healthcare/
   - **신규 파일**: `backend/alembic/`(env.py, script.py.mako, versions/), `backend/alembic.ini`, `backend/pytest.ini`, `backend/requirements-dev.txt`, `backend/tests/`(conftest.py, test_auth.py, test_records.py, test_account.py)
   - **`.gitignore` 추가**: `.pytest_cache/`, `alembic/versions/__pycache__/`
 
+- [x] **AUDIT_REPORT.md 기반 고도화 — Phase C (프론트엔드 정리)** (2026-07-22)
+  7. **디자인 토큰 `theme.css`로 분리** — `index.html`/`admin.html` 양쪽에 중복 정의되어 있던 `:root`(라이트) / `@media (prefers-color-scheme: dark)` / `html[data-theme="dark"]` / `html[data-theme="light"]` 4개 토큰 블록을 `frontend/static/theme.css` 하나로 통합, 두 HTML 모두 `<link rel="stylesheet" href="theme.css">`로 참조하도록 교체(정적 파일 마운트 경로는 `/app` prefix — `app.mount("/app", StaticFiles(...))`, 루트가 아님).
+  - **병합 중 발견한 기존 버그 1건 수정**: `index.html`의 `html[data-theme="dark"]`(수동 다크모드 토글용) 블록에만 `--on-accent` 정의가 누락되어 있었음(`admin.html`의 동일 블록과 `index.html` 자신의 `@media (prefers-color-scheme: dark)` 블록에는 존재). OS가 라이트인 상태에서 사용자가 수동으로 다크모드를 켜면 `--on-accent`가 라이트값(`#FFFFFF`)으로 남아, 로그인 버튼이 흰 글씨/밝은 틸 배경으로 저대비가 되는 문제였음 — 통합 과정에서 두 파일 중 더 완전한(버그 없는) `admin.html` 버전을 정본으로 채택해 자연스럽게 수정됨.
+  - **검증**: 통합 전(`git stash`로 원본 복원) / 통합 후 각각 Playwright로 `index.html`/`admin.html` × 라이트/다크(OS 설정 기준) 스크린샷 4쌍을 비교 — 전부 픽셀 단위로 동일(사용자 요구사항인 "시각적 차이 없음" 충족). 추가로 `data-theme="dark"`를 강제 토글한 스크린샷으로 위 버그가 고쳐졌음을(로그인 버튼이 진한 잉크색 글씨로 표시) 별도 확인. 이후 서버 재시작 + curl 엔드포인트 스모크 테스트 + pytest 9개 전체 통과 확인.
+  - **신규 파일**: `frontend/static/theme.css`
+
 ## 7. 다음 작업
 
 1. (제안) 관리자 대시보드에도 사용자 화면처럼 시각화가 있으니, 향후 필요시 이 Playwright 스크린샷 검증 방식을 `/run-skill-generator`로 프로젝트 스킬화하는 것을 고려 — 매번 임시 Node 프로젝트를 새로 만들 필요 없어짐
 2. AWS Lightsail 배포 단계로 진행 (8번 섹션 참고) — **AUDIT_REPORT.md 기반 Phase A~D 작업 완료 후 진행 예정**
-3. Phase C(theme.css 분리), Phase D(CSV Import 저장 연결, OpenAI 실연동) 순서로 진행 중
+3. Phase D(CSV Import 저장 연결, OpenAI 실연동) 진행 중
 
 ## 8. 이후 계획 (미착수)
 
