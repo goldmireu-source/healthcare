@@ -172,6 +172,16 @@
   }
   #chart-tooltip strong{font-family:'IBM Plex Mono', monospace;}
 
+  /* ---------- 코호트 리텐션 히트맵 ---------- */
+  .cohort-note{font-size:var(--text-sm-plus);color:var(--muted);margin:0 0 var(--space-3);}
+  .cohort-heatmap-wrap{overflow-x:auto;}
+  .cohort-table{border-collapse:separate;border-spacing:2px;width:100%;font-size:var(--text-sm-plus);}
+  .cohort-table th{text-align:left;font-weight:600;color:var(--muted);padding:var(--space-2) var(--space-3);font-size:var(--text-xs);text-transform:uppercase;letter-spacing:.04em;}
+  .cohort-table td{padding:var(--space-2) var(--space-3);white-space:nowrap;}
+  .cohort-table td.cohort-label{color:var(--ink);font-family:'IBM Plex Mono', monospace;font-size:var(--text-sm);}
+  .cohort-cell{border-radius:var(--radius-sm);text-align:center;font-variant-numeric:tabular-nums;min-width:64px;cursor:default;}
+  .cohort-cell.empty{color:var(--muted);background:var(--card-2);}
+
   /* ---------- 분포 패널 ---------- */
   .dist-row{display:flex;align-items:center;gap:8px;margin-top:7px;font-size:var(--text-base);}
   .dist-label{width:76px;flex-shrink:0;}
@@ -371,6 +381,21 @@
         <div class="card" id="dist-bmi-card"></div>
         <div class="card" id="dist-bp-card"></div>
         <div class="card" id="dist-sugar-card"></div>
+      </div>
+
+      <div class="card">
+        <h2><span class="title-group"><span class="eyebrow">Cohort</span> 코호트 리텐션 (가입 주별)</span></h2>
+        <p class="cohort-note">가입한 주(월요일 시작)를 기준으로 묶어, 그 주 이후 N주차에 실제로 기록을 남긴 사용자 비율을 봅니다. 아직 지나지 않은 주는 "–"로 표시됩니다.</p>
+        <div class="cohort-heatmap-wrap" id="cohort-heatmap-wrap">
+          <table class="cohort-table" id="cohort-table"></table>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2><span class="title-group"><span class="eyebrow">Push</span> 리마인더 알림</span></h2>
+        <p class="cohort-note">오늘 아직 기록을 안 남기고, 알림을 구독한 사용자에게 Web Push 알림을 보냅니다. 이미 오늘 보낸 사람에게는 다시 보내지 않습니다. 배경 스케줄러가 없어 이 버튼으로 수동 발송합니다.</p>
+        <button type="button" class="btn btn-primary" id="send-reminder-btn" onclick="sendPushReminder()">오늘 리마인더 발송</button>
+        <div id="reminder-result" style="margin-top:10px;font-size:var(--text-sm-plus);color:var(--muted);"></div>
       </div>
     </section>
 
@@ -882,6 +907,42 @@ document.getElementById('trend-chart-wrap').addEventListener('click', (e) => {
   applyQuickFilter({signup_date: dateVal}, `${dateVal} 가입자`);
 });
 
+// ---------- 코호트 리텐션 히트맵 ----------
+// 값 하나하나가 비교 대상이라(막대 차트와 달리) 히트맵은 셀마다 숫자를 직접
+// 보여주는 게 정석 - 표 자체가 그대로 "테이블 뷰"라 별도 표 보기가 필요 없다.
+// 색은 --teal 단일 색상(순차 스케일)만 쓰고 진하기로 크기를 나타낸다.
+function cohortCellStyle(pct){
+  if(pct === null || pct === undefined){
+    return {className: 'cohort-cell empty', style: ''};
+  }
+  const textColor = pct >= 50 ? 'var(--on-accent)' : 'var(--ink)';
+  return {
+    className: 'cohort-cell',
+    style: `background:color-mix(in oklab, var(--teal) ${pct}%, var(--card)); color:${textColor};`,
+  };
+}
+
+function renderCohortRetention(rows){
+  const table = document.getElementById('cohort-table');
+  if(!rows || rows.length === 0){
+    table.innerHTML = '<tr><td class="empty-note">아직 가입한 사용자가 없습니다.</td></tr>';
+    return;
+  }
+  const maxWeek = Math.max(...rows.map(r => r.retention_by_week.length)) - 1;
+  const weekHeaders = Array.from({length: maxWeek + 1}, (_, i) => `<th>${i}주차</th>`).join('');
+
+  const bodyRows = rows.map(row => {
+    const cells = row.retention_by_week.map(pct => {
+      const {className, style} = cohortCellStyle(pct);
+      const label = pct === null || pct === undefined ? '–' : `${pct}%`;
+      return `<td><div class="${className}" style="${style}" title="${row.cohort_start} 코호트 · ${label}">${label}</div></td>`;
+    }).join('');
+    return `<tr><td class="cohort-label">${row.cohort_start}</td><td>${row.cohort_size}명</td>${cells}</tr>`;
+  }).join('');
+
+  table.innerHTML = `<thead><tr><th>가입 주</th><th>인원</th>${weekHeaders}</tr></thead><tbody>${bodyRows}</tbody>`;
+}
+
 async function loadStats(){
   try{
     const res = await fetch('/admin/stats', {credentials:'same-origin'});
@@ -892,6 +953,7 @@ async function loadStats(){
     document.getElementById('dist-bmi-card').innerHTML = distHtml('BMI 분류 (전체 사용자)', s.bmi_category_distribution);
     document.getElementById('dist-bp-card').innerHTML = distHtml('혈압 분류 (전체 사용자)', s.bp_category_distribution);
     document.getElementById('dist-sugar-card').innerHTML = distHtml('혈당 분류 (전체 사용자)', s.sugar_category_distribution);
+    renderCohortRetention(s.cohort_retention);
   }catch(e){
     toast(e.message, 'error');
   }
@@ -1270,6 +1332,25 @@ function closeUserRecords(){
 }
 
 // ---------- 강제 로그아웃 / 계정 삭제 ----------
+async function sendPushReminder(){
+  const btn = document.getElementById('send-reminder-btn');
+  const resultEl = document.getElementById('reminder-result');
+  const ok = await customConfirm('오늘 기록을 안 남긴 구독자 전원에게 리마인더 알림을 보낼까요?', '리마인더 발송');
+  if(!ok) return;
+  btn.disabled = true;
+  try{
+    const res = await fetch('/push/send-reminder', {method:'POST', credentials:'same-origin'});
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.detail || '발송에 실패했습니다.');
+    toast(`${data.sent}명에게 발송 완료`, 'success');
+    resultEl.textContent = `발송 ${data.sent}건 · 이미 활동함 ${data.skipped_already_active}건 · 오늘 이미 발송됨 ${data.skipped_already_sent}건 · 실패(구독 만료 등) ${data.failed}건`;
+  }catch(e){
+    toast('리마인더 발송 실패: ' + e.message, 'error');
+  }finally{
+    btn.disabled = false;
+  }
+}
+
 async function forceLogout(id, username){
   const ok = await customConfirm(`'${username}'의 모든 로그인 세션을 무효화할까요? 계정은 삭제되지 않고, 다음 요청부터 다시 로그인해야 합니다.`, '강제 로그아웃');
   if(!ok) return;

@@ -141,6 +141,12 @@ class SignupTrendPoint(BaseModel):
     count: int
 
 
+class CohortRetentionRow(BaseModel):
+    cohort_start: str
+    cohort_size: int
+    retention_by_week: List[Optional[float]]
+
+
 class AdminStatsOut(BaseModel):
     total_users: int
     total_records: int
@@ -162,6 +168,9 @@ class AdminStatsOut(BaseModel):
     high_risk_growth_rate: Optional[float] = None  # 7일 전 대비 고위험 사용자 증가율(%)
     signup_to_record_rate: float = 0.0  # 최근 30일 가입자 중 기록 작성 비율(%)
     online_users_count: int = 0  # 만료되지 않은 세션을 보유한(로그인 상태인) 사용자 수
+    # 가입 주(월요일 기준) 코호트별로 N주차에 그 주간 활동이 있었던 비율(%).
+    # retention_by_week[i]가 null이면 그 주차가 아직 도래하지 않아 계산 불가.
+    cohort_retention: List[CohortRetentionRow] = []
 
 
 class AuditLogOut(BaseModel):
@@ -453,3 +462,32 @@ class ImportRowError(BaseModel):
 class ImportCommitOut(BaseModel):
     count: int
     records: List[RecordOut]
+
+
+# ---------- Web Push (리마인더 알림) ----------
+
+class VapidPublicKeyOut(BaseModel):
+    enabled: bool  # 서버에 VAPID 키가 설정 안 돼 있으면 false (public_key는 빈 문자열)
+    public_key: str = ""
+
+
+class PushSubscriptionKeys(BaseModel):
+    p256dh: str
+    auth: str
+
+
+class PushSubscriptionIn(BaseModel):
+    """브라우저 PushSubscription.toJSON()이 주는 형태 그대로 받는다."""
+    endpoint: str = Field(..., max_length=500)
+    keys: PushSubscriptionKeys
+
+
+class PushUnsubscribeIn(BaseModel):
+    endpoint: str = Field(..., max_length=500)
+
+
+class SendReminderOut(BaseModel):
+    sent: int
+    skipped_already_active: int  # 오늘 이미 기록을 남겨 리마인더가 필요 없는 사용자 수
+    skipped_already_sent: int  # 오늘 이미 리마인더를 보낸 구독 수
+    failed: int  # 만료/무효 구독이라 삭제 처리한 수

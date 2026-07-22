@@ -11,7 +11,7 @@ normal/unknown")은 건드리지 않고, 이 모듈은 health_score.py의 카테
 """
 
 from dataclasses import dataclass
-from datetime import date as date_cls, timedelta
+from datetime import date as date_cls, datetime, timedelta
 from typing import Dict, List, Optional
 
 import models
@@ -20,6 +20,7 @@ from health_score import BAD_CATEGORIES
 ACTIVITY_WINDOW_DAYS = 7  # "최근 활동" 판정 기준 일수
 SIGNUP_CONVERSION_WINDOW_DAYS = 30  # "최근 가입" 판정 기준 일수
 RISK_GROWTH_WINDOW_DAYS = 7  # 위험 사용자 증가율 비교 기준 일수
+COHORT_MAX_WEEK_OFFSET = 3  # 코호트 리텐션을 몇 주차까지 볼지 (0=가입 주, 1=1주 후, ...)
 
 
 def _average(values: List[Optional[float]]) -> Optional[float]:
@@ -102,3 +103,60 @@ def compute_admin_analytics(
         high_risk_growth_rate=high_risk_growth_rate,
         signup_to_record_rate=signup_to_record_rate,
     )
+
+
+@dataclass(frozen=True)
+class CohortRow:
+    cohort_start: str  # 코호트(가입 주, 월요일 시작) 시작일 "YYYY-MM-DD"
+    cohort_size: int
+    # index 0 = 가입 주(week 0), 1 = 1주 후, ... COHORT_MAX_WEEK_OFFSET까지.
+    # 아직 도래하지 않은 주는 None(계산 자체가 불가능한 것과 "그 주에 활동 없었음"을 구분).
+    retention_by_week: List[Optional[float]]
+
+
+def compute_cohort_retention(
+    users: List[models.User],
+    records: List[models.HealthRecord],
+    today: Optional[date_cls] = None,
+    max_week_offset: int = COHORT_MAX_WEEK_OFFSET,
+) -> List[CohortRow]:
+    """가입 주(월요일 기준) 단위로 사용자를 묶어, 가입 후 N주차에 그 주 동안
+    기록을 하나라도 남긴 비율을 계산한다 (표준적인 코호트 리텐션 정의 - "그 이후
+    아무 때나 활동"이 아니라 "그 특정 주간에 활동"인지를 본다).
+    """
+    if today is None:
+        today = date_cls.today()
+
+    record_dates_by_user: Dict[int, List[date_cls]] = {}
+    for r in records:
+        record_dates_by_user.setdefault(r.user_id, []).append(
+            datetime.strptime(r.date, "%Y-%m-%d").date()
+        )
+
+    cohorts: Dict[date_cls, List[models.User]] = {}
+    for u in users:
+        if not u.created_at:
+            continue
+        signup_date = u.created_at.date()
+        cohort_start = signup_date - timedelta(days=signup_date.weekday())  # 그 주의 월요일
+        cohorts.setdefault(cohort_start, []).append(u)
+
+    rows: List[CohortRow] = []
+    for cohort_start in sorted(cohorts.keys()):
+        cohort_users = cohorts[cohort_start]
+        size = len(cohort_users)
+        retention: List[Optional[float]] = []
+        for week_offset in range(max_week_offset + 1):
+            window_start = cohort_start + timedelta(days=week_offset * 7)
+            if window_start > today:
+                retention.append(None)
+                continue
+            window_end = window_start + timedelta(days=6)
+            active = sum(
+                1 for u in cohort_users
+                if any(window_start <= d <= window_end for d in record_dates_by_user.get(u.id, []))
+            )
+            retention.append(round(active / size * 100, 1) if size else 0.0)
+        rows.append(CohortRow(cohort_start=cohort_start.isoformat(), cohort_size=size, retention_by_week=retention))
+
+    return rows

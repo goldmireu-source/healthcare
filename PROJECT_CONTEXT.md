@@ -344,11 +344,24 @@ healthcare/
   - 회귀: `pytest -q` 41 passed, 0 warnings(신규 스크립트는 앱 런타임과 무관해 기존 테스트에 영향 없음). curl 스모크는 이번 Phase에서 서버 동작 자체를 바꾸지 않아 생략.
   - **신규 파일**: `backend/backup_db.py`
 
+- [x] **AUDIT_REPORT.md + CTO_AUDIT_REPORT.md 기반 종합 개선 — Phase 7 (관리자 시각화 확장 + 최소 웹 푸시, 사용자 확인 후 진행)** (2026-07-23)
+  1. **코호트/리텐션 분석** — `admin_analytics.py`에 `compute_cohort_retention()` 추가. 가입 주(월요일 시작 기준)로 사용자를 묶어, 그 코호트가 N주차(0~3주차)에 **그 특정 주간에** 실제로 기록을 남긴 비율을 계산(표준적인 코호트 리텐션 정의 — "그 이후 아무때나 활동"이 아니라 "그 주에 활동"). 아직 도래하지 않은 주는 `null`로 구분(0%와 혼동 방지). `AdminStatsOut.cohort_retention`으로 노출.
+     - **dataviz 스킬 적용**: "여러 값을 비교하는 그리드"라 히트맵이 정답(choosing-a-form.md). CSS `color-mix(in oklab, var(--teal) N%, var(--card))`로 순차(sequential) 단일 색조 램프를 구현 — 기존 --teal/--card 토큰이 이미 라이트/다크별로 정의돼 있어 다크모드 대응이 별도 작업 없이 자동으로 됨. 값이 몇 개 안 되는 그리드라 히트맵 관례대로 셀마다 숫자를 직접 표기(막대 차트의 "포인트마다 숫자 금지"와는 다른 케이스 - 표 자체가 곧 "테이블 뷰"라 별도 표 보기 불필요).
+     - 검증: `models.User`/`HealthRecord`를 세션 없이 메모리에서 구성해 코호트 경계(월요일 기준)·미도래 주 null 처리·복수 코호트 계산을 pytest로 정밀 검증(`test_admin_analytics.py`, 3개). 실제 개발 DB(50명) 대상으로도 실행해 코호트 인원 합계가 총 사용자 수(50)와 정확히 일치함을 확인. Playwright로 라이트/다크 양쪽 스크린샷 확인 — 색상이 테마별로 올바르게 반전됨.
+  2. **최소 Web Push 알림/리마인더** — `pywebpush`/`py-vapid` 추가, VAPID 키 쌍을 생성해 `.env`(로컬)/`.env.example`(템플릿)에 반영. `PushSubscription` 모델(엔드포인트당 1행, `last_reminder_sent_date`로 당일 중복 발송 방지) + Alembic 마이그레이션. `routers/push_router.py`: `GET /push/vapid-public-key`, `POST /push/subscribe`(같은 endpoint 재구독 시 upsert), `POST /push/unsubscribe`, `POST /push/send-reminder`(관리자 전용).
+     - **설계 결정 — 왜 수동 발송인가**: 이 프로젝트는 배경 스케줄러(APScheduler/Celery 등)를 쓰지 않고 지연 평가로 버텨왔다(`auth.cleanup_expired_sessions`/`badges.py`/`CoachingCache` 참고 — 전부 "그 사용자가 다시 접속했을 때"만 평가). 하지만 리마인더 알림은 정의상 "안 돌아온 사람을 부르는 것"이라 그 사용자 자신의 요청 사이클 안에서는 절대 트리거될 수 없다 - 그래서 이 기능만 예외적으로 관리자가 누르는 수동 트리거로 구현했고, 실제 매일 자동 발송이 필요하면 배포 단계에서 이 엔드포인트를 cron으로 호출하면 된다(Phase 6 백업 스크립트와 동일한 경계 — 스크립트/엔드포인트는 만들어 두고 스케줄 등록은 배포 시로 미룸).
+     - 프론트: `frontend/static/sw.js`(서비스 워커, `/app/sw.js`로 서빙 - `/app/` 스코프 전체를 제어) 신설. `index.html` 계정 설정 모달에 "알림 받기/꺼두기" 토글 버튼(Notification 권한 요청 → 서비스 워커 등록 → VAPID 공개키로 구독 → 서버에 등록, 실패해도 toast로만 알리고 앱이 깨지지 않게 처리). `admin.html` 개요 탭에 "오늘 리마인더 발송" 버튼(발송/이미 활동함/이미 발송됨/실패 건수를 결과로 표시).
+     - **정적 파일 캐싱 보완**: Phase 3의 "CSS/JS는 1시간 캐시" 규칙이 `sw.js`에도 적용되고 있던 걸 발견해, 서비스 워커는 갱신 시점이 중요하므로 `no-cache`로 예외 처리 추가(`main.py`).
+     - 검증: pytest 8개 신규(`test_push.py`) — 구독/구독해제/같은 endpoint 재구독 시 upsert(행 안 늘어남)/관리자 아니면 403/오늘 활동한 사용자 건너뜀/오늘 이미 보낸 구독 건너뜀/410 응답 시 만료 구독 자동 삭제까지 `pywebpush.webpush()`를 monkeypatch로 대체해 실제 네트워크 호출 없이 "누구를 고르는 로직"만 검증. **테스트 작성 중 자체 버그 발견**: 테스트 파일 최상단에서 `routers.push_router`를 import해두면 conftest의 매 테스트 재로드(`_reset_app_modules`) 이후에는 오래된 모듈 참조가 되어 monkeypatch가 실제 요청 처리 경로에 반영되지 않음 — 각 테스트 함수 안에서(픽스처가 재로드를 끝낸 뒤) import하도록 수정(Phase 2-3 라우터 분리 때 겪은 것과 같은 종류의 문제).
+     - **Playwright 검증의 한계 (문서화)**: Chromium은 기본(incognito 유사) 컨텍스트에서 Push API 자체를 지원하지 않음(`crbug.com/41124656`) - `launch_persistent_context()`로 우회해봐도 이 샌드박스 환경엔 실제 푸시 서비스(Google/Mozilla)로 나가는 네트워크 경로가 없어 "push service not available"로 끝남. 서비스 워커 등록 성공 + 알림 권한 플로우 + 실패 시 정상적으로 toast만 뜨고 앱이 안 깨지는 것까지는 실제 브라우저로 확인했고, 실제 푸시 전송 자체는 HTTPS로 배포된 진짜 브라우저 환경에서만 검증 가능(문서화된 한계 — 회피 없이 있는 그대로 기록).
+  - 회귀: `pytest -q` **52 passed, 0 warnings** / curl 스모크(로그인·`/admin/stats`·`/push/vapid-public-key`·`/app/sw.js`·`/docs`) 전부 정상 / Playwright로 코호트 히트맵 라이트·다크, 관리자 리마인더 발송 버튼(확인 모달→발송→결과 렌더링) 확인. 테스트 계정 삭제 후 DB 50명/62건 기준선 복귀 확인.
+  - **신규 파일**: `backend/routers/push_router.py`, `backend/tests/test_admin_analytics.py`, `backend/tests/test_push.py`, `backend/alembic/versions/3fcbd6117404_add_push_subscriptions_table.py`, `frontend/static/sw.js`
+
 ## 7. 다음 작업
 
 1. (제안) 관리자 대시보드에도 사용자 화면처럼 시각화가 있으니, 향후 필요시 이 Playwright 스크린샷 검증 방식을 `/run-skill-generator`로 프로젝트 스킬화하는 것을 고려 — 매번 임시 Node 프로젝트를 새로 만들 필요 없어짐
-2. AWS Lightsail 배포 단계로 진행 (8번 섹션 참고) — **CTO_AUDIT_REPORT.md 기반 Phase 1~6 작업 전부 완료.** Phase 7(관리자 시각화 확장/알림)은 시작 여부를 사용자에게 반드시 확인받아야 함(사용자 지시).
-3. **다음 액션: 전체 git push 완료 후, Phase 7(관리자 대시보드 시각화 확장 + 최소 웹 푸시 알림) 진행 여부를 사용자에게 질문** — 난이도/범위가 커서 시작 전 확인이 필수라고 사용자가 명시함.
+2. AWS Lightsail 배포 단계로 진행 (8번 섹션 참고) — **CTO_AUDIT_REPORT.md 기반 Phase 1~7 작업 전부 완료.**
+3. **다음 액션**: 실제 배포(AWS Lightsail, HTTPS, `COOKIE_SECURE=true`, VAPID 키 운영값 재발급, `POST /push/send-reminder` cron 등록 검토) — 이 프로젝트가 지금까지 명시적으로 범위 밖으로 남겨둔 마지막 단계.
 
 ## 8. 이후 계획 (미착수)
 

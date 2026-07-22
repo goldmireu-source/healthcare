@@ -18,7 +18,7 @@ from sqlalchemy.orm import Session
 
 import models
 import schemas
-from admin_analytics import compute_admin_analytics
+from admin_analytics import compute_admin_analytics, compute_cohort_retention
 
 RISK_BAD_CATEGORIES = {"고혈압", "비만", "당뇨 의심"}
 RISK_WARN_CATEGORIES = {"주의", "과체중", "공복혈당장애", "부족", "과다", "저체중"}
@@ -283,6 +283,14 @@ def compute_admin_stats(db: Session) -> schemas.AdminStatsOut:
 
     analytics = compute_admin_analytics(users, records, today=today)
     online_users_count = len(_online_user_ids(db) & {u.id for u in users})
+    cohort_retention = [
+        schemas.CohortRetentionRow(
+            cohort_start=row.cohort_start,
+            cohort_size=row.cohort_size,
+            retention_by_week=row.retention_by_week,
+        )
+        for row in compute_cohort_retention(users, records, today=today)
+    ]
 
     return schemas.AdminStatsOut(
         total_users=len(users),
@@ -303,4 +311,5 @@ def compute_admin_stats(db: Session) -> schemas.AdminStatsOut:
         high_risk_growth_rate=analytics.high_risk_growth_rate,
         signup_to_record_rate=analytics.signup_to_record_rate,
         online_users_count=online_users_count,
+        cohort_retention=cohort_retention,
     )

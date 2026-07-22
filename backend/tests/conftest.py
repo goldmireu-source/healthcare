@@ -43,6 +43,12 @@ def app_context(monkeypatch, tmp_path):
     """
     monkeypatch.setenv("DB_DIR", str(tmp_path))
     monkeypatch.setenv("ALLOWED_ORIGINS", "")
+    # Web Push 테스트가 로컬 .env 유무나 CI 환경과 무관하게 결정적으로 동작하도록,
+    # push_router.py가 import 시점에 읽는 VAPID 키를 테스트 전용 값으로 고정한다
+    # (실제 발송은 테스트에서 pywebpush.webpush 자체를 모킹하므로 이 키로 진짜
+    # 푸시 서비스에 요청이 나가지는 않는다).
+    monkeypatch.setenv("VAPID_PUBLIC_KEY", "BKXcN4ihF7uUt4Np6IWsA5oi5dn-ohfiIRXGIcMcsWgnilgF6IP3xWc7kyNaVrcECcgw-SJ_n_dXArbU5B8jHy0")
+    monkeypatch.setenv("VAPID_PRIVATE_KEY", "uvfYLMDFpVHEwgXETYUYCWBKu9xwRKq2TkS7Nh51NXs")
     _reset_app_modules()
 
     import database as database_module

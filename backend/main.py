@@ -25,6 +25,7 @@ from routers import (
     ai_coach_router,
     integrations_router,
     admin_router,
+    push_router,
 )
 
 logging.basicConfig(level=logging.INFO)
@@ -83,7 +84,12 @@ async def add_security_headers(request: Request, call_next):
 async def add_static_cache_headers(request: Request, call_next):
     response = await call_next(request)
     if request.url.path.startswith("/app/"):
-        if request.url.path.endswith((".css", ".js")):
+        if request.url.path == "/app/sw.js":
+            # 서비스 워커는 갱신 시점이 중요해 캐시하면 배포한 새 버전이 늦게
+            # 적용될 수 있음 - 브라우저 자체도 24시간 상한을 두지만, 서버에서도
+            # 매번 재검증하도록 강제해 그보다 더 빨리 갱신되게 한다.
+            response.headers["Cache-Control"] = "no-cache"
+        elif request.url.path.endswith((".css", ".js")):
             response.headers["Cache-Control"] = "public, max-age=3600"
         elif request.url.path.endswith(".html") or request.url.path in ("/app/", "/app"):
             response.headers["Cache-Control"] = "no-cache"
@@ -129,6 +135,7 @@ app.include_router(export_router.router)
 app.include_router(ai_coach_router.router)
 app.include_router(integrations_router.router)
 app.include_router(admin_router.router)
+app.include_router(push_router.router)
 
 
 # backend/와 frontend/는 항상 형제 폴더 (로컬 저장소 구조, Dockerfile 모두 이 배치를 유지함).

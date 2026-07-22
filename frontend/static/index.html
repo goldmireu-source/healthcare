@@ -530,6 +530,12 @@
       <button type="submit" class="btn btn-primary" style="width:100%;">이름 변경</button>
     </form>
 
+    <h4>알림</h4>
+    <div style="margin-bottom:20px;">
+      <p style="font-size:var(--text-sm-plus);color:var(--muted);margin:0 0 10px;">기록을 안 남긴 날 브라우저 알림으로 리마인드해드려요.</p>
+      <button type="button" class="btn btn-ghost" id="push-toggle-btn" style="width:100%;" onclick="togglePushSubscription()">알림 상태 확인 중...</button>
+    </div>
+
     <h4>비밀번호 변경</h4>
     <form id="change-password-form" onsubmit="submitChangePassword(event)">
       <div style="margin-bottom:10px;">
@@ -918,10 +924,80 @@ function openAccountSettings(){
   document.getElementById('cn-name').value = (currentUser && currentUser.name) || '';
   document.getElementById('change-password-form').reset();
   document.getElementById('delete-account-password').value = '';
+  refreshPushToggleButton();
 }
 
 function closeAccountSettings(){
   document.getElementById('account-modal').style.display = 'none';
+}
+
+// ---------- Web Push 알림 구독 (최소 구현) ----------
+// VAPID 공개키는 base64url 문자열로 오는데 PushManager.subscribe()의
+// applicationServerKey는 Uint8Array를 요구해서 변환이 필요함 (MDN 표준 스니펫).
+function urlBase64ToUint8Array(base64String){
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = window.atob(base64);
+  return Uint8Array.from([...rawData].map(c => c.charCodeAt(0)));
+}
+
+async function getExistingPushSubscription(){
+  if(!('serviceWorker' in navigator) || !('PushManager' in window)) return null;
+  const registration = await navigator.serviceWorker.getRegistration('/app/');
+  if(!registration) return null;
+  return registration.pushManager.getSubscription();
+}
+
+async function refreshPushToggleButton(){
+  const btn = document.getElementById('push-toggle-btn');
+  if(!('serviceWorker' in navigator) || !('PushManager' in window)){
+    btn.textContent = '이 브라우저는 알림을 지원하지 않아요';
+    btn.disabled = true;
+    return;
+  }
+  btn.disabled = false;
+  const sub = await getExistingPushSubscription();
+  btn.textContent = sub ? '🔔 알림 꺼두기' : '🔕 알림 받기';
+}
+
+async function togglePushSubscription(){
+  const btn = document.getElementById('push-toggle-btn');
+  try{
+    const existing = await getExistingPushSubscription();
+    if(existing){
+      await apiSend('/push/unsubscribe', 'POST', {endpoint: existing.endpoint});
+      await existing.unsubscribe();
+      toast('알림을 껐어요.', 'success');
+      refreshPushToggleButton();
+      return;
+    }
+
+    const permission = await Notification.requestPermission();
+    if(permission !== 'granted'){
+      toast('브라우저 알림 권한이 필요해요.', 'error');
+      return;
+    }
+
+    const keyData = await apiGet('/push/vapid-public-key');
+    if(!keyData.enabled){
+      toast('서버에 알림 기능이 아직 설정되어 있지 않아요.', 'error');
+      return;
+    }
+
+    const registration = await navigator.serviceWorker.register('/app/sw.js');
+    await navigator.serviceWorker.ready;
+    const subscription = await registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(keyData.public_key),
+    });
+    const subJson = subscription.toJSON();
+    await apiSend('/push/subscribe', 'POST', {endpoint: subJson.endpoint, keys: subJson.keys});
+    toast('알림을 켰어요!', 'success');
+    btn.textContent = '🔔 알림 꺼두기';
+  }catch(e){
+    toast('알림 설정 중 문제가 발생했어요: ' + e.message, 'error');
+    console.error(e);
+  }
 }
 
 async function submitChangeName(ev){

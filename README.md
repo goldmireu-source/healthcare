@@ -9,9 +9,10 @@
 ```text
 healthcare/
 ├── backend/                 # FastAPI 서버 (Python) — API 담당자가 보는 영역
-│   ├── main.py              #   앱 진입점, 라우트 전체 (엔드포인트 목록은 아래 참고)
+│   ├── main.py              #   앱 초기화(미들웨어/예외 핸들러/정적 파일 서빙)만 담당 - 라우트는 routers/ 참고
+│   ├── routers/              #   도메인별 APIRouter (auth/records/goals/reports/export/ai_coach/integrations/admin/push)
 │   ├── auth.py              #   비밀번호 해시(PBKDF2), 세션 발급/검증, 관리자 권한 체크
-│   ├── models.py             #   SQLAlchemy ORM (User/Session/HealthRecord/Goal/AuditLog/Badge/CoachingCache)
+│   ├── models.py             #   SQLAlchemy ORM (User/Session/HealthRecord/Goal/AuditLog/Badge/CoachingCache/PushSubscription)
 │   ├── schemas.py            #   Pydantic 요청/응답 모델
 │   ├── database.py           #   DB 연결 설정 (SQLite, ../data/health_log.db)
 │   ├── health_logic.py       #   BMI/혈압/혈당 계산·분류·경고·활동량·수면 로직
@@ -45,7 +46,9 @@ healthcare/
 │   └── static/               # 화면 담당자가 보는 영역 — 별도 빌드 없는 순수 HTML/CSS/JS
 │       ├── index.html        #   일반 사용자 화면 (/app/)
 │       ├── admin.html        #   관리자 대시보드 (/app/admin.html, index.html과 완전 분리)
-│       └── theme.css         #   두 화면이 공유하는 라이트/다크 디자인 토큰
+│       ├── theme.css         #   두 화면이 공유하는 라이트/다크 디자인 토큰(색상/간격/타이포그래피 스케일)
+│       ├── shared.js         #   두 화면이 공유하는 공통 JS(apiGet/apiSend/toast/escapeHtml)
+│       └── sw.js             #   Web Push 알림용 서비스 워커
 ├── data/                     # sqlite 파일 저장 위치 (git에 포함 안 됨, 런타임에 생성)
 ├── Dockerfile                # backend/, frontend/를 그대로 담아 이미지 빌드
 ├── AUDIT_REPORT.md           # 외부 코드 감사 보고서 (보안/인프라/기능 개선 근거 자료)
@@ -130,7 +133,7 @@ CRUD를 넘어 기록을 분석하고 행동을 유도하는 기능들입니다.
 | 메서드·경로 | 설명 |
 |---|---|
 | `GET /admin/users` | 전체 사용자 목록. `search`(아이디 **또는 이름** 부분검색), `role`(user/admin), `risk`(high/moderate/normal/unknown), `online`(true=현재 로그인 상태), `signup_days`/`signup_date`/`active_days`/`has_records`(개요 KPI 드릴다운용 필터), `sort_by`/`sort_dir`(id·username·created_at·record_count·risk_level), `page`/`page_size` 지원 |
-| `GET /admin/stats` | 시스템 전체 통계 — 총 사용자/기록 수, role 분포, 최근 7일 신규가입, 최근 14일 가입 추이, 현재 접속중인 사용자 수, 전체 사용자 BMI/혈압/혈당 분포, 최근 활동률/기록 유지율/가입 전환율/고위험 사용자 증가율 등 참여도 지표 |
+| `GET /admin/stats` | 시스템 전체 통계 — 총 사용자/기록 수, role 분포, 최근 7일 신규가입, 최근 14일 가입 추이, 현재 접속중인 사용자 수, 전체 사용자 BMI/혈압/혈당 분포, 최근 활동률/기록 유지율/가입 전환율/고위험 사용자 증가율, **가입 주(코호트)별 N주차 리텐션(`cohort_retention`)** 등 참여도 지표 |
 | `GET /admin/users/{id}` | 사용자 상세 정보(회원정보 보기) — 이름/권한/가입일/보안질문/로그인 실패 횟수/계정 잠금 상태/접속 상태/활성 세션 수/최근 로그인 시각/기록 수/위험도 (비밀번호 해시 등 민감정보는 응답에 포함 안 함) |
 | `GET /admin/users/{id}/records` | 특정 사용자의 건강기록 조회 (읽기 전용, 고객지원용) |
 | `POST /admin/users/{id}/force-logout` | 계정은 유지한 채 해당 사용자의 모든 세션만 무효화 |
@@ -141,12 +144,25 @@ CRUD를 넘어 기록을 분석하고 행동을 유도하는 기능들입니다.
 
 "현재 접속중"(`is_online`)은 실시간 접속 추적(하트비트/웹소켓)이 아니라 **만료되지 않은 로그인 세션 보유 여부**를 대리 지표로 씁니다 — 로그아웃하지 않고 창만 닫아도 세션 만료(7일) 전까지는 온라인으로 표시됩니다.
 
+### Web Push 알림 (리마인더, 최소 구현)
+
+`VAPID_PUBLIC_KEY`/`VAPID_PRIVATE_KEY` 환경변수가 설정돼 있어야 동작합니다(둘 다 비어있으면 구독 API가 503). 이 프로젝트는 배경 스케줄러(APScheduler/Celery 등)를 쓰지 않는 방침이라, 자동으로 매일 알림이 나가지는 않고 **관리자가 수동으로 발송을 트리거**합니다.
+
+| 메서드·경로 | 설명 |
+|---|---|
+| `GET /push/vapid-public-key` | 브라우저의 `PushManager.subscribe()`에 필요한 VAPID 공개키 (로그인 필요) |
+| `POST /push/subscribe` | 브라우저 `PushSubscription.toJSON()` 값을 그대로 저장 (기기/브라우저별로 여러 개 가능) |
+| `POST /push/unsubscribe` | 구독 해제 |
+| `POST /push/send-reminder` | (관리자 전용) 오늘 기록을 안 남기고 구독 중인 사용자에게 알림 발송. 이미 기록한 사용자·오늘 이미 보낸 구독은 건너뛰고, 만료된 구독(410)은 자동 정리 |
+
+실제 서비스에서 매일 자동 발송하려면 배포 단계에서 `POST /push/send-reminder`를 하루 한 번 cron으로 호출하면 됩니다 — 그 자동 스케줄 등록 자체는 이 프로젝트 범위 밖입니다 (`backend/backup_db.py`와 같은 경계).
+
 ### 화면 (별도 빌드 없는 순수 HTML/CSS/JS)
 
 `/docs`는 개발자용 API 테스트 도구이고, 실제 화면은 두 개로 **완전히 분리**되어 있습니다 — 서로를 리다이렉트하거나 링크하지 않으며, 각자 독립적으로 로그인 상태를 확인합니다.
 
-- **`/app/`** — 일반 사용자 화면. 대시보드 히어로(건강 스코어 링 + 체중/혈압/혈당 카드 + 활동량/수면), AI Health Coach 카드, 이상 징후 감지 배너, 기록 입력(+"이전 값 불러오기")/조회/검색/수정/삭제, 목표 진행률·최근 배지·이번주 변화 요약, 통계(측정 추이 차트, 건강 캘린더, 타임라인), 목표(달성 예측 포함), 주간 리포트(+AI 요약), CSV/JSON 내보내기, CSV 가져오기(미리보기 후 저장), 계정 설정(이름 변경/비밀번호 변경/탈퇴), 비밀번호 찾기
-- **`/app/admin.html`** — 관리자 대시보드. 사이드바 네비게이션(개요 / 사용자 관리 / 감사 로그), 클릭 가능한 KPI 카드(각 수치의 근거가 되는 사용자 목록으로 드릴다운), 가입 추이 차트(막대 클릭 시 해당 날짜 가입자 필터링), 분류별 분포, 검색(아이디/이름)·정렬·필터(권한/위험도/접속 상태)가 되는 사용자 테이블, 사용자별 기록 조회 드로어, 회원정보 보기(계정 상세), 강제 로그아웃/계정 삭제, 감사 로그. **이 화면 자체에 독립적인 로그인 폼이 있어** 유저 화면을 거치지 않고 바로 접속·로그인합니다.
+- **`/app/`** — 일반 사용자 화면. 대시보드 히어로(건강 스코어 링 + 체중/혈압/혈당 카드 + 활동량/수면), AI Health Coach 카드, 이상 징후 감지 배너, 기록 입력(+"이전 값 불러오기", 가입 직후엔 예시 값 채우기 버튼이 있는 온보딩 배너)/조회(서버사이드 페이지네이션)/검색/수정/삭제, 목표 진행률·최근 배지·이번주 변화 요약, 통계(측정 추이 차트, 건강 캘린더, 타임라인), 목표(달성 예측 포함), 주간 리포트(+AI 요약), CSV/JSON 내보내기, CSV 가져오기(미리보기 후 저장), 계정 설정(이름 변경/비밀번호 변경/**Web Push 알림 켜기·끄기**/탈퇴), 비밀번호 찾기
+- **`/app/admin.html`** — 관리자 대시보드. 사이드바 네비게이션(개요 / 사용자 관리 / 감사 로그), 클릭 가능한 KPI 카드(각 수치의 근거가 되는 사용자 목록으로 드릴다운), 가입 추이 차트(막대 클릭 시 해당 날짜 가입자 필터링), **코호트 리텐션 히트맵(가입 주별 N주차 활동 비율)**, 분류별 분포, 검색(아이디/이름)·정렬·필터(권한/위험도/접속 상태)가 되는 사용자 테이블, 사용자별 기록 조회 드로어, 회원정보 보기(계정 상세), 강제 로그아웃/계정 삭제, **리마인더 알림 수동 발송**, 감사 로그. **이 화면 자체에 독립적인 로그인 폼이 있어** 유저 화면을 거치지 않고 바로 접속·로그인합니다.
 
 두 화면은 `theme.css`(라이트/다크 디자인 토큰)를 공유하고, 라이트/시스템/다크 3단 테마 토글을 제공합니다. 아이콘 전용 네비게이션에는 `aria-label`을, 목록의 반복 액션 버튼에는 대상을 식별할 수 있는 구체적인 `aria-label`을 붙여뒀습니다(스크린 리더 접근성 1차 개선).
 
@@ -175,6 +191,7 @@ CRUD를 넘어 기록을 분석하고 행동을 유도하는 기능들입니다.
 - `audit_logs` — 관리자 조치 이력 (대상 계정이 삭제돼도 이력은 남도록 username을 문자열로 저장)
 - `badges` — 자동 획득 배지(연속 기록/첫 정상 지표/첫 목표 달성)
 - `coaching_cache` — AI Health Coach 메시지 캐시 (사용자당 1건, 하루 1회만 재생성)
+- `push_subscriptions` — Web Push 구독 정보(기기/브라우저별로 여러 건 가능), 오늘 리마인더 발송 여부 기록
 
 ### 환경변수
 
@@ -195,6 +212,8 @@ cp .env.example .env
 | `OPENAI_API_KEY` | (없음) | 설정하면 AI Health Coach가 규칙 기반 대신 실제 OpenAI API를 사용 (키가 없거나 호출 실패/타임아웃 시 자동으로 규칙 기반 폴백) |
 | `OPENAI_COACHING_MODEL` | `gpt-4o-mini` | `OPENAI_API_KEY` 설정 시 사용할 모델 |
 | `COOKIE_SECURE` | `false` | HTTPS 배포 시 `true`로 설정 권장 |
+| `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` | (없음) | 둘 다 설정해야 Web Push 알림이 동작 (하나라도 비면 구독 API가 503). 생성법은 `.env.example` 참고 |
+| `VAPID_CLAIMS_EMAIL` | `admin@example.com` | 푸시 발송 시 VAPID 클레임에 담기는 연락처 |
 
 ### DB 스키마 변경 (Alembic)
 

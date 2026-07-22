@@ -42,6 +42,9 @@ class User(Base):
     coaching_cache = relationship(
         "CoachingCache", back_populates="user", cascade="all, delete-orphan", uselist=False
     )
+    push_subscriptions = relationship(
+        "PushSubscription", back_populates="user", cascade="all, delete-orphan"
+    )
 
 
 class Session(Base):
@@ -164,3 +167,26 @@ class CoachingCache(Base):
     messages_json = Column(Text, nullable=False)  # JSON 문자열로 저장된 메시지 리스트
 
     user = relationship("User", back_populates="coaching_cache")
+
+
+class PushSubscription(Base):
+    """브라우저 Web Push 구독 정보 (사용자당 여러 기기/브라우저를 가질 수 있음).
+
+    endpoint/p256dh/auth는 브라우저의 PushSubscription.toJSON()이 그대로 주는 값을
+    저장한다. last_reminder_sent_date는 "오늘 이미 리마인더를 보냈는지" 판정용 -
+    badges.py/CoachingCache와 동일한 지연 평가 패턴으로, 배경 스케줄러 없이
+    관리자가 수동으로 발송을 트리거할 때(POST /push/send-reminder) 이 값을 확인해
+    같은 날 중복 발송을 막는다.
+    """
+
+    __tablename__ = "push_subscriptions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    endpoint = Column(String(500), unique=True, nullable=False)
+    p256dh = Column(String(200), nullable=False)
+    auth = Column(String(200), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    last_reminder_sent_date = Column(String(10), nullable=True)  # "YYYY-MM-DD"
+
+    user = relationship("User", back_populates="push_subscriptions")
