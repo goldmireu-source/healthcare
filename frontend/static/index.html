@@ -1465,6 +1465,9 @@ window.addEventListener('resize', () => {
 let allRecordsCache = [];
 let recordsPage = 1;
 const RECORDS_PAGE_SIZE = 10;
+// 검색 결과 화면일 때만 {start, end}로 채워짐 - 목록 페이지 이동 시 어떤 API(전체/검색)를
+// 다시 호출할지 판단하는 데 쓰인다.
+let recordsFilterCtx = null;
 
 function renderRecordsTable(pageItems, totalCount){
   const body = document.getElementById('records-body');
@@ -1502,21 +1505,38 @@ function renderRecordsTable(pageItems, totalCount){
   }).join('');
 }
 
-function renderRecordsPage(){
-  const sorted = [...allRecordsCache].sort((a,b) => b.date.localeCompare(a.date));
-  const totalPages = Math.max(1, Math.ceil(sorted.length / RECORDS_PAGE_SIZE));
-  if(recordsPage > totalPages) recordsPage = totalPages;
-  const start = (recordsPage - 1) * RECORDS_PAGE_SIZE;
-  renderRecordsTable(sorted.slice(start, start + RECORDS_PAGE_SIZE), sorted.length);
-  renderTrendChart();
+// 기록 목록(타임라인) 자체는 서버사이드 페이지네이션으로 조회한다(admin 사용자 목록과
+// 동일 패턴, GET /records?page=&page_size= / GET /search?...&page=&page_size=) - 페이지를
+// 넘길 때마다 그 페이지 분량만 새로 요청하고 클라이언트에서 전체를 들고 자르지 않는다.
+// 다만 히어로 카드(오늘의 상태 비교)와 추세 차트는 전체 기간 데이터가 있어야 그릴 수 있어
+// allRecordsCache(loadRecords/searchRecords가 채움)는 그대로 전체 조회를 유지한다.
+async function renderRecordsPage(){
+  try{
+    const params = new URLSearchParams({page: recordsPage, page_size: RECORDS_PAGE_SIZE, sort_dir: 'desc'});
+    let data;
+    if(recordsFilterCtx){
+      params.set('start', recordsFilterCtx.start);
+      params.set('end', recordsFilterCtx.end);
+      data = await apiGet(`/search?${params}`);
+    }else{
+      data = await apiGet(`/records?${params}`);
+    }
+    const totalPages = Math.max(1, Math.ceil(data.count / RECORDS_PAGE_SIZE));
+    if(recordsPage > totalPages){ recordsPage = totalPages; return renderRecordsPage(); }
+    renderRecordsTable(data.records, data.count);
 
-  const paginationEl = document.getElementById('records-pagination');
-  if(totalPages > 1){
-    paginationEl.style.display = 'flex';
-    document.getElementById('records-page-indicator').textContent = `${recordsPage} / ${totalPages} 페이지 · 총 ${sorted.length}건`;
-  }else{
-    paginationEl.style.display = 'none';
+    const paginationEl = document.getElementById('records-pagination');
+    if(totalPages > 1){
+      paginationEl.style.display = 'flex';
+      document.getElementById('records-page-indicator').textContent = `${recordsPage} / ${totalPages} 페이지 · 총 ${data.count}건`;
+    }else{
+      paginationEl.style.display = 'none';
+    }
+  }catch(e){
+    document.getElementById('records-loading').style.display = 'none';
+    console.error(e);
   }
+  renderTrendChart();
 }
 
 function recordsPrevPage(){ if(recordsPage > 1){ recordsPage--; renderRecordsPage(); } }
@@ -1532,6 +1552,7 @@ async function loadRecords(){
       apiGet('/health-score').catch(() => null),
     ]);
     allRecordsCache = data.records;
+    recordsFilterCtx = null;
     recordsPage = 1;
     renderRecordsPage();
     const sorted = [...data.records].sort((a,b) => a.date.localeCompare(b.date));
@@ -1550,8 +1571,10 @@ async function searchRecords(){
   const end = document.getElementById('s-end').value;
   if(!start || !end){ toast('시작일과 종료일을 모두 선택해주세요.', 'error'); return; }
   try{
+    // 추세 차트는 검색된 기간 전체를 그려야 하므로 allRecordsCache는 페이지네이션 없이 채운다
     const data = await apiGet(`/search?start=${start}&end=${end}`);
     allRecordsCache = data.records;
+    recordsFilterCtx = {start, end};
     recordsPage = 1;
     renderRecordsPage();
   }catch(e){ toast(e.message, 'error'); }

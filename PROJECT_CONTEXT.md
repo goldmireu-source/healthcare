@@ -306,11 +306,20 @@ healthcare/
   - 회귀: `pytest -q` 9 passed, 0 warnings / curl 스모크(로그인·기록·통계·헬스스코어·배지·미인증 401·관리자 미인증 401·`/docs` 200·`/` 307) 전부 정상 / DB 50명·62건 기준선 유지 확인.
   - **신규 파일**: `backend/routers/__init__.py`, `backend/routers/{auth,records,goals,reports,export,ai_coach,integrations,admin}_router.py`, `frontend/static/shared.js`
 
+- [x] **AUDIT_REPORT.md + CTO_AUDIT_REPORT.md 기반 종합 개선 — Phase 3 (성능/DB)** (2026-07-22)
+  1. **`(user_id, date)` 복합 인덱스** — `models.py`의 `HealthRecord`에 `__table_args__ = (Index("ix_health_records_user_id_date", "user_id", "date"),)` 추가. 거의 모든 조회가 "이 user_id의 기록을 date 순으로"라 단일 컬럼 인덱스 2개보다 복합 인덱스가 더 잘 맞음. Alembic `alembic revision --autogenerate`로 마이그레이션 생성(`c1df83b2dad1`) 후 `alembic upgrade head`로 적용, `sa.inspect(engine).get_indexes(...)`로 실제 생성 확인.
+  2. **본인 기록 목록(GET /records, GET /search)에 서버사이드 페이지네이션 추가** — admin 사용자 목록과 같은 패턴으로 `page`/`page_size`(선택) 쿼리 파라미터 추가. **opt-in 설계**: 둘 다 안 주면 기존과 100% 동일하게 전체를 반환(응답의 `page`/`page_size`는 `null`) — 대시보드 히어로 카드(최근 기록 비교)와 추세 차트(`renderTrendChart`)는 전체 기간 데이터가 있어야 그릴 수 있어 이 경로는 그대로 둠. 둘 다 주면 DB에서 `.offset()/.limit()`로 실제 슬라이싱하고 전체 개수를 `count`로 반환. `RecordListOut`에 `page`/`page_size`(둘 다 기본값 `None`) 필드 추가 — 기존 호출부(관리자 회원별 기록 조회 등)는 이 값을 안 주므로 동작 변화 없음.
+     - 프론트(`index.html`): 기록 목록 테이블(`renderRecordsPage`)만 실제 서버 페이지네이션 호출로 전환 — 페이지 이동(`recordsPrevPage`/`recordsNextPage`)마다 `GET /records?page=&page_size=&sort_dir=desc` (검색 결과 화면이면 `GET /search?...`)를 새로 호출. `allRecordsCache`(히어로/차트가 쓰는 전체 데이터)는 그대로 유지 — 즉 히어로/추세 차트는 지금도 전체 이력을 한 번에 불러오는 게 불가피함(문서화된 한계).
+     - 검증: 임시 계정에 15건 기록을 만들어 Playwright로 실제 확인 — 1페이지 카드 10건/2페이지 5건, "다음" 클릭 시 실제로 `GET /records?page=2&page_size=10&sort_dir=desc` 네트워크 요청 발생(클라이언트 슬라이싱 아님), 검색도 동일 패턴으로 페이지네이션 파라미터가 붙음, 콘솔 오류 0건. 테스트 계정/기록 삭제 후 DB 50명/62건 기준선 복귀 확인.
+  3. **정적 파일 Cache-Control 헤더** — `main.py`에 `add_static_cache_headers` 미들웨어 추가. 빌드 단계 없이 파일명에 버전/해시가 없는 순수 정적 파일이라 무기한 캐시는 위험(배포 후 변경 미반영 사고 우려) — HTML은 `no-cache`(매번 재검증, ETag/Last-Modified로 304 가능), CSS/JS는 `public, max-age=3600`(1시간)으로 설정. curl로 `index.html`/`admin.html`→`no-cache`, `theme.css`/`shared.js`→`public, max-age=3600`, API 응답에는 이 헤더가 안 붙는 것까지 확인.
+  - 회귀: `pytest -q` 9 passed, 0 warnings / curl 스모크(로그인·페이지네이션 응답 형태·Cache-Control 헤더) 전부 정상.
+  - **신규 파일**: `backend/alembic/versions/c1df83b2dad1_add_composite_index_on_health_records_.py`
+
 ## 7. 다음 작업
 
 1. (제안) 관리자 대시보드에도 사용자 화면처럼 시각화가 있으니, 향후 필요시 이 Playwright 스크린샷 검증 방식을 `/run-skill-generator`로 프로젝트 스킬화하는 것을 고려 — 매번 임시 Node 프로젝트를 새로 만들 필요 없어짐
 2. AWS Lightsail 배포 단계로 진행 (8번 섹션 참고) — **CTO_AUDIT_REPORT.md 기반 Phase 1~6 작업 완료, 사용자 확인 후 진행 예정. Phase 7(관리자 시각화 확장/알림)은 시작 전 반드시 재확인 필요**
-3. Phase 3(성능/DB) 진행 예정
+3. Phase 4(테스트/CI) 진행 예정
 
 ## 8. 이후 계획 (미착수)
 

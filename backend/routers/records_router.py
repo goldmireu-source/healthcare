@@ -1,5 +1,7 @@
 """건강 기록 CRUD + 검색 + 통계 라우터. 로직은 main.py에서 그대로 옮김."""
 
+from typing import Optional
+
 from fastapi import APIRouter, HTTPException, Depends, Query
 from sqlalchemy.orm import Session
 
@@ -39,15 +41,24 @@ def create_record(
 
 @router.get("/records", response_model=schemas.RecordListOut)
 def list_records(
+    page: Optional[int] = Query(None, ge=1, description="페이지 번호 - 생략하면 전체 기록을 예전처럼 한 번에 반환(대시보드 히어로/추세 차트가 전체 이력을 필요로 함)"),
+    page_size: Optional[int] = Query(None, ge=1, le=100, description="페이지당 개수 - page와 함께 줘야 서버사이드 페이지네이션이 적용됨"),
+    sort_dir: str = Query("asc", description="asc | desc - 기본값은 기존 GET /records 동작과 동일(날짜 오름차순)"),
     current_user: models.User = Depends(auth.get_current_user),
     db: Session = Depends(get_db),
 ):
-    records = (
-        db.query(models.HealthRecord)
-        .filter(models.HealthRecord.user_id == current_user.id)
-        .order_by(models.HealthRecord.date.asc())
-        .all()
-    )
+    query = db.query(models.HealthRecord).filter(models.HealthRecord.user_id == current_user.id)
+    order_col = models.HealthRecord.date.desc() if sort_dir == "desc" else models.HealthRecord.date.asc()
+
+    if page is not None and page_size is not None:
+        total = query.count()
+        records = query.order_by(order_col).offset((page - 1) * page_size).limit(page_size).all()
+        return schemas.RecordListOut(
+            count=total, page=page, page_size=page_size,
+            records=[health_service.record_to_out(r) for r in records],
+        )
+
+    records = query.order_by(order_col).all()
     return schemas.RecordListOut(count=len(records), records=[health_service.record_to_out(r) for r in records])
 
 
@@ -96,21 +107,30 @@ def delete_record(
 def search_records(
     start: str = Query(..., description="검색 시작일 YYYY-MM-DD"),
     end: str = Query(..., description="검색 종료일 YYYY-MM-DD"),
+    page: Optional[int] = Query(None, ge=1),
+    page_size: Optional[int] = Query(None, ge=1, le=100),
+    sort_dir: str = Query("asc", description="asc | desc - 기본값은 기존 GET /search 동작과 동일"),
     current_user: models.User = Depends(auth.get_current_user),
     db: Session = Depends(get_db),
 ):
     if start > end:
         raise HTTPException(status_code=400, detail="start는 end보다 이전이거나 같아야 합니다.")
-    records = (
-        db.query(models.HealthRecord)
-        .filter(
-            models.HealthRecord.user_id == current_user.id,
-            models.HealthRecord.date >= start,
-            models.HealthRecord.date <= end,
-        )
-        .order_by(models.HealthRecord.date.asc())
-        .all()
+    query = db.query(models.HealthRecord).filter(
+        models.HealthRecord.user_id == current_user.id,
+        models.HealthRecord.date >= start,
+        models.HealthRecord.date <= end,
     )
+    order_col = models.HealthRecord.date.desc() if sort_dir == "desc" else models.HealthRecord.date.asc()
+
+    if page is not None and page_size is not None:
+        total = query.count()
+        records = query.order_by(order_col).offset((page - 1) * page_size).limit(page_size).all()
+        return schemas.RecordListOut(
+            count=total, page=page, page_size=page_size,
+            records=[health_service.record_to_out(r) for r in records],
+        )
+
+    records = query.order_by(order_col).all()
     return schemas.RecordListOut(count=len(records), records=[health_service.record_to_out(r) for r in records])
 
 

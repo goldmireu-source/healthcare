@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Text
+from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Text, Index
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
@@ -76,6 +76,12 @@ class HealthRecord(Base):
     """건강 기록 + 서버가 계산한 분류/경고 결과를 함께 저장."""
 
     __tablename__ = "health_records"
+    # 거의 모든 조회(본인 기록 목록/날짜 검색/관리자 회원별 기록)가 "이 user_id의
+    # 기록을 date 순으로" 패턴이라, user_id 단일 인덱스만으로는 date 정렬/범위
+    # 검색 단계에서 추가 스캔이 필요함 - 복합 인덱스로 두 조건을 한 번에 커버한다.
+    __table_args__ = (
+        Index("ix_health_records_user_id_date", "user_id", "date"),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)

@@ -75,6 +75,21 @@ async def add_security_headers(request: Request, call_next):
     return response
 
 
+# 정적 파일(/app 마운트)에 Cache-Control 추가. 파일명에 별도 버전/해시가 없어(빌드 단계가
+# 없는 순수 정적 HTML/CSS/JS라) 무기한 캐시는 위험 - 배포 후 변경사항이 안 보이는 사고로
+# 이어질 수 있다. HTML은 매번 재검증(no-cache, 서버가 ETag/Last-Modified로 304 가능)하고,
+# CSS/JS는 1시간만 캐시해 잦은 재요청은 줄이면서도 변경 반영 지연은 짧게 유지한다.
+@app.middleware("http")
+async def add_static_cache_headers(request: Request, call_next):
+    response = await call_next(request)
+    if request.url.path.startswith("/app/"):
+        if request.url.path.endswith((".css", ".js")):
+            response.headers["Cache-Control"] = "public, max-age=3600"
+        elif request.url.path.endswith(".html") or request.url.path in ("/app/", "/app"):
+            response.headers["Cache-Control"] = "no-cache"
+    return response
+
+
 # 실행 중 어떤 예외가 나도 서버가 죽지 않고 500 응답으로 처리
 @app.exception_handler(Exception)
 async def unhandled_exception_handler(request, exc):

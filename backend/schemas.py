@@ -253,7 +253,11 @@ class RecordOut(BaseModel):
 
 
 class RecordListOut(BaseModel):
-    count: int
+    count: int  # page/page_size가 주어지지 않으면 "전체 개수"이자 "이 응답에 담긴 개수"가 같음(기존 동작 유지).
+    # page/page_size를 넘기지 않은 호출(관리자 회원 상세 등 기존 호출부 포함)은 이 두 값이
+    # null로 나가며 동작이 이전과 완전히 동일 - 페이지네이션은 opt-in이다.
+    page: Optional[int] = None
+    page_size: Optional[int] = None
     records: List[RecordOut]
 
 
