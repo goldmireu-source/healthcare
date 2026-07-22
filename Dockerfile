@@ -17,4 +17,6 @@ RUN mkdir -p /app/data
 EXPOSE 8000
 
 WORKDIR /app/backend
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+# main.py는 더 이상 스키마를 자동 생성하지 않으므로(Base.metadata.create_all 제거),
+# 컨테이너 기동 시 Alembic 마이그레이션을 먼저 적용한 뒤 서버를 띄운다.
+CMD ["sh", "-c", "alembic upgrade head && uvicorn main:app --host 0.0.0.0 --port 8000"]

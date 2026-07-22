@@ -121,6 +121,28 @@ healthcare/
 - `health_records` — 건강 기록 원본 값 + 서버가 계산한 BMI/분류/경고/활동량/수면 상태
 - `goals` — 사용자별 목표 체중/혈압/혈당
 - `audit_logs` — 관리자 조치 이력 (대상 계정이 삭제돼도 이력은 남도록 username을 문자열로 저장)
+- `badges` — 자동 획득 배지(연속 기록/첫 정상 지표/첫 목표 달성)
+
+### DB 스키마 변경 (Alembic)
+
+**(2026-07-22부터) 스키마가 바뀔 때 더 이상 `data/health_log.db`를 지우고 재생성하지 않습니다.**
+`backend/`에 Alembic 마이그레이션 환경이 구성되어 있고, `models.py`를 고치면
+아래 순서로 반영합니다.
+
+```bash
+cd backend
+# 1) models.py를 원하는 대로 수정
+# 2) 변경사항을 자동으로 감지해 마이그레이션 파일 생성
+python -m alembic revision --autogenerate -m "간단한 변경 설명"
+# 3) alembic/versions/에 생성된 파일을 열어 내용이 의도한 대로인지 확인(자동 생성은
+#    항상 검토 필요 — 컬럼 삭제/이름 변경 등은 정확히 잡아내지 못할 수 있음)
+# 4) 실제 DB에 적용
+python -m alembic upgrade head
+```
+
+새로 로컬 환경을 셋업할 때(DB 파일이 아직 없을 때)도 서버를 처음 띄우기 전에
+`alembic upgrade head`를 한 번 실행해 테이블을 만들어야 합니다 (`main.py`는 더
+이상 `Base.metadata.create_all()`을 호출하지 않습니다).
 
 ## 실행 방법
 
@@ -131,6 +153,7 @@ cd backend
 python3 -m venv venv
 source venv/bin/activate      # Windows: venv\Scripts\activate
 pip install -r requirements.txt
+python -m alembic upgrade head   # DB 테이블 생성/최신화 (최초 1회 + 스키마 변경 시)
 uvicorn main:app --reload
 ```
 
@@ -145,6 +168,19 @@ python promote_admin.py <username>
 ```
 
 데모 시연용 더미데이터가 필요하면 `backend/` 안에서 `python seed_demo_data.py` 실행 (일반 사용자 12명 + 2주치 건강기록/목표 생성, 기존 계정은 건드리지 않음).
+
+### 테스트 실행
+
+```bash
+cd backend
+pip install -r requirements-dev.txt   # pytest, httpx 추가 설치
+pytest
+```
+
+테스트마다 완전히 독립된 임시 SQLite DB를 사용하므로 `data/health_log.db`(실제
+개발/데모 데이터)에는 영향을 주지 않습니다. 핵심 시나리오: 로그인 5회 실패 시
+계정 잠금, IDOR(다른 사용자 기록 접근 차단), 회원 탈퇴 시 cascade 삭제, 관리자
+권한 없이 `/admin/*` 접근 시 403, 건강기록 CRUD.
 
 ### Docker 실행 (리포 루트에서)
 

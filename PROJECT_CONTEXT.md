@@ -249,11 +249,19 @@ healthcare/
   3. **CORS + 보안 헤더** — `CORSMiddleware`를 명시적으로 추가하되 `ALLOWED_ORIGINS` 환경변수(기본값 빈 문자열)로 크로스오리진을 전부 차단(같은 origin에서 서빙하는 지금 구조엔 크로스오리진이 필요 없음 — 나중에 별도 도메인 프론트엔드가 생기면 그때 추가). 모든 응답에 `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin` 미들웨어 추가. curl로 신뢰되지 않은 Origin 요청 시 `Access-Control-Allow-Origin` 헤더가 응답에 없음을 확인.
   - 세 항목 모두 반영 후 서버 재시작 → curl로 기존 12개+ 엔드포인트 전체 스모크 테스트 + Playwright로 유저 페이지 로그인/대시보드 렌더링 확인, 서버 로그 500/Traceback 0건.
 
+- [x] **AUDIT_REPORT.md 기반 고도화 — Phase B (인프라 보완)** (2026-07-22)
+  4. **Alembic 도입** — `backend/alembic/`에 마이그레이션 환경 구성. `env.py`가 `database.py`의 `DATABASE_URL`을 그대로 가져다 쓰도록 해 DB 경로를 두 곳에서 따로 관리하지 않게 함. 초기 마이그레이션(`d3c282e952de_initial_schema_snapshot.py`)은 **빈 임시 DB에 대해 autogenerate로 생성**한 뒤(6개 테이블 전부 감지 확인), **기존 개발 DB(14명 실데이터)는 `alembic stamp head`로 도장만 찍어 데이터 유실 없이** 마이그레이션 이력에 편입시킴. `main.py`의 `Base.metadata.create_all()` 호출 제거 — 이제 신규 셋업/스키마 변경은 전부 `alembic upgrade head`로만 진행 (README에 절차 명시). `Dockerfile`의 `CMD`도 컨테이너 기동 시 `alembic upgrade head`를 먼저 실행하도록 변경.
+  5. **pytest 테스트 스위트 신설** (`backend/tests/`) — `conftest.py`가 테스트마다 완전히 격리된 임시 SQLite DB로 앱을 새로 import해서 띄움(database.py/main.py가 "import 시점에 전역 DB 커넥션을 만드는" 구조라, 설정 주입 리팩터링 없이 `sys.modules` 캐시를 지우고 재import하는 방식으로 격리 확보). 요청하신 5개 핵심 시나리오 전부 포함 + 보조 케이스 4개, 총 9개 테스트: 로그인 5회 실패→423 잠금(+ 4회까지는 정상 로그인되는 경계 케이스), IDOR(다른 유저 기록 접근 시 403이 아니라 404로 존재 자체를 숨김 — 방식까지 검증), 회원 탈퇴 시 기록/목표/세션 cascade 삭제(DB 직접 조회로 확인)와 오답 비밀번호로는 탈퇴 안 되는 경계 케이스, 관리자 권한 없이 `/admin/*` 4종 403, 건강기록 CRUD(수정 시 BMI 재계산까지 확인) + 값 검증(422). `pip install -r requirements-dev.txt` 후 `pytest` 한 줄로 전부 실행됨(CI 없음, 로컬 전용). 테스트 실행 후 실제 개발 DB(14명)가 그대로인지 재확인 완료.
+  6. **rate limiter 멀티 워커 한계 — 문서화만 진행, 코드는 유지** — 지금 배포 계획이 단일 워커(uvicorn 기본 실행, Lightsail 소규모 인스턴스) 기준이라 Redis 등 외부 저장소 도입은 하지 않기로 결정. 이유: (1) 단일 워커에서는 인메모리 카운터가 프로세스 전체에서 공유되므로 지금 구조로도 완전히 유효함 (2) Redis 도입은 새 의존성 + 배포 복잡도 증가로, 실제로 워커를 늘릴 계획이 생기기 전에는 비용 대비 효과가 낮음. **워커를 2개 이상으로 늘리는 시점이 오면 그때 반드시 재검토** — 그 전까지는 `rate_limit.py` 상단 docstring에 이미 명시된 한계(재시작 시 초기화, 멀티 워커 시 카운터 분리)를 그대로 감수.
+  - 세 항목 반영 후 서버 재시작 → 기존 12개+ 엔드포인트 curl 스모크 테스트 + pytest 9개 전체 통과 + Playwright 유저 페이지 렌더링 확인, 서버 로그 500/Traceback 0건.
+  - **신규 파일**: `backend/alembic/`(env.py, script.py.mako, versions/), `backend/alembic.ini`, `backend/pytest.ini`, `backend/requirements-dev.txt`, `backend/tests/`(conftest.py, test_auth.py, test_records.py, test_account.py)
+  - **`.gitignore` 추가**: `.pytest_cache/`, `alembic/versions/__pycache__/`
+
 ## 7. 다음 작업
 
 1. (제안) 관리자 대시보드에도 사용자 화면처럼 시각화가 있으니, 향후 필요시 이 Playwright 스크린샷 검증 방식을 `/run-skill-generator`로 프로젝트 스킬화하는 것을 고려 — 매번 임시 Node 프로젝트를 새로 만들 필요 없어짐
 2. AWS Lightsail 배포 단계로 진행 (8번 섹션 참고) — **AUDIT_REPORT.md 기반 Phase A~D 작업 완료 후 진행 예정**
-3. Phase B(Alembic/pytest/rate limiter 문서화), Phase C(theme.css 분리), Phase D(CSV Import 저장 연결, OpenAI 실연동) 순서로 진행 중
+3. Phase C(theme.css 분리), Phase D(CSV Import 저장 연결, OpenAI 실연동) 순서로 진행 중
 
 ## 8. 이후 계획 (미착수)
 

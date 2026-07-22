@@ -11,7 +11,7 @@ from fastapi.responses import JSONResponse, RedirectResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 
-from database import Base, engine, get_db, SessionLocal
+from database import get_db, SessionLocal
 import models
 import schemas
 import auth
@@ -36,7 +36,9 @@ from integrations import (
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("healthlog")
 
-Base.metadata.create_all(bind=engine)
+# 스키마 생성/변경은 이제 Alembic 마이그레이션이 전담한다 (Base.metadata.create_all
+# 직접 호출 제거). 새로 셋업할 때는 서버 실행 전에 `alembic upgrade head`를 먼저
+# 실행해야 한다 — README.md "DB 스키마 변경" 절 참고.
 
 # 앱 시작 시 1회, 그동안 쌓였을 수 있는 만료 세션을 정리 (배경 스케줄러 없이 가볍게).
 # 이후에는 auth.create_session()이 로그인/회원가입마다 지연 평가로 계속 정리한다.
