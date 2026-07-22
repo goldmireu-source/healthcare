@@ -6,11 +6,12 @@ import os
 from typing import Optional
 
 from fastapi import FastAPI, HTTPException, Depends, Query, Response, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, RedirectResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 
-from database import Base, engine, get_db
+from database import Base, engine, get_db, SessionLocal
 import models
 import schemas
 import auth
@@ -37,6 +38,13 @@ logger = logging.getLogger("healthlog")
 
 Base.metadata.create_all(bind=engine)
 
+# 앱 시작 시 1회, 그동안 쌓였을 수 있는 만료 세션을 정리 (배경 스케줄러 없이 가볍게).
+# 이후에는 auth.create_session()이 로그인/회원가입마다 지연 평가로 계속 정리한다.
+with SessionLocal() as _startup_db:
+    _cleaned = auth.cleanup_expired_sessions(_startup_db)
+    if _cleaned:
+        logger.info(f"앱 시작 시 만료된 세션 {_cleaned}개 정리 완료")
+
 app = FastAPI(
     title="마이 헬스 로그 API",
     description=(
@@ -46,6 +54,29 @@ app = FastAPI(
     ),
     version="2.0.0",
 )
+
+# ---------- CORS: 지금은 프론트엔드를 이 서버가 같은 origin(/app)으로 직접 서빙하므로
+# 크로스오리진 요청이 필요 없다. ALLOWED_ORIGINS를 비워두면(기본값) 어떤 외부 origin도
+# 허용하지 않는 가장 보수적인 설정이 된다 — 나중에 별도 도메인의 프론트엔드가 생기면
+# 그때 ALLOWED_ORIGINS 환경변수(콤마로 구분)에 그 도메인만 추가하면 된다.
+_allowed_origins = [o.strip() for o in os.getenv("ALLOWED_ORIGINS", "").split(",") if o.strip()]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=_allowed_origins,
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE"],
+    allow_headers=["Content-Type"],
+)
+
+
+# 응답마다 기본 보안 헤더 추가 (MIME 스니핑 방지 / 클릭재킹 방지 / referrer 최소 노출)
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    return response
 
 
 # 실행 중 어떤 예외가 나도 서버가 죽지 않고 500 응답으로 처리
@@ -491,6 +522,26 @@ _EXPORT_CSV_HEADER = [
     "sugar_category", "activity_level", "sleep_status", "memo",
 ]
 
+# CSV 수식 인젝션(Formula Injection) 방어 기준값 — 이 문자로 시작하는 셀은
+# 엑셀/구글시트가 수식으로 해석해 실행할 수 있음 (예: memo에 "=1+1" 저장 후
+# export한 파일을 열면 수식으로 계산됨). 표준 방어는 앞에 작은따옴표를 붙여
+# 스프레드시트가 무조건 텍스트로 취급하게 만드는 것.
+_CSV_DANGEROUS_PREFIXES = ("=", "+", "-", "@")
+
+
+def _sanitize_csv_cell(value) -> str:
+    """셀 값을 문자열로 변환하면서 수식 인젝션 위험이 있으면 무력화한다.
+
+    memo 같은 자유 입력 필드뿐 아니라, 나중에 컬럼이 늘어나도 안전하도록
+    문자열로 나가는 모든 셀에 동일하게 적용한다 (지금 값 중에는 음수가 없어
+    "-"로 시작하는 정상 데이터는 없지만, 혹시 모를 경우에도 스프레드시트에서
+    텍스트로만 보일 뿐 데이터 유실은 없음).
+    """
+    text = "" if value is None else str(value)
+    if text.startswith(_CSV_DANGEROUS_PREFIXES):
+        return "'" + text
+    return text
+
 
 def _export_filename(username: str, extension: str) -> str:
     # username은 회원가입 시 ^[a-zA-Z0-9_]+$ 로만 검증되어 헤더 인젝션 위험이 없음
@@ -513,11 +564,12 @@ def export_records_csv(
     writer = csv.writer(buffer)
     writer.writerow(_EXPORT_CSV_HEADER)
     for r in records:
-        writer.writerow([
+        row = [
             r.date, r.weight, r.height, r.systolic, r.diastolic, r.blood_sugar,
             r.steps, r.sleep_hours, r.bmi, r.bmi_category, r.bp_category,
             r.sugar_category, r.activity_level, r.sleep_status, r.memo,
-        ])
+        ]
+        writer.writerow([_sanitize_csv_cell(v) for v in row])
 
     filename = _export_filename(current_user.username, "csv")
     return StreamingResponse(

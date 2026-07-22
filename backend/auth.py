@@ -72,7 +72,27 @@ def reset_login_failures(db: DBSession, user: models.User) -> None:
         db.commit()
 
 
+def cleanup_expired_sessions(db: DBSession) -> int:
+    """만료된 세션(expires_at < 지금)을 일괄 삭제한다.
+
+    배경 스케줄러 없이, 자주 호출되는 지점(로그인 등)에서 지연 평가로 호출해
+    세션 테이블이 무한정 커지는 것을 방지한다 (badges.py의 "조회 시점에 평가"
+    패턴과 동일한 접근).
+
+    Returns:
+        삭제된 세션 개수.
+    """
+    deleted = (
+        db.query(models.Session)
+        .filter(models.Session.expires_at < datetime.now(timezone.utc))
+        .delete(synchronize_session=False)
+    )
+    db.commit()
+    return deleted
+
+
 def create_session(db: DBSession, user: models.User) -> models.Session:
+    cleanup_expired_sessions(db)
     token = secrets.token_urlsafe(32)
     expires_at = datetime.now(timezone.utc) + timedelta(days=SESSION_TTL_DAYS)
     session = models.Session(token=token, user_id=user.id, expires_at=expires_at)

@@ -243,11 +243,17 @@ healthcare/
   - **신규 DB 테이블**: `badges` (SQLAlchemy `Base.metadata.create_all`로 자동 생성, 별도 마이그레이션 불필요).
   - **신규 파일 12개**: `health_coach.py`, `health_trends.py`, `risk_detection.py`, `health_score.py`, `goal_prediction.py`, `health_calendar.py`, `health_timeline.py`, `badges.py`, `admin_analytics.py`, `health_service.py`, `goal_service.py`, `report_service.py`, `admin_service.py`, `integrations.py` (실제로는 14개).
 
+- [x] **AUDIT_REPORT.md 기반 보안/인프라/기능 고도화 — Phase A (보안)** (2026-07-22) — 외부 감사 보고서(`AUDIT_REPORT.md`)의 취약점 섹션을 우선순위 1로 반영
+  1. **CSV 수식 인젝션(Formula Injection) 방어** — `GET /export/csv`가 셀 값을 문자열로 변환할 때 `=`,`+`,`-`,`@`로 시작하면 앞에 작은따옴표(`'`)를 붙여 엑셀/구글시트가 절대 수식으로 해석하지 못하게 함 (`_sanitize_csv_cell`). memo뿐 아니라 내보내는 모든 컬럼에 일괄 적용. 실제로 `=1+1+cmd|' /C calc'!A1` 같은 페이로드를 memo에 넣고 export해서 `'=1+1+...`로 이스케이프되는 것 확인 후 테스트 계정 삭제.
+  2. **만료 세션 정리** — `auth.cleanup_expired_sessions()` 신설. (a) 앱 시작 시 1회 일괄 정리 (b) `create_session()`(로그인/회원가입마다 호출됨) 안에서 매번 지연 평가로 정리 — 배경 스케줄러 없이 badges.py와 동일한 패턴. 가짜 만료 세션을 DB에 직접 삽입 후 로그인 1회로 자동 삭제되는 것을 확인.
+  3. **CORS + 보안 헤더** — `CORSMiddleware`를 명시적으로 추가하되 `ALLOWED_ORIGINS` 환경변수(기본값 빈 문자열)로 크로스오리진을 전부 차단(같은 origin에서 서빙하는 지금 구조엔 크로스오리진이 필요 없음 — 나중에 별도 도메인 프론트엔드가 생기면 그때 추가). 모든 응답에 `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin` 미들웨어 추가. curl로 신뢰되지 않은 Origin 요청 시 `Access-Control-Allow-Origin` 헤더가 응답에 없음을 확인.
+  - 세 항목 모두 반영 후 서버 재시작 → curl로 기존 12개+ 엔드포인트 전체 스모크 테스트 + Playwright로 유저 페이지 로그인/대시보드 렌더링 확인, 서버 로그 500/Traceback 0건.
+
 ## 7. 다음 작업
 
 1. (제안) 관리자 대시보드에도 사용자 화면처럼 시각화가 있으니, 향후 필요시 이 Playwright 스크린샷 검증 방식을 `/run-skill-generator`로 프로젝트 스킬화하는 것을 고려 — 매번 임시 Node 프로젝트를 새로 만들 필요 없어짐
-2. AWS Lightsail 배포 단계로 진행 (8번 섹션 참고)
-3. (선택) integrations.py의 CSV Import 미리보기를 실제 DB 저장까지 연결하는 후속 작업
+2. AWS Lightsail 배포 단계로 진행 (8번 섹션 참고) — **AUDIT_REPORT.md 기반 Phase A~D 작업 완료 후 진행 예정**
+3. Phase B(Alembic/pytest/rate limiter 문서화), Phase C(theme.css 분리), Phase D(CSV Import 저장 연결, OpenAI 실연동) 순서로 진행 중
 
 ## 8. 이후 계획 (미착수)
 
