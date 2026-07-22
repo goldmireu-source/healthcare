@@ -63,8 +63,18 @@ def list_users(
     sort_dir: str,
     page: int,
     page_size: int,
+    signup_days: Optional[int] = None,
+    signup_date: Optional[str] = None,
+    active_days: Optional[int] = None,
+    has_records: Optional[bool] = None,
 ) -> schemas.AdminUsersOut:
-    """검색/역할/위험도 필터 + 정렬 + 페이지네이션을 적용한 사용자 목록을 만든다."""
+    """검색/역할/위험도 필터 + 정렬 + 페이지네이션을 적용한 사용자 목록을 만든다.
+
+    signup_days/signup_date/active_days/has_records는 관리자 개요 화면의 KPI
+    카드(예: "최근 7일 신규가입", "고위험 사용자")를 클릭했을 때 그 수치의 근거가
+    되는 사용자 목록으로 바로 드릴다운하기 위한 필터다 — 숫자만 보여주고 상세를
+    확인할 방법이 없던 문제를 해결한다.
+    """
     query = db.query(models.User)
     if search:
         query = query.filter(models.User.username.ilike(f"%{search}%"))
@@ -93,6 +103,23 @@ def list_users(
 
     if risk in ("high", "moderate", "normal", "unknown"):
         users = [u for u in users if risk_by_user.get(u.id, "unknown") == risk]
+
+    if signup_days is not None:
+        cutoff = date_cls.today() - timedelta(days=signup_days - 1)
+        users = [u for u in users if u.created_at and u.created_at.date() >= cutoff]
+
+    if signup_date:
+        users = [u for u in users if u.created_at and u.created_at.date().isoformat() == signup_date]
+
+    if has_records is not None:
+        users = [u for u in users if (record_counts.get(u.id, 0) > 0) == has_records]
+
+    if active_days is not None:
+        cutoff_str = (date_cls.today() - timedelta(days=active_days - 1)).isoformat()
+        users = [
+            u for u in users
+            if u.id in latest_by_user and latest_by_user[u.id].date >= cutoff_str
+        ]
 
     total = len(users)
 

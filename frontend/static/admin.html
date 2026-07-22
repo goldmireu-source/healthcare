@@ -137,6 +137,20 @@
   .kpi-card .v{font-family:'IBM Plex Mono', monospace;font-size:26px;font-weight:600;overflow-wrap:break-word;}
   #kpi-row-2 .kpi-card .v{font-size:21px;}
   .kpi-card .d{font-size:11px;margin-top:6px;color:var(--muted);}
+  .kpi-card.clickable{cursor:pointer;transition:border-color .12s ease, box-shadow .12s ease;}
+  .kpi-card.clickable:hover, .kpi-card.clickable:focus-visible{border-color:var(--teal);box-shadow:var(--shadow-sm);}
+  .kpi-card.clickable:focus-visible{outline:2px solid var(--teal);outline-offset:2px;}
+  .kpi-card.clickable .l::after{content:' →';color:var(--teal);opacity:0;transition:opacity .12s ease;}
+  .kpi-card.clickable:hover .l::after, .kpi-card.clickable:focus-visible .l::after{opacity:1;}
+
+  .quick-filter-banner{
+    display:flex;align-items:center;gap:10px;background:var(--teal-soft);color:var(--teal-strong);
+    border:1px solid var(--teal-soft);border-radius:9px;padding:9px 14px;margin-bottom:14px;font-size:12.5px;
+  }
+  .quick-filter-banner button{
+    margin-left:auto;background:none;border:1px solid currentColor;color:inherit;border-radius:6px;
+    padding:4px 10px;font-size:11.5px;cursor:pointer;font-family:inherit;flex-shrink:0;
+  }
 
   .panel-row{display:grid;grid-template-columns:1.6fr 1fr;gap:16px;margin-bottom:20px;align-items:stretch;}
   .panel-row.thirds{grid-template-columns:repeat(3,1fr);}
@@ -351,6 +365,10 @@
     <section id="view-users" class="view">
       <div class="card">
         <h2><span class="eyebrow">Users</span> 전체 사용자</h2>
+        <div class="quick-filter-banner" id="quick-filter-banner" style="display:none;">
+          <span id="quick-filter-text"></span>
+          <button type="button" onclick="resetFilters()">필터 해제</button>
+        </div>
         <div class="search-bar">
           <div>
             <label>아이디 검색</label>
@@ -492,6 +510,8 @@ let currentSortBy = 'id';
 let currentSortDir = 'asc';
 let searchDebounce = null;
 let auditLogCache = [];
+let quickFilter = {}; // 개요 KPI 카드/가입 추이 차트에서 넘어온 드릴다운 필터 (signup_days/signup_date/active_days/has_records)
+let quickFilterLabel = '';
 
 const VIEW_TITLES = {overview: '개요', users: '사용자 관리', audit: '감사 로그'};
 
@@ -651,22 +671,46 @@ function distHtml(title, dist){
   return `<h2><span class="eyebrow">Distribution</span> ${title}</h2>${rows}`;
 }
 
+// KPI 카드는 숫자만 보여주고 클릭해서 상세(그 수치의 근거가 되는 사용자 목록)를
+// 확인할 방법이 없다는 지적을 반영해, 전부 클릭 가능하게 통일된 템플릿으로 렌더링한다.
+// onClick이 없는 카드(총 건강기록 수 등 - 사용자 목록으로 드릴다운할 방법이 없는 값)만
+// 예외적으로 비클릭 카드로 남는다.
+function kpiCardHtml({label, value, detail, extraClass = '', onClick = null}){
+  const clickable = onClick ? ' clickable' : '';
+  const interactiveAttrs = onClick
+    ? ` role="button" tabindex="0" onclick="${onClick}" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}"`
+    : '';
+  return `
+    <div class="kpi-card${extraClass ? ' ' + extraClass : ''}${clickable}"${interactiveAttrs}>
+      <div class="l">${label}</div><div class="v">${value}</div>
+      ${detail ? `<div class="d">${detail}</div>` : ''}
+    </div>`;
+}
+
 function renderKpis(s){
   const adminCount = s.role_distribution.admin || 0;
   const userCount = s.role_distribution.user || 0;
-  document.getElementById('kpi-row').innerHTML = `
-    <div class="kpi-card">
-      <div class="l">총 사용자 수</div><div class="v">${s.total_users}</div>
-      <div class="d">관리자 ${adminCount} · 일반 ${userCount}</div>
-    </div>
-    <div class="kpi-card"><div class="l">총 건강기록 수</div><div class="v">${s.total_records}</div></div>
-    <div class="kpi-card"><div class="l">최근 7일 신규가입</div><div class="v">${s.new_users_last_7_days}</div></div>
-    <div class="kpi-card${s.high_risk_usernames.length ? ' risk-high' : ''}">
-      <div class="l">고위험 사용자</div><div class="v">${s.high_risk_usernames.length}</div>
-      <div class="d">${s.high_risk_usernames.length ? s.high_risk_usernames.join(', ') : '없음'}</div>
-    </div>
-    <div class="kpi-card"><div class="l">감사 로그 건수</div><div class="v" id="kpi-audit-count">-</div></div>
-  `;
+  document.getElementById('kpi-row').innerHTML = [
+    kpiCardHtml({
+      label: '총 사용자 수', value: s.total_users, detail: `관리자 ${adminCount} · 일반 ${userCount}`,
+      onClick: "applyQuickFilter({}, '전체 사용자')",
+    }),
+    kpiCardHtml({ label: '총 건강기록 수', value: s.total_records }),
+    kpiCardHtml({
+      label: '최근 7일 신규가입', value: s.new_users_last_7_days,
+      onClick: "applyQuickFilter({signup_days:7}, '최근 7일 신규가입')",
+    }),
+    kpiCardHtml({
+      label: '고위험 사용자', value: s.high_risk_usernames.length,
+      detail: s.high_risk_usernames.length ? s.high_risk_usernames.join(', ') : '없음',
+      extraClass: s.high_risk_usernames.length ? 'risk-high' : '',
+      onClick: "applyQuickFilter({risk:'high'}, '고위험 사용자')",
+    }),
+    kpiCardHtml({
+      label: '감사 로그 건수', value: `<span id="kpi-audit-count">-</span>`,
+      onClick: "switchView('audit')",
+    }),
+  ].join('');
 
   const growth = s.high_risk_growth_rate;
   const growthText = growth === null || growth === undefined
@@ -674,15 +718,37 @@ function renderKpis(s){
     : `${growth > 0 ? '▲' : growth < 0 ? '▼' : '–'} ${Math.abs(growth)}% (최근 7일)`;
   const growthClass = growth === null || growth === undefined ? '' : growth > 0 ? 'risk-high' : '';
 
-  document.getElementById('kpi-row-2').innerHTML = `
-    <div class="kpi-card"><div class="l">최근 활동률</div><div class="v">${s.recent_activity_rate}%</div><div class="d">최근 7일 내 기록 작성</div></div>
-    <div class="kpi-card"><div class="l">기록 유지율</div><div class="v">${s.retention_rate}%</div><div class="d">기록 1건 이상 보유</div></div>
-    <div class="kpi-card"><div class="l">평균 BMI</div><div class="v">${s.avg_bmi ?? '-'}</div></div>
-    <div class="kpi-card"><div class="l">평균 혈압</div><div class="v">${s.avg_systolic != null ? Math.round(s.avg_systolic) : '-'}/${s.avg_diastolic != null ? Math.round(s.avg_diastolic) : '-'}</div></div>
-    <div class="kpi-card"><div class="l">평균 혈당</div><div class="v">${s.avg_blood_sugar ?? '-'}</div></div>
-    <div class="kpi-card${growthClass}"><div class="l">위험 사용자 증가율</div><div class="v">${growthText}</div></div>
-    <div class="kpi-card"><div class="l">가입 전환율</div><div class="v">${s.signup_to_record_rate}%</div><div class="d">최근 30일 가입자 중 기록 작성</div></div>
-  `;
+  document.getElementById('kpi-row-2').innerHTML = [
+    kpiCardHtml({
+      label: '최근 활동률', value: `${s.recent_activity_rate}%`, detail: '최근 7일 내 기록 작성',
+      onClick: "applyQuickFilter({active_days:7}, '최근 7일 내 기록을 남긴 사용자')",
+    }),
+    kpiCardHtml({
+      label: '기록 유지율', value: `${s.retention_rate}%`, detail: '기록 1건 이상 보유',
+      onClick: "applyQuickFilter({has_records:true}, '기록 1건 이상 보유한 사용자')",
+    }),
+    kpiCardHtml({ label: '평균 BMI', value: s.avg_bmi ?? '-', onClick: 'scrollToDistributions()' }),
+    kpiCardHtml({
+      label: '평균 혈압',
+      value: `${s.avg_systolic != null ? Math.round(s.avg_systolic) : '-'}/${s.avg_diastolic != null ? Math.round(s.avg_diastolic) : '-'}`,
+      onClick: 'scrollToDistributions()',
+    }),
+    kpiCardHtml({ label: '평균 혈당', value: s.avg_blood_sugar ?? '-', onClick: 'scrollToDistributions()' }),
+    kpiCardHtml({
+      label: '위험 사용자 증가율', value: growthText, extraClass: growthClass,
+      onClick: "applyQuickFilter({risk:'high'}, '고위험 사용자')",
+    }),
+    kpiCardHtml({
+      label: '가입 전환율', value: `${s.signup_to_record_rate}%`, detail: '최근 30일 가입자 중 기록 작성',
+      onClick: "applyQuickFilter({signup_days:30}, '최근 30일 가입자')",
+    }),
+  ].join('');
+}
+
+// 평균 지표 KPI는 특정 사용자 목록으로 드릴다운할 수 없으므로, 대신 그 수치의
+// 근거가 되는 분포(카테고리별 분포 패널)로 스크롤해 "상세"를 보여준다.
+function scrollToDistributions(){
+  document.getElementById('dist-bmi-card').scrollIntoView({behavior:'smooth', block:'start'});
 }
 
 function roundedTopBarPath(x, yTop, width, height, radius){
@@ -736,6 +802,18 @@ document.getElementById('trend-chart-wrap').addEventListener('pointermove', (e) 
 });
 document.getElementById('trend-chart-wrap').addEventListener('pointerleave', () => {
   document.getElementById('chart-tooltip').style.opacity = '0';
+});
+
+// 막대에 cursor:pointer 스타일만 있고 클릭 동작이 없던 문제 수정 - 클릭하면 그
+// 날짜에 가입한 사용자만 필터링된 사용자 관리 화면으로 이동한다. count가 0인
+// 날은 눌러도 빈 목록만 나와 의미가 없으므로 클릭 대상에서 제외한다.
+document.getElementById('trend-chart-wrap').addEventListener('click', (e) => {
+  const bar = e.target.closest('.trend-bar');
+  if(!bar) return;
+  const dateVal = bar.getAttribute('data-date');
+  const countVal = Number(bar.getAttribute('data-count'));
+  if(!countVal) return;
+  applyQuickFilter({signup_date: dateVal}, `${dateVal} 가입자`);
 });
 
 async function loadStats(){
@@ -850,21 +928,34 @@ function updateSortIndicators(){
   });
 }
 
+// 검색/권한/위험도 셀렉트를 직접 조작하면, KPI 카드 클릭으로 들어온 quickFilter
+// (signup_days/signup_date/active_days/has_records - 화면에 셀렉트가 없는 조건들)는
+// 더 이상 사용자가 의도한 필터가 아니므로 함께 지운다. 그대로 두면 배너 문구와
+// 실제 적용 중인 조건이 어긋나 혼란을 준다.
+function clearQuickFilterSilently(){
+  quickFilter = {};
+  quickFilterLabel = '';
+  renderQuickFilterBanner();
+}
+
 function onSearchInput(){
   clearTimeout(searchDebounce);
   searchDebounce = setTimeout(() => {
     currentSearch = document.getElementById('user-search').value.trim();
+    clearQuickFilterSilently();
     loadUsers(1);
   }, 300);
 }
 
 function onRoleFilterChange(){
   currentRoleFilter = document.getElementById('role-filter').value;
+  clearQuickFilterSilently();
   loadUsers(1);
 }
 
 function onRiskFilterChange(){
   currentRiskFilter = document.getElementById('risk-filter').value;
+  clearQuickFilterSilently();
   loadUsers(1);
 }
 
@@ -877,8 +968,38 @@ function resetFilters(){
   currentRiskFilter = '';
   currentSortBy = 'id';
   currentSortDir = 'asc';
+  quickFilter = {};
+  quickFilterLabel = '';
+  renderQuickFilterBanner();
   updateSortIndicators();
   loadUsers(1);
+}
+
+// 개요 화면의 KPI 카드/가입 추이 차트를 클릭했을 때 호출된다. 기존 검색/역할 필터는
+// 비우고(위험도 필터는 quickFilter.risk가 있으면 UI 셀렉트에도 반영해 일치시킨다),
+// 사용자 관리 화면으로 이동해 해당 조건으로 바로 필터링된 목록을 보여준다.
+function applyQuickFilter(filters, label){
+  quickFilter = filters || {};
+  quickFilterLabel = label || '';
+  document.getElementById('user-search').value = '';
+  document.getElementById('role-filter').value = '';
+  document.getElementById('risk-filter').value = quickFilter.risk || '';
+  currentSearch = '';
+  currentRoleFilter = '';
+  currentRiskFilter = quickFilter.risk || '';
+  renderQuickFilterBanner();
+  switchView('users');
+  loadUsers(1);
+}
+
+function renderQuickFilterBanner(){
+  const banner = document.getElementById('quick-filter-banner');
+  if(!quickFilterLabel){
+    banner.style.display = 'none';
+    return;
+  }
+  document.getElementById('quick-filter-text').textContent = `필터: ${quickFilterLabel}`;
+  banner.style.display = 'flex';
 }
 
 function prevPage(){ if(currentPage > 1) loadUsers(currentPage - 1); }
@@ -897,6 +1018,10 @@ async function loadUsers(page = currentPage){
     if(currentSearch) params.set('search', currentSearch);
     if(currentRoleFilter) params.set('role', currentRoleFilter);
     if(currentRiskFilter) params.set('risk', currentRiskFilter);
+    if(quickFilter.signup_days) params.set('signup_days', quickFilter.signup_days);
+    if(quickFilter.signup_date) params.set('signup_date', quickFilter.signup_date);
+    if(quickFilter.active_days) params.set('active_days', quickFilter.active_days);
+    if(quickFilter.has_records !== undefined) params.set('has_records', quickFilter.has_records);
     const res = await fetch(`/admin/users?${params}`, {credentials:'same-origin'});
     if(!res.ok) throw new Error((await res.json()).detail || '사용자 목록을 불러올 수 없습니다.');
     const data = await res.json();

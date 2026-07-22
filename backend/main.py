@@ -994,6 +994,10 @@ def admin_list_users(
     search: Optional[str] = Query(None, description="아이디 부분 검색"),
     role: Optional[str] = Query(None, description="user 또는 admin으로 필터링"),
     risk: Optional[str] = Query(None, description="high | moderate | normal | unknown 위험도 필터"),
+    signup_days: Optional[int] = Query(None, ge=1, description="최근 N일 이내 가입한 사용자만 필터링 (개요 KPI 드릴다운용)"),
+    signup_date: Optional[str] = Query(None, description="특정 날짜(YYYY-MM-DD)에 가입한 사용자만 필터링 (가입 추이 차트 드릴다운용)"),
+    active_days: Optional[int] = Query(None, ge=1, description="최근 N일 이내 기록을 남긴 사용자만 필터링"),
+    has_records: Optional[bool] = Query(None, description="true=기록 1건 이상 보유, false=기록 0건"),
     sort_by: str = Query("id", description="id | username | created_at | record_count | risk_level"),
     sort_dir: str = Query("asc", description="asc | desc"),
     page: int = Query(1, ge=1),
@@ -1001,7 +1005,10 @@ def admin_list_users(
     current_admin: models.User = Depends(auth.get_current_admin),
     db: Session = Depends(get_db),
 ):
-    return admin_service.list_users(db, search, role, risk, sort_by, sort_dir, page, page_size)
+    return admin_service.list_users(
+        db, search, role, risk, sort_by, sort_dir, page, page_size,
+        signup_days=signup_days, signup_date=signup_date, active_days=active_days, has_records=has_records,
+    )
 
 
 @app.get("/admin/stats", response_model=schemas.AdminStatsOut, tags=["Admin"])
