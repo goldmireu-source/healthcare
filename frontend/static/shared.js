@@ -47,3 +47,15 @@ async function apiSend(path, method, body) {
   if (!res.ok) { throw new Error((await res.json()).detail || res.statusText); }
   return res.json();
 }
+
+// Esc로 모달/드로어 닫기 - 페이지마다 닫기 함수 이름이 달라(closeAccountSettings,
+// closeUserDetail 등) 그 이름들을 여기서 알 필요 없이, 화면에 보이는 .modal-overlay/
+// .drawer-overlay를 그냥 숨기는 것만으로 키보드 사용자에게 충분한 탈출 수단이 된다.
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape') return;
+  document.querySelectorAll('.modal-overlay, .drawer-overlay').forEach((el) => {
+    if (el.style.display !== 'none' && el.style.display !== '') {
+      el.style.display = 'none';
+    }
+  });
+});

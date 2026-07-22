@@ -26,6 +26,14 @@
   --shadow-sm:0 2px 8px rgba(16,27,24,.07);
   --shadow-md:0 8px 24px rgba(16,27,24,.10);
   --radius-sm:8px; --radius-md:12px; --radius-lg:16px;
+
+  /* 간격/타이포그래피 스케일 - index.html/admin.html 전반에 흩어져 있던 하드코딩
+     px 값을 점진적으로 이 토큰으로 옮기는 중이다(한 번에 전부 바꾸면 화면 하나하나
+     회귀 확인이 어려워 우선 가장 많이 반복되는 값부터). 본문 기준은 --text-base(14px). */
+  --space-1:4px; --space-2:8px; --space-3:12px; --space-4:16px;
+  --space-5:20px; --space-6:24px; --space-8:32px;
+  --text-2xs:10px; --text-xs:11px; --text-sm:12px; --text-sm-plus:13px;
+  --text-base:14px; --text-md:18px; --text-lg:22px; --text-xl:28px;
   color-scheme:light;
 }
 @media (prefers-color-scheme: dark){

@@ -328,11 +328,19 @@ healthcare/
   - 회귀: `pytest -q` **41 passed, 0 warnings** / curl 스모크(로그인·`/health`·`/docs`) 정상. 이번 Phase는 테스트/CI 파일만 추가해 런타임 코드 변경이 없음.
   - **신규 파일**: `backend/tests/test_goals_reports.py`, `backend/tests/test_ai_coach.py`, `backend/tests/test_export_import.py`, `backend/tests/test_admin.py`, `backend/tests/test_password_recovery.py`, `.github/workflows/backend-tests.yml`
 
+- [x] **AUDIT_REPORT.md + CTO_AUDIT_REPORT.md 기반 종합 개선 — Phase 5 (UX/접근성/디자인 폴리시)** (2026-07-22)
+  1. **접근성 현황 검증/보강** — 조사 에이전트로 전수 점검한 결과, 이전 패스가 아이콘 버튼 aria-label(index.html 6건/admin.html 10건)은 이미 잘 채워뒀지만 더 큰 공백이 남아있었음: (a) **폼 label이 전부 `for`/`id`로 연결 안 되어 있었음** — index.html 30개 + admin.html 7개, 총 37개 label을 정규식 스크립트로 일괄 연결(이미 `id`가 있던 `reset-question-label`처럼 예외 케이스도 정확히 처리됨, 놓친 label 0건). (b) **모달/드로어에 dialog 시맨틱 없음** — index.html 2개(계정 설정/확인창) + admin.html 3개(회원상세/임시비밀번호/확인창) + 드로어 1개에 `role="dialog"`/`aria-modal="true"`/`aria-labelledby` 추가, `temp-password-display` 입력창에 aria-label 추가(기존엔 label 자체가 없었음). (c) **키보드로 모달을 닫을 방법이 없었음** — `shared.js`에 전역 Esc 핸들러 추가(페이지마다 다른 닫기 함수 이름을 몰라도 되게 `.modal-overlay`/`.drawer-overlay`를 그냥 숨기는 방식). 드로어 배경(overlay) 자체는 일부러 포커스 가능하게 만들지 않음 — 보이지 않는 배경을 탭 순서에 넣으면 오히려 키보드 사용자가 혼란스러움(Esc 키와 보이는 "닫기" 버튼으로 충분). 아이콘 전용 버튼/이미지 없음, 색상만으로 상태를 표시하는 곳 없음(전부 텍스트 병기) — 이 부분은 이미 양호해 추가 조치 없음.
+  2. **온보딩 개선** — 회원가입 직후에만(이번 세션 한정, `justSignedUp` 플래그로 관리 — 새로고침하면 다시 로그인 흐름을 타 자연히 꺼짐) "오늘의 기록" 카드 위에 배너를 보여줌: 무엇을 입력하면 되는지 안내 + "예시 값 채워보기" 버튼(유효 범위 안의 예시 값을 폼에 채워주되 자동 제출은 하지 않음 - 사용자가 확인 후 직접 제출) + "닫기" 버튼. 첫 기록을 실제로 추가하면(예시든 직접 입력이든) 배너가 자동으로 사라짐.
+  3. **theme.css spacing/typography 토큰화** — `--space-1`~`--space-8`, `--text-2xs`~`--text-xl` 스케일을 `:root`에 추가(색상과 달리 라이트/다크 분기 불필요). 가장 많이 반복되던 `font-size` 값부터 정규식으로 일괄 치환(14px→93건 중 index.html 61건/admin.html 32건이 `--text-base`/`--text-sm`/`--text-sm-plus`/`--text-xs`로 교체됨) — 나머지(17~36px 사이 제목류, 1~2건씩만 쓰이는 값들)는 이번 패스 범위 밖으로 남겨둠(문서화된 의도적 축소 범위 — "점진적으로 교체"라는 원 지시사항대로 한 번에 전부 바꾸지 않음).
+  4. **파비콘/meta description/OG 태그** — 인라인 SVG data URI 파비콘(테두리 둥근 사각형 + 심박선, teal 액센트 색) 추가로 별도 이미지 파일 없이 처리. 두 파일 모두 `<meta name="description">`, `<meta property="og:title/description/type">` 추가.
+  - 회귀: `pytest -q` 41 passed, 0 warnings(백엔드 변경 없음, 프론트만 수정) / Playwright로 라벨-인풋 연결 실제 포커스 이동, 모달 role/aria-labelledby, Esc로 모달 닫힘, CSS 변수가 실제 계산값(11px 등)으로 정확히 해석되는지, 온보딩 배너 표시→예시값 채움→첫 기록 제출 후 배너 소멸까지 전부 실제 브라우저로 확인. 라이트/다크 테마 스크린샷 비교로 시각적 회귀 없음 확인. 테스트 계정 삭제 후 DB 50명/62건 기준선 복귀 확인.
+  - **신규 파일**: 없음(기존 파일만 수정)
+
 ## 7. 다음 작업
 
 1. (제안) 관리자 대시보드에도 사용자 화면처럼 시각화가 있으니, 향후 필요시 이 Playwright 스크린샷 검증 방식을 `/run-skill-generator`로 프로젝트 스킬화하는 것을 고려 — 매번 임시 Node 프로젝트를 새로 만들 필요 없어짐
 2. AWS Lightsail 배포 단계로 진행 (8번 섹션 참고) — **CTO_AUDIT_REPORT.md 기반 Phase 1~6 작업 완료, 사용자 확인 후 진행 예정. Phase 7(관리자 시각화 확장/알림)은 시작 전 반드시 재확인 필요**
-3. Phase 5(UX/접근성/디자인 폴리시) 진행 예정
+3. Phase 6(백업 도구) 진행 예정
 
 ## 8. 이후 계획 (미착수)
 

@@ -4,6 +4,11 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>관리자 대시보드 · 마이 헬스 로그</title>
+<meta name="description" content="마이 헬스 로그 관리자 대시보드 — 가입자 현황, 건강 지표 통계, 계정 관리를 확인합니다." />
+<meta property="og:type" content="website" />
+<meta property="og:title" content="관리자 대시보드 · 마이 헬스 로그" />
+<meta property="og:description" content="마이 헬스 로그 관리자 대시보드 — 가입자 현황, 건강 지표 통계, 계정 관리를 확인합니다." />
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230D9488'/%3E%3Cpath d='M4 17h4l2.5-7 4 14 3-9 2 2h8.5' fill='none' stroke='%23fff' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -22,12 +27,12 @@
   }
 
   /* ---------- 로그인 화면 ---------- */
-  #admin-login-screen label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px;}
+  #admin-login-screen label{display:block;font-size:var(--text-sm-plus);color:var(--muted);margin-bottom:6px;}
   #admin-login-screen input{
-    width:100%;padding:10px 11px;border:1px solid var(--line);border-radius:7px;font-size:14px;
+    width:100%;padding:10px 11px;border:1px solid var(--line);border-radius:7px;font-size:var(--text-base);
     font-family:'Pretendard Variable','Pretendard',-apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;
   }
-  .auth-error{color:var(--brick);font-size:14px;margin-top:12px;min-height:15px;}
+  .auth-error{color:var(--brick);font-size:var(--text-base);margin-top:12px;min-height:15px;}
 
   /* ---------- 대시보드 셸 (사이드바 + 컨텐츠) ---------- */
   .shell{display:flex;min-height:100vh;}
@@ -42,13 +47,13 @@
   }
   .sidebar .brand .dot{width:9px;height:9px;border-radius:50%;background:var(--teal);box-shadow:0 0 0 3px var(--teal-soft);flex-shrink:0;}
   .sidebar .brand small{
-    display:block;font-family:'IBM Plex Mono', monospace;font-size:11px;color:var(--muted);
+    display:block;font-family:'IBM Plex Mono', monospace;font-size:var(--text-xs);color:var(--muted);
     text-transform:uppercase;letter-spacing:0.07em;margin-top:5px;
   }
   nav.side-nav{display:flex;flex-direction:column;}
   .nav-item{
     display:flex;align-items:center;gap:8px;width:100%;text-align:left;padding:11px 22px;
-    border:none;background:none;cursor:pointer;font-size:14px;color:var(--muted);
+    border:none;background:none;cursor:pointer;font-size:var(--text-base);color:var(--muted);
     font-family:'Pretendard Variable','Pretendard',-apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;border-left:3px solid transparent;
   }
   .nav-item:hover{color:var(--ink);background:var(--paper);}
@@ -60,10 +65,10 @@
   .topbar h1{font-weight:700;letter-spacing:-0.01em;font-size:25px;margin:0;}
   .user-switch{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end;}
   .user-switch button, .user-switch .theme-toggle{flex-shrink:0;}
-  .user-switch span{font-size:14px;color:var(--muted);}
+  .user-switch span{font-size:var(--text-base);color:var(--muted);}
   .theme-toggle{display:flex;gap:2px;background:var(--card-2);border:1px solid var(--line);border-radius:20px;padding:2px;}
   .theme-toggle button{
-    border:none;background:none;padding:6px 10px;border-radius:16px;cursor:pointer;font-size:13px;
+    border:none;background:none;padding:6px 10px;border-radius:16px;cursor:pointer;font-size:var(--text-sm-plus);
     color:var(--muted);font-family:inherit;line-height:1;
   }
   .theme-toggle button.active{background:var(--card);color:var(--ink);box-shadow:var(--shadow-sm);font-weight:600;}
@@ -81,12 +86,12 @@
   }
   .card h2 .title-group{display:flex;align-items:baseline;gap:8px;}
   .card h2 .eyebrow{
-    font-family:'IBM Plex Mono', monospace;font-size:12px;color:var(--muted);
+    font-family:'IBM Plex Mono', monospace;font-size:var(--text-sm);color:var(--muted);
     letter-spacing:0.06em;text-transform:uppercase;
   }
 
   .btn{
-    padding:9px 17px;border-radius:7px;border:none;cursor:pointer;font-size:14px;
+    padding:9px 17px;border-radius:7px;border:none;cursor:pointer;font-size:var(--text-base);
     font-weight:600;font-family:inherit;
   }
   .btn-primary{background:var(--teal);color:var(--on-accent);}
@@ -96,9 +101,9 @@
   .btn-danger{background:var(--brick);color:var(--on-accent);}
   .btn-danger:hover{filter:brightness(0.9);}
 
-  table{width:100%;border-collapse:collapse;font-size:14px;}
+  table{width:100%;border-collapse:collapse;font-size:var(--text-base);}
   thead th{
-    text-align:left;font-size:12px;color:var(--muted);text-transform:uppercase;
+    text-align:left;font-size:var(--text-sm);color:var(--muted);text-transform:uppercase;
     letter-spacing:0.03em;border-bottom:1px solid var(--line);padding:9px 8px;font-weight:500;
   }
   thead th.sortable{cursor:pointer;user-select:none;}
@@ -106,26 +111,26 @@
   .sort-indicator{margin-left:3px;font-size:10px;color:var(--teal);}
   tbody td{padding:11px 8px;border-bottom:1px solid var(--line);vertical-align:middle;}
   tbody tr:last-child td{border-bottom:none;}
-  .badge{display:inline-block;padding:4px 9px;border-radius:20px;font-size:12px;font-weight:500;}
+  .badge{display:inline-block;padding:4px 9px;border-radius:20px;font-size:var(--text-sm);font-weight:500;}
   .badge.good{background:var(--status-good-soft);color:var(--status-good);}
   .badge.warn{background:var(--amber-soft);color:var(--amber);}
   .badge.bad{background:var(--brick-soft);color:var(--brick);}
   .badge.neutral{background:var(--paper);color:var(--muted);}
   .row-actions button{
-    font-size:12px;padding:5px 10px;border-radius:5px;border:1px solid var(--line);
+    font-size:var(--text-sm);padding:5px 10px;border-radius:5px;border:1px solid var(--line);
     background:var(--card);cursor:pointer;color:var(--muted);margin-right:4px;
   }
   .row-actions button:hover{border-color:var(--brick);color:var(--brick);}
-  .empty-note{color:var(--muted);font-size:14px;padding:16px 4px;}
+  .empty-note{color:var(--muted);font-size:var(--text-base);padding:16px 4px;}
 
   .search-bar{display:flex;gap:10px;align-items:flex-end;margin-bottom:16px;flex-wrap:wrap;}
   .search-bar div{display:flex;flex-direction:column;gap:5px;}
-  .search-bar label{font-size:13px;color:var(--muted);}
+  .search-bar label{font-size:var(--text-sm-plus);color:var(--muted);}
   .search-bar input, .search-bar select{
     padding:9px 10px;border:1px solid var(--line);border-radius:7px;font-family:'IBM Plex Mono', monospace;
-    font-size:14px;min-width:170px;background:var(--card);color:var(--ink);
+    font-size:var(--text-base);min-width:170px;background:var(--card);color:var(--ink);
   }
-  .pagination{display:flex;align-items:center;gap:12px;margin-top:14px;font-size:14px;color:var(--muted);}
+  .pagination{display:flex;align-items:center;gap:12px;margin-top:14px;font-size:var(--text-base);color:var(--muted);}
 
   /* ---------- KPI ---------- */
   .kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:14px;margin-bottom:20px;}
@@ -133,10 +138,10 @@
   .kpi-card.risk-high .v{color:var(--brick);}
   .kpi-card.risk-high .l{color:var(--brick);}
   .kpi-card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px 20px;}
-  .kpi-card .l{font-size:12px;color:var(--muted);letter-spacing:0.02em;margin-bottom:9px;}
+  .kpi-card .l{font-size:var(--text-sm);color:var(--muted);letter-spacing:0.02em;margin-bottom:9px;}
   .kpi-card .v{font-family:'IBM Plex Mono', monospace;font-size:28px;font-weight:600;overflow-wrap:break-word;}
   #kpi-row-2 .kpi-card .v{font-size:23px;}
-  .kpi-card .d{font-size:12px;margin-top:6px;color:var(--muted);}
+  .kpi-card .d{font-size:var(--text-sm);margin-top:6px;color:var(--muted);}
   .kpi-card.clickable{cursor:pointer;transition:border-color .12s ease, box-shadow .12s ease;}
   .kpi-card.clickable:hover, .kpi-card.clickable:focus-visible{border-color:var(--teal);box-shadow:var(--shadow-sm);}
   .kpi-card.clickable:focus-visible{outline:2px solid var(--teal);outline-offset:2px;}
@@ -156,19 +161,19 @@
   .panel-row.thirds{grid-template-columns:repeat(3,1fr);}
 
   /* ---------- 가입 추이 차트 ---------- */
-  .trend-summary{font-size:14px;color:var(--muted);margin-bottom:10px;}
+  .trend-summary{font-size:var(--text-base);color:var(--muted);margin-bottom:10px;}
   .trend-chart-wrap{position:relative;}
   .trend-chart{width:100%;height:130px;display:block;}
   .trend-bar{fill:var(--teal);cursor:pointer;}
   .trend-bar:hover{fill:#265b4d;}
   #chart-tooltip{
-    position:fixed;background:#16211D;color:#F3F7F5;font-size:12px;padding:6px 10px;border-radius:6px;
+    position:fixed;background:#16211D;color:#F3F7F5;font-size:var(--text-sm);padding:6px 10px;border-radius:6px;
     pointer-events:none;z-index:1000;opacity:0;transition:opacity 0.1s;white-space:nowrap;
   }
   #chart-tooltip strong{font-family:'IBM Plex Mono', monospace;}
 
   /* ---------- 분포 패널 ---------- */
-  .dist-row{display:flex;align-items:center;gap:8px;margin-top:7px;font-size:14px;}
+  .dist-row{display:flex;align-items:center;gap:8px;margin-top:7px;font-size:var(--text-base);}
   .dist-label{width:76px;flex-shrink:0;}
   .dist-bar{flex:1;height:8px;background:var(--paper);border-radius:4px;overflow:hidden;}
   .dist-bar span{display:block;height:100%;}
@@ -179,10 +184,10 @@
   .dist-count{color:var(--muted);width:24px;text-align:right;flex-shrink:0;}
 
   /* ---------- 최근 활동 ---------- */
-  .activity-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px dashed var(--line);font-size:14px;}
+  .activity-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px dashed var(--line);font-size:var(--text-base);}
   .activity-row:last-child{border-bottom:none;}
   .activity-detail{flex:1;color:var(--ink);}
-  .activity-time{color:var(--muted);font-family:'IBM Plex Mono', monospace;font-size:12px;}
+  .activity-time{color:var(--muted);font-family:'IBM Plex Mono', monospace;font-size:var(--text-sm);}
 
   /* ---------- 드로어 (사용자 기록 보기) ---------- */
   .drawer-overlay{
@@ -212,7 +217,7 @@
   .modal-box.wide{max-width:480px;}
   .detail-row{
     display:flex;justify-content:space-between;align-items:center;gap:16px;
-    padding:10px 0;border-bottom:1px solid var(--line);font-size:14px;
+    padding:10px 0;border-bottom:1px solid var(--line);font-size:var(--text-base);
   }
   .detail-row:last-child{border-bottom:none;}
   .detail-row .detail-label{color:var(--muted);flex-shrink:0;}
@@ -221,7 +226,7 @@
   /* ---------- 토스트 ---------- */
   #toast-box{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:999;display:flex;flex-direction:column;gap:8px;align-items:center;}
   .toast{
-    padding:11px 19px;border-radius:8px;font-size:14px;color:#F3F7F5;background:#16211D;
+    padding:11px 19px;border-radius:8px;font-size:var(--text-base);color:#F3F7F5;background:#16211D;
     box-shadow:0 6px 20px rgba(0,0,0,0.15);opacity:0;transform:translateY(8px);
     animation:toast-in 0.2s ease forwards;
   }
@@ -239,7 +244,7 @@
     .nav-label{display:none;}
     .sidebar-footer{padding:12px 8px 0;}
     .sidebar-footer .badge{font-size:0;padding:6px;}
-    .sidebar-footer .badge::before{content:'●';font-size:12px;}
+    .sidebar-footer .badge::before{content:'●';font-size:var(--text-sm);}
     .kpi-row{grid-template-columns:repeat(3,1fr);}
     .panel-row, .panel-row.thirds{grid-template-columns:1fr;}
   }
@@ -277,11 +282,11 @@
     <h2 style="margin:0 0 20px;"><span class="eyebrow">Admin</span> 관리자 로그인</h2>
     <form id="admin-login-form" onsubmit="doAdminLogin(event)">
       <div style="margin-bottom:12px;">
-        <label>아이디</label>
+        <label for="admin-login-username">아이디</label>
         <input type="text" id="admin-login-username" required autocomplete="username" />
       </div>
       <div style="margin-bottom:16px;">
-        <label>비밀번호</label>
+        <label for="admin-login-password">비밀번호</label>
         <input type="password" id="admin-login-password" required autocomplete="current-password" />
       </div>
       <button type="submit" class="btn btn-primary" style="width:100%;">로그인</button>
@@ -357,7 +362,7 @@
         </div>
         <div class="card">
           <h2><span class="eyebrow">Recent</span> 최근 활동</h2>
-          <div id="recent-activity-body"><span style="color:var(--muted);font-size:14px;">불러오는 중...</span></div>
+          <div id="recent-activity-body"><span style="color:var(--muted);font-size:var(--text-base);">불러오는 중...</span></div>
           <button class="btn btn-ghost" style="margin-top:12px;width:100%;" onclick="switchView('audit')">전체 감사 로그 보기</button>
         </div>
       </div>
@@ -379,11 +384,11 @@
         </div>
         <div class="search-bar">
           <div>
-            <label>아이디/이름 검색</label>
+            <label for="user-search">아이디/이름 검색</label>
             <input type="text" id="user-search" placeholder="아이디 또는 이름 일부 입력" oninput="onSearchInput()" />
           </div>
           <div>
-            <label>권한</label>
+            <label for="role-filter">권한</label>
             <select id="role-filter" onchange="onRoleFilterChange()">
               <option value="">전체</option>
               <option value="user">일반 사용자</option>
@@ -391,7 +396,7 @@
             </select>
           </div>
           <div>
-            <label>위험도</label>
+            <label for="risk-filter">위험도</label>
             <select id="risk-filter" onchange="onRiskFilterChange()">
               <option value="">전체</option>
               <option value="high">높음</option>
@@ -401,7 +406,7 @@
             </select>
           </div>
           <div>
-            <label>접속 상태</label>
+            <label for="online-filter">접속 상태</label>
             <select id="online-filter" onchange="onOnlineFilterChange()">
               <option value="">전체</option>
               <option value="true">온라인</option>
@@ -443,7 +448,7 @@
         <h2><span class="eyebrow">Audit</span> 관리자 활동 로그</h2>
         <div class="search-bar">
           <div>
-            <label>조치 유형</label>
+            <label for="audit-filter">조치 유형</label>
             <select id="audit-filter" onchange="onAuditFilterChange()">
               <option value="">전체</option>
               <option value="delete_user">계정 삭제</option>
@@ -467,8 +472,12 @@
 </div>
 
 <!-- 사용자 기록 드로어 -->
+<!-- 배경(overlay) 클릭 시 닫히는 건 마우스 사용자를 위한 편의 기능일 뿐 -
+     키보드 사용자는 Esc(shared.js) 또는 안의 "닫기" 버튼으로 닫으므로 이
+     보이지 않는 배경 자체를 탭 순서에 넣지 않는다(포커스 가능하게 만들면
+     화면에 아무 표시도 없는 정지점이 생겨 오히려 혼란스러움). -->
 <div class="drawer-overlay" id="user-drawer-overlay" style="display:none;" onclick="closeUserRecords()">
-  <div class="drawer" onclick="event.stopPropagation()">
+  <div class="drawer" onclick="event.stopPropagation()" role="dialog" aria-modal="true" aria-labelledby="user-drawer-title">
     <h3><span id="user-drawer-title"></span><button class="btn btn-ghost" onclick="closeUserRecords()">닫기</button></h3>
     <div style="overflow-x:auto;">
       <table>
@@ -483,7 +492,7 @@
 </div>
 
 <!-- 회원정보 보기 모달 (건강기록이 아니라 계정 자체의 상세 정보) -->
-<div class="modal-overlay" id="user-detail-modal" style="display:none;">
+<div class="modal-overlay" id="user-detail-modal" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="user-detail-title">
   <div class="modal-box wide">
     <h3><span id="user-detail-title"></span></h3>
     <div id="user-detail-body"></div>
@@ -495,12 +504,12 @@
 </div>
 
 <!-- 임시 비밀번호 발급 결과 모달 (한 번만 보이고 다시 조회할 수 없으므로 명시적으로 닫아야 함) -->
-<div class="modal-overlay" id="password-reset-modal" style="display:none;">
+<div class="modal-overlay" id="password-reset-modal" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="password-reset-modal-title">
   <div class="modal-box">
-    <h3>임시 비밀번호 발급됨</h3>
-    <p style="font-size:14px;color:var(--muted);margin:0 0 14px;">이 화면을 벗어나면 다시 볼 수 없습니다. 안전한 방법으로 사용자에게 전달하고, 로그인 후 비밀번호를 변경하도록 안내하세요.</p>
+    <h3 id="password-reset-modal-title">임시 비밀번호 발급됨</h3>
+    <p style="font-size:var(--text-base);color:var(--muted);margin:0 0 14px;">이 화면을 벗어나면 다시 볼 수 없습니다. 안전한 방법으로 사용자에게 전달하고, 로그인 후 비밀번호를 변경하도록 안내하세요.</p>
     <div style="display:flex;gap:8px;">
-      <input type="text" id="temp-password-display" readonly style="flex:1;font-family:'IBM Plex Mono', monospace;padding:9px 10px;border:1px solid var(--line);border-radius:7px;background:var(--card-2);color:var(--ink);" />
+      <input type="text" id="temp-password-display" readonly aria-label="발급된 임시 비밀번호" style="flex:1;font-family:'IBM Plex Mono', monospace;padding:9px 10px;border:1px solid var(--line);border-radius:7px;background:var(--card-2);color:var(--ink);" />
       <button type="button" class="btn btn-ghost" onclick="copyTempPassword()">복사</button>
     </div>
     <div class="modal-actions">
@@ -510,10 +519,10 @@
 </div>
 
 <!-- 커스텀 확인 모달 (native confirm() 대체) -->
-<div class="modal-overlay" id="confirm-modal" style="display:none;">
+<div class="modal-overlay" id="confirm-modal" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="confirm-modal-title">
   <div class="modal-box">
     <h3 id="confirm-modal-title">확인</h3>
-    <p id="confirm-modal-message" style="font-size:14px;color:var(--muted);margin:0;"></p>
+    <p id="confirm-modal-message" style="font-size:var(--text-base);color:var(--muted);margin:0;"></p>
     <div class="modal-actions">
       <button type="button" class="btn btn-ghost" id="confirm-modal-cancel">취소</button>
       <button type="button" class="btn btn-danger" id="confirm-modal-ok">확인</button>
@@ -927,7 +936,7 @@ function renderAuditTable(logs){
       <td>${l.admin_username}</td>
       <td><span class="badge ${actionBadgeClass(l.action)}">${actionLabel(l.action)}</span></td>
       <td>${l.target_username || '-'}</td>
-      <td style="color:var(--muted);font-size:14px;">${l.detail || ''}</td>
+      <td style="color:var(--muted);font-size:var(--text-base);">${l.detail || ''}</td>
     </tr>`).join('');
 }
 
@@ -1118,7 +1127,7 @@ async function loadUsers(page = currentPage){
         return `
       <tr>
         <td>${u.id}</td>
-        <td>${u.username}${isSelf ? ' <span style="color:var(--muted);font-size:12px;">(나)</span>' : ''}</td>
+        <td>${u.username}${isSelf ? ' <span style="color:var(--muted);font-size:var(--text-sm);">(나)</span>' : ''}</td>
         <td>${u.name ? escapeHtml(u.name) : '<span style="color:var(--muted);">-</span>'}</td>
         <td><span class="badge ${roleBadgeClass(u.role)}">${u.role}</span></td>
         <td>${onlineBadge(u.is_online)}</td>

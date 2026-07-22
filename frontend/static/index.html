@@ -4,6 +4,11 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>마이 헬스 로그</title>
+<meta name="description" content="매일의 체중·혈압·혈당·걸음수·수면을 기록하면 BMI와 건강 상태를 자동으로 분석해주는 개인 건강 기록 앱." />
+<meta property="og:type" content="website" />
+<meta property="og:title" content="마이 헬스 로그" />
+<meta property="og:description" content="매일의 체중·혈압·혈당·걸음수·수면을 기록하면 BMI와 건강 상태를 자동으로 분석해주는 개인 건강 기록 앱." />
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230D9488'/%3E%3Cpath d='M4 17h4l2.5-7 4 14 3-9 2 2h8.5' fill='none' stroke='%23fff' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -32,17 +37,17 @@
     font-weight:700;font-size:36px;margin:0 0 4px;
     letter-spacing:-0.02em;
   }
-  header.top p{margin:0;color:var(--muted);font-size:14px;}
+  header.top p{margin:0;color:var(--muted);font-size:var(--text-base);}
   .user-switch{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end;}
   .user-switch button, .user-switch .theme-toggle{flex-shrink:0;}
-  .user-switch label{font-size:13px;color:var(--muted);}
+  .user-switch label{font-size:var(--text-sm-plus);color:var(--muted);}
   .user-switch input{
-    font-family:'IBM Plex Mono', monospace;font-size:14px;
+    font-family:'IBM Plex Mono', monospace;font-size:var(--text-base);
     padding:7px 10px;border:1px solid var(--line);border-radius:6px;
     background:var(--card);width:120px;
   }
   .user-switch button{
-    font-size:14px;padding:7px 12px;border-radius:6px;border:1px solid var(--line);
+    font-size:var(--text-base);padding:7px 12px;border-radius:6px;border:1px solid var(--line);
     background:var(--card-2);color:var(--ink);cursor:pointer;
   }
   .user-switch button:hover{border-color:var(--line-strong);}
@@ -58,7 +63,7 @@
     display:flex;align-items:baseline;gap:8px;letter-spacing:-0.01em;
   }
   .card h2 .eyebrow{
-    font-family:'IBM Plex Mono', monospace;font-size:12px;color:var(--muted);
+    font-family:'IBM Plex Mono', monospace;font-size:var(--text-sm);color:var(--muted);
     letter-spacing:0.06em;text-transform:uppercase;
   }
 
@@ -75,13 +80,13 @@
   }
   .sidebar .brand .dot{width:9px;height:9px;border-radius:50%;background:var(--teal);box-shadow:0 0 0 3px var(--teal-soft);flex-shrink:0;}
   .sidebar .brand small{
-    display:block;font-family:'IBM Plex Mono', monospace;font-size:11px;color:var(--muted);
+    display:block;font-family:'IBM Plex Mono', monospace;font-size:var(--text-xs);color:var(--muted);
     text-transform:uppercase;letter-spacing:0.07em;margin-top:5px;
   }
   nav.side-nav{display:flex;flex-direction:column;}
   .nav-item{
     display:flex;align-items:center;gap:8px;width:100%;text-align:left;padding:11px 22px;
-    border:none;background:none;cursor:pointer;font-size:14px;color:var(--muted);
+    border:none;background:none;cursor:pointer;font-size:var(--text-base);color:var(--muted);
     font-family:'Pretendard Variable','Pretendard',-apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;border-left:3px solid transparent;
   }
   .nav-item:hover{color:var(--ink);background:var(--paper);}
@@ -92,7 +97,7 @@
   .topbar h1{font-weight:700;font-size:25px;margin:0;letter-spacing:-0.01em;}
   .theme-toggle{display:flex;gap:2px;background:var(--card-2);border:1px solid var(--line);border-radius:20px;padding:2px;}
   .theme-toggle button{
-    border:none;background:none;padding:6px 10px;border-radius:16px;cursor:pointer;font-size:13px;
+    border:none;background:none;padding:6px 10px;border-radius:16px;cursor:pointer;font-size:var(--text-sm-plus);
     color:var(--muted);font-family:inherit;line-height:1;
   }
   .theme-toggle button.active{background:var(--card);color:var(--ink);box-shadow:var(--shadow-sm);font-weight:600;}
@@ -103,22 +108,22 @@
   /* 입력 폼 */
   form.entry{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;}
   form.entry .full{grid-column:1 / -1;}
-  form.entry label{display:block;font-size:13px;color:var(--muted);margin-bottom:5px;}
+  form.entry label{display:block;font-size:var(--text-sm-plus);color:var(--muted);margin-bottom:5px;}
   form.entry input{
     width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:7px;
-    font-size:14px;font-family:'IBM Plex Mono', monospace;
+    font-size:var(--text-base);font-family:'IBM Plex Mono', monospace;
   }
   form.entry input[type="text"]{font-family:'Pretendard Variable','Pretendard',-apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;}
   form.entry .actions{grid-column:1 / -1;display:flex;gap:10px;align-items:center;margin-top:4px;}
   .btn{
-    padding:10px 18px;border-radius:7px;border:none;cursor:pointer;font-size:14px;
+    padding:10px 18px;border-radius:7px;border:none;cursor:pointer;font-size:var(--text-base);
     font-weight:500;font-family:'Pretendard Variable','Pretendard',-apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;
   }
   .btn-primary{background:var(--teal);color:var(--on-accent);}
   .btn-primary:hover{background:var(--teal-strong);}
   .btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--line);}
   .btn-ghost:hover{border-color:var(--muted);}
-  #editing-flag{font-size:14px;color:var(--amber);display:none;}
+  #editing-flag{font-size:var(--text-base);color:var(--amber);display:none;}
 
   /* Quick Action 툴바 (고도화 13번) */
   .quick-actions{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;}
@@ -151,7 +156,7 @@
     display:flex;align-items:center;justify-content:center;margin-top:1px;
   }
   .ai-coach-list li .ai-coach-icon svg{width:12px;height:12px;stroke:var(--teal-strong);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
-  .ai-coach-empty{color:var(--muted);font-size:14px;}
+  .ai-coach-empty{color:var(--muted);font-size:var(--text-base);}
   .ai-coach-disclosure{margin:12px 0 0;padding-top:10px;border-top:1px solid var(--line);color:var(--muted);font-size:12.5px;line-height:1.5;}
 
   /* 이상 징후 감지 배너 (backend/risk_detection.py) — 감지된 게 있을 때만 표시됨 */
@@ -171,26 +176,26 @@
   .score-card{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:16px;}
   .score-card svg{width:104px;height:104px;}
   .score-card .score-num{font-family:'IBM Plex Mono', monospace;font-weight:700;}
-  .score-card .score-label{font-size:11px;color:var(--muted);}
+  .score-card .score-label{font-size:var(--text-xs);color:var(--muted);}
   .metric-card{display:flex;flex-direction:column;gap:8px;}
   .metric-card .mc-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;}
   .metric-card .mc-label{font-size:12.5px;color:var(--muted);letter-spacing:0.02em;}
   /* 건강 추세 분석 화살표 (health_trends.py의 Trend: UP/DOWN/STABLE) */
-  .trend-arrow{font-size:12px;font-weight:700;margin-left:2px;}
+  .trend-arrow{font-size:var(--text-sm);font-weight:700;margin-left:2px;}
   .trend-arrow.good{color:var(--status-good);}
   .trend-arrow.bad{color:var(--brick);}
   .trend-arrow.neutral{color:var(--muted);}
   .metric-card .mc-value{font-family:'IBM Plex Mono', monospace;font-size:28px;font-weight:700;line-height:1;}
-  .metric-card .mc-value small{font-size:14px;color:var(--muted);font-weight:500;}
+  .metric-card .mc-value small{font-size:var(--text-base);color:var(--muted);font-weight:500;}
   .metric-card .mc-sub{font-size:12.5px;color:var(--muted);}
   .hero-secondary{display:flex;gap:12px;margin-bottom:24px;flex-wrap:wrap;}
   .hero-chip{flex:1;min-width:150px;background:var(--card);border:1px solid var(--line);border-radius:var(--radius-sm);
     padding:12px 15px;display:flex;align-items:center;justify-content:space-between;gap:10px;}
   .hero-chip .hc-label{font-size:12.5px;color:var(--muted);}
-  .hero-chip .hc-value{font-family:'IBM Plex Mono', monospace;font-size:14px;font-weight:600;}
+  .hero-chip .hc-value{font-family:'IBM Plex Mono', monospace;font-size:var(--text-base);font-weight:600;}
 
   .dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:6px;vertical-align:middle;}
-  .status-tag{font-size:14px;font-weight:500;}
+  .status-tag{font-size:var(--text-base);font-weight:500;}
   .good .dot{background:var(--status-good);} .good .status-tag{color:var(--status-good);}
   .warn .dot{background:var(--amber);} .warn .status-tag{color:var(--amber);}
   .bad .dot{background:var(--brick);} .bad .status-tag{color:var(--brick);}
@@ -199,7 +204,12 @@
   .status-tag.warn{color:var(--amber);} .status-tag.warn .dot{background:var(--amber);}
   .status-tag.bad{color:var(--brick);} .status-tag.bad .dot{background:var(--brick);}
   .status-tag.neutral{color:var(--muted);} .status-tag.neutral .dot{background:var(--muted);}
-  .empty-note{color:var(--muted);font-size:14px;padding:18px 4px;}
+  .empty-note{color:var(--muted);font-size:var(--text-base);padding:18px 4px;}
+
+  /* 가입 직후 온보딩 배너 - 첫 기록을 남기기 전까지만 보임 */
+  .onboarding-banner{background:var(--teal-soft);border:1px solid var(--teal);border-radius:var(--radius-md);padding:var(--space-4);margin-bottom:var(--space-4);display:flex;gap:var(--space-4);align-items:flex-start;justify-content:space-between;}
+  .onboarding-banner p{margin:0;font-size:var(--text-sm-plus);color:var(--ink);line-height:1.6;}
+  .onboarding-banner .onboarding-actions{display:flex;gap:var(--space-2);flex-shrink:0;}
 
   /* 기록 타임라인 카드 */
   .timeline-list{display:flex;flex-direction:column;gap:9px;}
@@ -215,7 +225,7 @@
   .timeline-metrics b{font-family:'IBM Plex Mono', monospace;font-weight:600;}
   .timeline-actions{display:flex;gap:4px;margin-left:auto;}
   .timeline-actions button{
-    font-size:12px;padding:5px 10px;border-radius:5px;border:1px solid var(--line);
+    font-size:var(--text-sm);padding:5px 10px;border-radius:5px;border:1px solid var(--line);
     background:var(--card);cursor:pointer;color:var(--muted);
   }
   .timeline-actions button:hover{border-color:var(--ink);color:var(--ink);}
@@ -223,25 +233,25 @@
   /* 검색/통계 */
   .search-bar{display:flex;gap:10px;align-items:flex-end;margin-bottom:16px;flex-wrap:wrap;}
   .search-bar div{display:flex;flex-direction:column;gap:5px;}
-  .search-bar label{font-size:13px;color:var(--muted);}
-  .search-bar input{padding:9px 10px;border:1px solid var(--line);border-radius:7px;font-family:'IBM Plex Mono', monospace;font-size:14px;}
+  .search-bar label{font-size:var(--text-sm-plus);color:var(--muted);}
+  .search-bar input{padding:9px 10px;border:1px solid var(--line);border-radius:7px;font-family:'IBM Plex Mono', monospace;font-size:var(--text-base);}
 
-  table{width:100%;border-collapse:collapse;font-size:14px;}
+  table{width:100%;border-collapse:collapse;font-size:var(--text-base);}
   thead th{
-    text-align:left;font-size:12px;color:var(--muted);text-transform:uppercase;
+    text-align:left;font-size:var(--text-sm);color:var(--muted);text-transform:uppercase;
     letter-spacing:0.03em;border-bottom:1px solid var(--line);padding:9px 8px;font-weight:500;
   }
   tbody td{padding:11px 8px;border-bottom:1px solid var(--line);vertical-align:middle;}
   tbody tr:last-child td{border-bottom:none;}
   .badge{
-    display:inline-block;padding:4px 9px;border-radius:20px;font-size:12px;font-weight:500;
+    display:inline-block;padding:4px 9px;border-radius:20px;font-size:var(--text-sm);font-weight:500;
   }
   .badge.good{background:var(--status-good-soft);color:var(--status-good);}
   .badge.warn{background:var(--amber-soft);color:var(--amber);}
   .badge.bad{background:var(--brick-soft);color:var(--brick);}
-  .warn-msg{font-size:12px;color:var(--brick);margin-top:2px;}
+  .warn-msg{font-size:var(--text-sm);color:var(--brick);margin-top:2px;}
   .row-actions button{
-    font-size:12px;padding:5px 10px;border-radius:5px;border:1px solid var(--line);
+    font-size:var(--text-sm);padding:5px 10px;border-radius:5px;border:1px solid var(--line);
     background:var(--card);cursor:pointer;margin-right:4px;color:var(--muted);
   }
   .row-actions button:hover{border-color:var(--ink);color:var(--ink);}
@@ -249,17 +259,17 @@
   .stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
   .stat-item{padding:12px 0;border-bottom:1px dashed var(--line);}
   .stat-item .n{font-family:'IBM Plex Mono', monospace;font-size:21px;font-weight:600;}
-  .stat-item .l{font-size:12px;color:var(--muted);}
-  .dist-row{display:flex;align-items:center;gap:8px;margin-top:7px;font-size:14px;}
+  .stat-item .l{font-size:var(--text-sm);color:var(--muted);}
+  .dist-row{display:flex;align-items:center;gap:8px;margin-top:7px;font-size:var(--text-base);}
   .dist-bar{flex:1;height:6px;background:var(--paper);border-radius:4px;overflow:hidden;}
   .dist-bar span{display:block;height:100%;background:var(--teal);}
 
   /* 목표 */
   .goal-form{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px;}
-  .goal-form input{padding:9px 10px;border:1px solid var(--line);border-radius:7px;font-family:'IBM Plex Mono', monospace;font-size:14px;width:100%;}
-  .goal-form label{font-size:12px;color:var(--muted);display:block;margin-bottom:4px;}
+  .goal-form input{padding:9px 10px;border:1px solid var(--line);border-radius:7px;font-family:'IBM Plex Mono', monospace;font-size:var(--text-base);width:100%;}
+  .goal-form label{font-size:var(--text-sm);color:var(--muted);display:block;margin-bottom:4px;}
   .achv{display:flex;gap:10px;flex-wrap:wrap;margin-top:4px;}
-  .achv .chip{font-size:14px;padding:5px 10px;border-radius:20px;background:var(--paper);}
+  .achv .chip{font-size:var(--text-base);padding:5px 10px;border-radius:20px;background:var(--paper);}
   .achv .chip.yes{background:var(--status-good-soft);color:var(--status-good);}
   .achv .chip.no{background:var(--brick-soft);color:var(--brick);}
 
@@ -272,8 +282,8 @@
   /* 주간 리포트 (막대 그래프) */
   .weekly-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
   .weekly-card{border:1px solid var(--line);border-radius:10px;padding:14px 16px;}
-  .weekly-card .l{font-size:12px;color:var(--muted);margin-bottom:10px;}
-  .weekly-bar-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:12px;}
+  .weekly-card .l{font-size:var(--text-sm);color:var(--muted);margin-bottom:10px;}
+  .weekly-bar-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:var(--text-sm);}
   .weekly-bar-label{width:42px;flex-shrink:0;color:var(--muted);}
   .weekly-bar-track{flex:1;height:8px;background:var(--paper);border-radius:4px;overflow:hidden;}
   .weekly-bar-track span{display:block;height:100%;border-radius:4px;}
@@ -288,31 +298,31 @@
     background:var(--teal-soft);border:1px solid var(--teal-soft);
   }
   .ai-summary-label{
-    font-family:'IBM Plex Mono', monospace;font-size:12px;color:var(--teal-strong);
+    font-family:'IBM Plex Mono', monospace;font-size:var(--text-sm);color:var(--teal-strong);
     letter-spacing:0.06em;text-transform:uppercase;margin-bottom:6px;
   }
   .ai-summary-text{margin:0;font-size:14.5px;color:var(--ink);line-height:1.6;}
 
-  footer{text-align:center;color:var(--muted);font-size:14px;margin:40px 0;}
+  footer{text-align:center;color:var(--muted);font-size:var(--text-base);margin:40px 0;}
 
   /* 인증 화면 */
   #auth-screen .auth-tabs{display:flex;gap:4px;margin-bottom:20px;border-bottom:1px solid var(--line);}
   #auth-screen .auth-tab{
-    flex:1;padding:10px;border:none;background:none;cursor:pointer;font-size:14px;
+    flex:1;padding:10px;border:none;background:none;cursor:pointer;font-size:var(--text-base);
     color:var(--muted);border-bottom:2px solid transparent;font-family:'Pretendard Variable','Pretendard',-apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;
   }
   #auth-screen .auth-tab.active{color:var(--ink);border-bottom-color:var(--teal);font-weight:600;}
-  #auth-screen label{display:block;font-size:13px;color:var(--muted);margin-bottom:5px;}
+  #auth-screen label{display:block;font-size:var(--text-sm-plus);color:var(--muted);margin-bottom:5px;}
   #auth-screen input{
-    width:100%;padding:10px 11px;border:1px solid var(--line);border-radius:7px;font-size:14px;
+    width:100%;padding:10px 11px;border:1px solid var(--line);border-radius:7px;font-size:var(--text-base);
     font-family:'Pretendard Variable','Pretendard',-apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;
   }
-  .auth-error{color:var(--brick);font-size:14px;margin-top:12px;min-height:15px;}
+  .auth-error{color:var(--brick);font-size:var(--text-base);margin-top:12px;min-height:15px;}
 
   /* 토스트 */
   #toast-box{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:999;display:flex;flex-direction:column;gap:8px;align-items:center;}
   .toast{
-    padding:11px 19px;border-radius:8px;font-size:14px;color:#F3F7F5;background:#16211D;
+    padding:11px 19px;border-radius:8px;font-size:var(--text-base);color:#F3F7F5;background:#16211D;
     box-shadow:0 6px 20px rgba(0,0,0,0.15);opacity:0;transform:translateY(8px);
     animation:toast-in 0.2s ease forwards;
   }
@@ -330,35 +340,35 @@
     box-shadow:0 12px 40px rgba(0,0,0,0.2);max-height:90vh;overflow-y:auto;
   }
   .modal-box h3{font-weight:700;font-size:19px;margin:0 0 16px;letter-spacing:-0.01em;}
-  .modal-box h4{font-size:14px;margin:0 0 10px;color:var(--muted);}
-  .modal-box label{display:block;font-size:13px;color:var(--muted);margin-bottom:5px;}
+  .modal-box h4{font-size:var(--text-base);margin:0 0 10px;color:var(--muted);}
+  .modal-box label{display:block;font-size:var(--text-sm-plus);color:var(--muted);margin-bottom:5px;}
   .modal-box input{
-    width:100%;padding:10px 11px;border:1px solid var(--line);border-radius:7px;font-size:14px;
+    width:100%;padding:10px 11px;border:1px solid var(--line);border-radius:7px;font-size:var(--text-base);
     font-family:'Pretendard Variable','Pretendard',-apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;
   }
   .modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:18px;}
   .btn-danger{background:var(--brick);color:var(--on-accent);}
   .btn-danger:hover{filter:brightness(0.9);}
   .danger-zone{border-top:1px dashed var(--line);padding-top:16px;margin-top:20px;}
-  .danger-zone p{font-size:14px;color:var(--muted);margin:0 0 10px;}
+  .danger-zone p{font-size:var(--text-base);color:var(--muted);margin:0 0 10px;}
 
   /* 페이지네이션 */
-  .pagination{display:flex;align-items:center;gap:12px;margin-top:14px;font-size:14px;color:var(--muted);}
+  .pagination{display:flex;align-items:center;gap:12px;margin-top:14px;font-size:var(--text-base);color:var(--muted);}
 
   /* 측정 추이 차트 */
   .trend-tabs{display:flex;gap:6px;margin-bottom:14px;}
   .trend-tab{
     padding:7px 15px;border-radius:20px;border:1px solid var(--line);background:var(--card);
-    cursor:pointer;font-size:13px;color:var(--muted);font-family:'Pretendard Variable','Pretendard',-apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;
+    cursor:pointer;font-size:var(--text-sm-plus);color:var(--muted);font-family:'Pretendard Variable','Pretendard',-apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;
   }
   .trend-tab.active{background:var(--teal);color:var(--on-accent);border-color:var(--teal);}
-  .trend-legend{display:flex;gap:16px;margin-bottom:10px;font-size:12px;color:var(--muted);min-height:14px;}
+  .trend-legend{display:flex;gap:16px;margin-bottom:10px;font-size:var(--text-sm);color:var(--muted);min-height:14px;}
   .trend-legend .key{display:inline-flex;align-items:center;gap:6px;}
   .trend-legend .key .line{display:inline-block;width:14px;height:2px;border-radius:1px;}
   .line-chart-wrap{position:relative;}
   .line-chart{width:100%;height:240px;display:block;}
   #line-chart-tooltip{
-    position:fixed;background:#16211D;color:#F3F7F5;font-size:12px;padding:7px 10px;border-radius:6px;
+    position:fixed;background:#16211D;color:#F3F7F5;font-size:var(--text-sm);padding:7px 10px;border-radius:6px;
     pointer-events:none;z-index:1000;opacity:0;transition:opacity 0.1s;white-space:nowrap;line-height:1.6;
   }
   #line-chart-tooltip strong{font-family:'IBM Plex Mono', monospace;}
@@ -427,11 +437,11 @@
 
       <form id="login-form" onsubmit="doLogin(event)">
         <div style="margin-bottom:12px;">
-          <label>아이디</label>
+          <label for="login-username">아이디</label>
           <input type="text" id="login-username" required autocomplete="username" />
         </div>
         <div style="margin-bottom:16px;">
-          <label>비밀번호</label>
+          <label for="login-password">비밀번호</label>
           <input type="password" id="login-password" required autocomplete="current-password" />
         </div>
         <button type="submit" class="btn btn-primary" style="width:100%;">로그인</button>
@@ -439,24 +449,24 @@
 
       <form id="signup-form" onsubmit="doSignup(event)" style="display:none;">
         <div style="margin-bottom:12px;">
-          <label>아이디 (영문/숫자/밑줄, 3자 이상)</label>
+          <label for="signup-username">아이디 (영문/숫자/밑줄, 3자 이상)</label>
           <input type="text" id="signup-username" required pattern="^[a-zA-Z0-9_]{3,30}$" autocomplete="username" />
         </div>
         <div style="margin-bottom:12px;">
-          <label>이름</label>
+          <label for="signup-name">이름</label>
           <input type="text" id="signup-name" required maxlength="50" autocomplete="name" />
         </div>
         <div style="margin-bottom:12px;">
-          <label>비밀번호 (6자 이상)</label>
+          <label for="signup-password">비밀번호 (6자 이상)</label>
           <input type="password" id="signup-password" required minlength="6" autocomplete="new-password" />
         </div>
         <div style="margin-bottom:12px;">
-          <label>비밀번호 확인</label>
+          <label for="signup-password2">비밀번호 확인</label>
           <input type="password" id="signup-password2" required minlength="6" autocomplete="new-password" />
         </div>
         <div style="margin-bottom:12px;">
-          <label>보안질문 (비밀번호를 잊었을 때 본인 확인용)</label>
-          <select id="signup-security-question" required style="width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:7px;font-size:14px;font-family:'Pretendard Variable','Pretendard',-apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;">
+          <label for="signup-security-question">보안질문 (비밀번호를 잊었을 때 본인 확인용)</label>
+          <select id="signup-security-question" required style="width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:7px;font-size:var(--text-base);font-family:'Pretendard Variable','Pretendard',-apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;">
             <option value="">선택하세요</option>
             <option>가장 좋아하는 음식은?</option>
             <option>첫 반려동물의 이름은?</option>
@@ -465,7 +475,7 @@
           </select>
         </div>
         <div style="margin-bottom:16px;">
-          <label>보안질문 답</label>
+          <label for="signup-security-answer">보안질문 답</label>
           <input type="text" id="signup-security-answer" required maxlength="200" />
         </div>
         <button type="submit" class="btn btn-primary" style="width:100%;">회원가입</button>
@@ -474,26 +484,26 @@
       <form id="reset-form" onsubmit="return false;" style="display:none;">
         <div id="reset-step-1">
           <div style="margin-bottom:16px;">
-            <label>아이디</label>
+            <label for="reset-username">아이디</label>
             <input type="text" id="reset-username" />
           </div>
           <button type="button" class="btn btn-primary" style="width:100%;" onclick="loadSecurityQuestion()">다음</button>
         </div>
         <div id="reset-step-2" style="display:none;">
           <div style="margin-bottom:12px;">
-            <label id="reset-question-label"></label>
+            <label for="reset-answer" id="reset-question-label"></label>
             <input type="text" id="reset-answer" placeholder="답 입력" />
           </div>
           <div style="margin-bottom:16px;">
-            <label>새 비밀번호 (6자 이상)</label>
+            <label for="reset-new-password">새 비밀번호 (6자 이상)</label>
             <input type="password" id="reset-new-password" minlength="6" />
           </div>
           <button type="button" class="btn btn-primary" style="width:100%;" onclick="submitPasswordReset()">비밀번호 재설정</button>
         </div>
         <div style="text-align:center;margin-top:14px;">
-          <a href="#" style="font-size:14px;color:var(--muted);" onclick="switchAuthTab('login')">로그인으로 돌아가기</a>
+          <a href="#" style="font-size:var(--text-base);color:var(--muted);" onclick="switchAuthTab('login')">로그인으로 돌아가기</a>
         </div>
-        <p style="text-align:center;margin:14px 0 0;font-size:13px;color:var(--muted);">
+        <p style="text-align:center;margin:14px 0 0;font-size:var(--text-sm-plus);color:var(--muted);">
           보안질문 답이 기억나지 않으시면 셀프 복구가 어렵습니다. 관리자에게 문의해 계정 복구(임시 비밀번호 발급)를 요청하세요.
         </p>
       </form>
@@ -501,20 +511,20 @@
       <div id="auth-error" class="auth-error"></div>
 
       <div id="forgot-password-link" style="text-align:center;margin-top:14px;">
-        <a href="#" style="font-size:14px;color:var(--muted);" onclick="showResetForm(event)">비밀번호를 잊으셨나요?</a>
+        <a href="#" style="font-size:var(--text-base);color:var(--muted);" onclick="showResetForm(event)">비밀번호를 잊으셨나요?</a>
       </div>
     </div>
   </section>
 </div>
 
 <!-- 계정 설정 모달 -->
-<div class="modal-overlay" id="account-modal" style="display:none;">
+<div class="modal-overlay" id="account-modal" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="account-modal-title">
   <div class="modal-box">
-    <h3>계정 설정</h3>
+    <h3 id="account-modal-title">계정 설정</h3>
     <h4>이름 변경</h4>
     <form id="change-name-form" onsubmit="submitChangeName(event)" style="margin-bottom:20px;">
       <div style="margin-bottom:10px;">
-        <label>이름</label>
+        <label for="cn-name">이름</label>
         <input type="text" id="cn-name" required maxlength="50" />
       </div>
       <button type="submit" class="btn btn-primary" style="width:100%;">이름 변경</button>
@@ -523,15 +533,15 @@
     <h4>비밀번호 변경</h4>
     <form id="change-password-form" onsubmit="submitChangePassword(event)">
       <div style="margin-bottom:10px;">
-        <label>현재 비밀번호</label>
+        <label for="cp-current">현재 비밀번호</label>
         <input type="password" id="cp-current" required />
       </div>
       <div style="margin-bottom:10px;">
-        <label>새 비밀번호 (6자 이상)</label>
+        <label for="cp-new">새 비밀번호 (6자 이상)</label>
         <input type="password" id="cp-new" required minlength="6" />
       </div>
       <div style="margin-bottom:14px;">
-        <label>새 비밀번호 확인</label>
+        <label for="cp-new2">새 비밀번호 확인</label>
         <input type="password" id="cp-new2" required minlength="6" />
       </div>
       <button type="submit" class="btn btn-primary" style="width:100%;">비밀번호 변경</button>
@@ -553,10 +563,10 @@
 </div>
 
 <!-- 커스텀 확인 모달 (native confirm 대체) -->
-<div class="modal-overlay" id="confirm-modal" style="display:none;">
+<div class="modal-overlay" id="confirm-modal" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="confirm-modal-title">
   <div class="modal-box">
     <h3 id="confirm-modal-title">확인</h3>
-    <p id="confirm-modal-message" style="font-size:14px;color:var(--muted);margin:0;"></p>
+    <p id="confirm-modal-message" style="font-size:var(--text-base);color:var(--muted);margin:0;"></p>
     <div class="modal-actions">
       <button type="button" class="btn btn-ghost" id="confirm-modal-cancel">취소</button>
       <button type="button" class="btn btn-danger" id="confirm-modal-ok">확인</button>
@@ -622,44 +632,52 @@
       <div class="hero-secondary" id="hero-secondary"></div>
       <div class="summary-grid" id="summary-grid"></div>
 
+      <div class="onboarding-banner" id="onboarding-banner" style="display:none;">
+        <p>👋 첫 방문을 환영합니다! 아래 "오늘의 기록"에 몸무게·키·혈압·혈당만 입력해도 BMI와 건강 상태를 바로 분석해드려요.<br />예시 값으로 먼저 체험해볼 수도 있어요.</p>
+        <div class="onboarding-actions">
+          <button type="button" class="btn btn-ghost" onclick="fillExampleValues()">예시 값 채워보기</button>
+          <button type="button" class="btn btn-ghost" onclick="dismissOnboarding()" aria-label="온보딩 안내 닫기">닫기</button>
+        </div>
+      </div>
+
       <div class="card">
         <h2><span class="eyebrow">Entry</span> 오늘의 기록</h2>
         <form class="entry" id="record-form" onsubmit="submitRecord(event)">
           <input type="hidden" id="record-id" />
           <div>
-            <label>측정일</label>
+            <label for="f-date">측정일</label>
             <input type="date" id="f-date" required />
           </div>
           <div>
-            <label>몸무게 (kg)</label>
+            <label for="f-weight">몸무게 (kg)</label>
             <input type="number" step="0.1" id="f-weight" required />
           </div>
           <div>
-            <label>키 (cm)</label>
+            <label for="f-height">키 (cm)</label>
             <input type="number" step="0.1" id="f-height" required />
           </div>
           <div>
-            <label>걸음 수</label>
+            <label for="f-steps">걸음 수</label>
             <input type="number" id="f-steps" value="0" />
           </div>
           <div>
-            <label>수축기 혈압</label>
+            <label for="f-systolic">수축기 혈압</label>
             <input type="number" id="f-systolic" required />
           </div>
           <div>
-            <label>이완기 혈압</label>
+            <label for="f-diastolic">이완기 혈압</label>
             <input type="number" id="f-diastolic" required />
           </div>
           <div>
-            <label>공복 혈당 (mg/dL)</label>
+            <label for="f-sugar">공복 혈당 (mg/dL)</label>
             <input type="number" id="f-sugar" required />
           </div>
           <div>
-            <label>수면 시간</label>
+            <label for="f-sleep">수면 시간</label>
             <input type="number" step="0.1" id="f-sleep" value="0" />
           </div>
           <div class="full">
-            <label>메모</label>
+            <label for="f-memo">메모</label>
             <input type="text" id="f-memo" placeholder="선택 입력" />
           </div>
           <div class="actions">
@@ -675,11 +693,11 @@
         <h2><span class="eyebrow">Records</span> 전체 기록</h2>
         <div class="search-bar">
           <div>
-            <label>시작일</label>
+            <label for="s-start">시작일</label>
             <input type="date" id="s-start" />
           </div>
           <div>
-            <label>종료일</label>
+            <label for="s-end">종료일</label>
             <input type="date" id="s-end" />
           </div>
           <button class="btn btn-ghost" onclick="searchRecords()">검색</button>
@@ -730,10 +748,10 @@
       <div class="card">
         <h2><span class="eyebrow">Goals</span> 목표 관리</h2>
         <form class="goal-form" onsubmit="saveGoal(event)">
-          <div><label>목표 체중</label><input type="number" step="0.1" id="g-weight" /></div>
-          <div><label>목표 수축기</label><input type="number" id="g-systolic" /></div>
-          <div><label>목표 이완기</label><input type="number" id="g-diastolic" /></div>
-          <div><label>목표 혈당</label><input type="number" id="g-sugar" /></div>
+          <div><label for="g-weight">목표 체중</label><input type="number" step="0.1" id="g-weight" /></div>
+          <div><label for="g-systolic">목표 수축기</label><input type="number" id="g-systolic" /></div>
+          <div><label for="g-diastolic">목표 이완기</label><input type="number" id="g-diastolic" /></div>
+          <div><label for="g-sugar">목표 혈당</label><input type="number" id="g-sugar" /></div>
           <div class="full" style="grid-column:1/-1;margin-top:4px;">
             <button type="submit" class="btn btn-primary">목표 저장</button>
           </div>
@@ -958,6 +976,9 @@ function showApp(user){
   document.getElementById('dashboard-shell').style.display = 'flex';
   document.getElementById('whoami-text').textContent = `${user.username}님`;
   switchView('records');
+  if(justSignedUp){
+    document.getElementById('onboarding-banner').style.display = 'flex';
+  }
   refreshAll();
 }
 
@@ -1034,8 +1055,32 @@ async function doSignup(ev){
     const data = await res.json();
     if(!res.ok) throw new Error(data.detail || '회원가입에 실패했습니다.');
     toast(`${data.username}님, 가입을 환영합니다`, 'success');
+    justSignedUp = true;
     showApp(data);
   }catch(e){ errEl.textContent = e.message; }
+}
+
+// 가입 직후에만 온보딩 배너를 보여주기 위한 이번 세션 한정 플래그(새로고침하면
+// 다시 로그인 흐름을 타므로 자연히 꺼짐 - 별도 localStorage 저장 불필요).
+let justSignedUp = false;
+
+function dismissOnboarding(){
+  document.getElementById('onboarding-banner').style.display = 'none';
+  justSignedUp = false;
+}
+
+// 첫 기록을 뭘 채워야 할지 막막하지 않도록, 유효 범위 안의 예시 값을 미리 채워준다.
+// 그대로 제출해도 되고, 자기 값으로 고쳐 써도 된다 - 자동 제출은 하지 않는다.
+function fillExampleValues(){
+  document.getElementById('f-weight').value = 65;
+  document.getElementById('f-height').value = 170;
+  document.getElementById('f-systolic').value = 118;
+  document.getElementById('f-diastolic').value = 76;
+  document.getElementById('f-sugar').value = 90;
+  document.getElementById('f-steps').value = 8000;
+  document.getElementById('f-sleep').value = 7;
+  document.getElementById('f-memo').value = '첫 기록 예시 - 자유롭게 수정하세요';
+  toast('예시 값을 채웠어요. 확인 후 "기록 추가"를 눌러주세요.', 'success');
 }
 
 async function logout(){
@@ -1046,7 +1091,7 @@ async function logout(){
   showAuthScreen();
 }
 
-const LOADING_HTML = '<span style="color:var(--muted);font-size:14px;">불러오는 중...</span>';
+const LOADING_HTML = '<span style="color:var(--muted);font-size:var(--text-base);">불러오는 중...</span>';
 
 function refreshAll(){
   document.getElementById('hero-row').innerHTML = `<div class="empty-note" style="grid-column:1/-1;">${LOADING_HTML}</div>`;
@@ -1394,7 +1439,7 @@ function renderTrendChart(){
     });
     // 마지막(최신) 값은 숫자로 직접 라벨링 — 끝점을 강조
     const lastV = s.values[s.values.length - 1];
-    svg += `<text x="${xAt(n - 1)}" y="${yAt(lastV) - 11}" text-anchor="end" style="font-size:14px;font-weight:700;fill:${s.color};font-family:'IBM Plex Mono', monospace;">${lastV}</text>`;
+    svg += `<text x="${xAt(n - 1)}" y="${yAt(lastV) - 11}" text-anchor="end" style="font-size:var(--text-base);font-weight:700;fill:${s.color};font-family:'IBM Plex Mono', monospace;">${lastV}</text>`;
   });
 
   // x축 날짜 라벨 — 겹치지 않을 만큼만 간격을 두고 선택적으로 표시, 처음/끝은 항상 표시.
@@ -1406,7 +1451,7 @@ function renderTrendChart(){
     const isLast = i === n - 1;
     if(!isFirst && !isLast && i % labelStep !== 0) return;
     const anchor = isFirst ? 'start' : isLast ? 'end' : 'middle';
-    svg += `<text x="${xAt(i)}" y="${H - 8}" text-anchor="${anchor}" style="font-size:11px;fill:var(--muted);font-family:'IBM Plex Mono', monospace;">${r.date.slice(5)}</text>`;
+    svg += `<text x="${xAt(i)}" y="${H - 8}" text-anchor="${anchor}" style="font-size:var(--text-xs);fill:var(--muted);font-family:'IBM Plex Mono', monospace;">${r.date.slice(5)}</text>`;
   });
 
   // 각 데이터 포인트의 투명 히트 밴드 (가장 가까운 지점에서 크로스헤어+툴팁) — 마커 위에 그려서 항상 hover가 잡히게 함
@@ -1611,7 +1656,7 @@ async function loadStats(){
       ${distHtml('혈압 분류 분포', s.bp_category_distribution)}
     `;
   }catch(e){
-    document.getElementById('stats-body').innerHTML = '<span style="color:var(--brick);font-size:14px;">통계를 불러올 수 없습니다.</span>';
+    document.getElementById('stats-body').innerHTML = '<span style="color:var(--brick);font-size:var(--text-base);">통계를 불러올 수 없습니다.</span>';
     console.error(e);
   }
 }
@@ -1688,6 +1733,7 @@ async function submitRecord(ev){
       await apiSend('/records', 'POST', payload);
       toast('기록을 추가했습니다.', 'success');
     }
+    if(justSignedUp) dismissOnboarding();
     resetForm();
     refreshAll();
   }catch(e){ toast('저장 실패: ' + e.message, 'error'); }
@@ -1714,7 +1760,7 @@ async function loadGoal(){
     document.getElementById('g-sugar').value = g.target_blood_sugar ?? '';
     renderGoalAchievement(g.achievement);
   }catch(e){
-    el.innerHTML = '<span style="color:var(--muted);font-size:14px;">설정된 목표가 없습니다. 아래에서 설정해보세요.</span>';
+    el.innerHTML = '<span style="color:var(--muted);font-size:var(--text-base);">설정된 목표가 없습니다. 아래에서 설정해보세요.</span>';
   }
 }
 
@@ -1724,7 +1770,7 @@ function renderGoalAchievement(a){
   const el = document.getElementById('goal-result');
   const predEl = document.getElementById('goal-predictions');
   if(!a || a.message){
-    el.innerHTML = `<span style="color:var(--muted);font-size:14px;">${a && a.message ? a.message : ''}</span>`;
+    el.innerHTML = `<span style="color:var(--muted);font-size:var(--text-base);">${a && a.message ? a.message : ''}</span>`;
     predEl.innerHTML = '';
     return;
   }
@@ -1820,7 +1866,7 @@ async function loadWeeklyReport(){
       <div class="weekly-grid">
         ${metrics.map(([label, key, worse]) => weeklyBarCard(label, r.this_week[key], r.last_week[key], worse)).join('')}
       </div>
-      <div style="margin-top:12px;font-size:12px;color:var(--muted);">
+      <div style="margin-top:12px;font-size:var(--text-sm);color:var(--muted);">
         이번 주 ${r.this_week.record_count || 0}건 · 지난 주 ${r.last_week.record_count || 0}건 기록 기준
       </div>
       <div class="ai-summary-block" id="weekly-ai-summary"></div>`;
