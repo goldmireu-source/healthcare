@@ -137,7 +137,10 @@
   .kpi-card.risk-high{border-color:var(--brick-soft);background:var(--brick-soft);}
   .kpi-card.risk-high .v{color:var(--brick);}
   .kpi-card.risk-high .l{color:var(--brick);}
-  .kpi-card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius-md);padding:var(--space-5) var(--space-5);}
+  /* 같은 행의 KPI 카드끼리 그리드가 높이를 맞추는데, 부가 설명(.d)이 없는
+     카드(평균 BMI/혈압/혈당 등)는 내용이 짧아 아래쪽에 빈 공간이 생긴다 -
+     세로 가운데 정렬로 남는 높이를 자연스럽게 흡수한다. */
+  .kpi-card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius-md);padding:var(--space-5) var(--space-5);display:flex;flex-direction:column;justify-content:center;}
   .kpi-card .l{font-size:var(--text-sm);color:var(--muted);letter-spacing:0.02em;margin-bottom:var(--space-2);}
   .kpi-card .v{font-family:'IBM Plex Mono', monospace;font-size:var(--text-3xl);font-weight:600;overflow-wrap:break-word;}
   #kpi-row-2 .kpi-card .v{font-size:var(--text-2xl);}
@@ -162,8 +165,12 @@
 
   /* ---------- 가입 추이 차트 ---------- */
   .trend-summary{font-size:var(--text-base);color:var(--muted);margin-bottom:var(--space-3);}
-  .trend-chart-wrap{position:relative;}
-  .trend-chart{width:100%;height:130px;display:block;}
+  /* 옆의 "최근 활동" 카드가 내용(로그 5줄)에 따라 더 길어지면 그리드가 이 카드도
+     같은 높이로 늘리는데, 차트가 고정 130px면 그 아래로 텅 빈 공간이 남는다 -
+     카드를 flex-column으로 만들고 차트 랩이 남는 높이를 그대로 채우게 한다. */
+  .trend-card{display:flex;flex-direction:column;}
+  .trend-chart-wrap{position:relative;flex:1;min-height:130px;}
+  .trend-chart{width:100%;height:100%;display:block;}
   .trend-bar{fill:var(--teal);cursor:pointer;}
   .trend-bar:hover{fill:#265b4d;}
   #chart-tooltip{
@@ -363,7 +370,7 @@
       </div>
 
       <div class="panel-row">
-        <div class="card">
+        <div class="card trend-card">
           <h2><span class="title-group"><span class="eyebrow">Trend</span> 가입 추이 (최근 14일)</span></h2>
           <div class="trend-summary" id="trend-summary">불러오는 중...</div>
           <div class="trend-chart-wrap" id="trend-chart-wrap">
@@ -852,7 +859,15 @@ function roundedTopBarPath(x, yTop, width, height, radius){
 
 function renderTrendChart(points){
   const svgEl = document.getElementById('trend-chart');
-  const W = 560, H = 130, padTop = 8, padBottom = 22;
+  const wrapEl = document.getElementById('trend-chart-wrap');
+  // 차트 랩이 flex:1로 옆 카드("최근 활동") 높이에 맞춰 늘어나므로, 그 실제
+  // 렌더링 크기를 그대로 viewBox에 반영해야 늘어난 공간이 빈 여백으로 남지
+  // 않고 차트 자체가 채운다(index.html의 측정 추이 차트와 같은 패턴).
+  const measuredWidth = wrapEl.getBoundingClientRect().width;
+  const measuredHeight = wrapEl.getBoundingClientRect().height;
+  const W = measuredWidth > 10 ? Math.round(measuredWidth) : 560;
+  const H = measuredHeight > 10 ? Math.round(measuredHeight) : 130;
+  const padTop = 8, padBottom = 22;
   const maxCount = Math.max(1, ...points.map(p => p.count));
   const slot = W / points.length;
   const barWidth = Math.min(24, slot - 4);

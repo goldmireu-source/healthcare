@@ -130,8 +130,11 @@
 
   /* 요약 카드 그리드 (목표 진행률 / 최근 배지 / 이번주 변화, 고도화 13번) */
   .summary-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--space-4);margin-bottom:var(--space-6);}
-  .summary-card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius-md);padding:var(--space-5) var(--space-5);}
+  .summary-card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius-md);padding:var(--space-5) var(--space-5);display:flex;flex-direction:column;}
   .summary-card .sc-title{font-size:var(--text-sm-plus);color:var(--muted);letter-spacing:0.02em;margin-bottom:var(--space-3);font-weight:600;}
+  /* 제목은 카드 위쪽에 고정되고, 셋 중 내용이 가장 적은 카드도 이 영역이 남는
+     높이만큼 세로 가운데 정렬돼 빈 공간처럼 보이지 않는다. */
+  .summary-card .sc-body{flex:1;display:flex;flex-direction:column;justify-content:center;}
   .summary-card .sc-empty{font-size:var(--text-base);color:var(--muted);}
   .summary-card .sc-goal-row{display:flex;justify-content:space-between;font-size:var(--text-base);margin-bottom:var(--space-2);}
   .summary-card .sc-goal-row b{font-family:'IBM Plex Mono', monospace;}
@@ -190,7 +193,9 @@
      --text-hero(48px)로 - 다른 어떤 통계 값보다 커야 위계가 성립한다. */
   .score-card .score-num{font-family:'IBM Plex Mono', monospace;font-weight:700;font-size:var(--text-hero);line-height:1;}
   .score-card .score-label{font-size:var(--text-xs);color:var(--muted);}
-  .metric-card{display:flex;flex-direction:column;gap:var(--space-2);}
+  /* 히어로 행에서 건강 스코어 카드(가장 큰 콘텐츠)에 맞춰 그리드가 이 카드들의
+     높이를 늘리므로, 남는 공간을 아래쪽에 텅 비워두지 않고 세로 가운데 정렬한다. */
+  .metric-card{display:flex;flex-direction:column;gap:var(--space-2);justify-content:center;}
   .metric-card .mc-top{display:flex;justify-content:space-between;align-items:flex-start;gap:var(--space-2);}
   .metric-card .mc-label{font-size:var(--text-sm-plus);color:var(--muted);letter-spacing:0.02em;}
   /* 건강 추세 분석 화살표 (health_trends.py의 Trend: UP/DOWN/STABLE) */
@@ -1207,34 +1212,38 @@ function refreshAll(){
 const SUMMARY_GOAL_LABELS = {weight_achieved: '체중', systolic_achieved: '수축기', diastolic_achieved: '이완기', blood_sugar_achieved: '혈당'};
 const BADGE_ICON_GLYPH = {streak: '🔥', goal: '🎯', bmi: '⚖', bp: '❤'};
 
+// sc-title(제목)은 카드 상단에 고정하고, 그 아래 내용은 .sc-body로 한 번 더
+// 감싸 세로로 가운데 정렬한다 - 카드 3개가 그리드에서 같은 높이로 늘어날 때
+// (셋 중 내용이 가장 많은 카드 기준) 내용이 적은 카드가 위쪽에만 붙고 아래는
+// 텅 비어 보이는 문제를 막기 위함(제목 위치는 그대로 셋이 정렬됨).
 function renderGoalProgressCard(goalData){
   const achievedKeys = ['weight_achieved','systolic_achieved','diastolic_achieved','blood_sugar_achieved'];
   if(!goalData || !goalData.achievement || goalData.achievement.message){
-    return '<div class="sc-title">목표 진행률</div><div class="sc-empty">설정된 목표가 없습니다.</div>';
+    return '<div class="sc-title">목표 진행률</div><div class="sc-body"><div class="sc-empty">설정된 목표가 없습니다.</div></div>';
   }
   const a = goalData.achievement;
   const rows = achievedKeys
     .filter(k => k in a)
     .map(k => `<div class="sc-goal-row"><span>${SUMMARY_GOAL_LABELS[k]}</span><b class="${a[k] ? '' : ''}" style="color:${a[k] ? 'var(--status-good)' : 'var(--muted)'}">${a[k] ? '달성' : '진행 중'}</b></div>`)
     .join('');
-  return `<div class="sc-title">목표 진행률</div>${rows || '<div class="sc-empty">설정된 목표 항목이 없습니다.</div>'}`;
+  return `<div class="sc-title">목표 진행률</div><div class="sc-body">${rows || '<div class="sc-empty">설정된 목표 항목이 없습니다.</div>'}</div>`;
 }
 
 function renderRecentBadgesCard(badgesData){
   if(!badgesData || !badgesData.badges){
-    return '<div class="sc-title">최근 배지</div><div class="sc-empty">불러올 수 없습니다.</div>';
+    return '<div class="sc-title">최근 배지</div><div class="sc-body"><div class="sc-empty">불러올 수 없습니다.</div></div>';
   }
   const earned = badgesData.badges.filter(b => b.earned);
   if(earned.length === 0){
-    return '<div class="sc-title">최근 배지</div><div class="sc-empty">아직 획득한 배지가 없습니다.</div>';
+    return '<div class="sc-title">최근 배지</div><div class="sc-body"><div class="sc-empty">아직 획득한 배지가 없습니다.</div></div>';
   }
   const chips = earned.map(b => `<span class="sc-badge">${BADGE_ICON_GLYPH[b.icon] || '🏅'} ${b.label}</span>`).join('');
-  return `<div class="sc-title">최근 배지 (${earned.length}개)</div><div class="sc-badges">${chips}</div>`;
+  return `<div class="sc-title">최근 배지 (${earned.length}개)</div><div class="sc-body"><div class="sc-badges">${chips}</div></div>`;
 }
 
 function renderWeekChangeCard(weeklyData){
   if(!weeklyData || !weeklyData.this_week || !weeklyData.this_week.record_count){
-    return '<div class="sc-title">이번주 변화</div><div class="sc-empty">이번 주 기록이 없습니다.</div>';
+    return '<div class="sc-title">이번주 변화</div><div class="sc-body"><div class="sc-empty">이번 주 기록이 없습니다.</div></div>';
   }
   const change = weeklyData.change || {};
   const lines = [
@@ -1244,7 +1253,7 @@ function renderWeekChangeCard(weeklyData){
     const arrow = v > 0 ? '▲' : v < 0 ? '▼' : '–';
     return `<div class="sc-week-line"><span>${label}</span><span>${arrow} ${Math.abs(v)}${unit}</span></div>`;
   }).join('');
-  return `<div class="sc-title">이번주 변화</div>${lines || '<div class="sc-empty">비교할 지난주 기록이 없습니다.</div>'}`;
+  return `<div class="sc-title">이번주 변화</div><div class="sc-body">${lines || '<div class="sc-empty">비교할 지난주 기록이 없습니다.</div>'}</div>`;
 }
 
 async function loadDashboardSummary(){
@@ -1491,7 +1500,9 @@ function renderTrendChart(){
 
   // viewBox를 실제 렌더링 픽셀 크기와 똑같이 맞춰서, preserveAspectRatio="none"이
   // 비율을 억지로 늘리며 그래프/글자를 일그러뜨리는 일이 없게 한다.
-  const W = Math.round(measuredWidth), H = 240, padTop = 16, padBottom = 32, padLeft = 8, padRight = 8;
+  // padTop은 마지막 값 라벨(점 위 11px)이 최고점 근처에 찍혀도 SVG 상단 밖으로
+  // 잘려나가지 않을 만큼 여유가 있어야 한다(라벨 높이 + 점 위 오프셋 감안).
+  const W = Math.round(measuredWidth), H = 240, padTop = 28, padBottom = 32, padLeft = 8, padRight = 8;
   const allValues = series.flatMap(s => s.values);
   let minV = Math.min(...allValues);
   let maxV = Math.max(...allValues);
