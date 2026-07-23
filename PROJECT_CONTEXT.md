@@ -357,10 +357,24 @@ healthcare/
   - 회귀: `pytest -q` **52 passed, 0 warnings** / curl 스모크(로그인·`/admin/stats`·`/push/vapid-public-key`·`/app/sw.js`·`/docs`) 전부 정상 / Playwright로 코호트 히트맵 라이트·다크, 관리자 리마인더 발송 버튼(확인 모달→발송→결과 렌더링) 확인. 테스트 계정 삭제 후 DB 50명/62건 기준선 복귀 확인.
   - **신규 파일**: `backend/routers/push_router.py`, `backend/tests/test_admin_analytics.py`, `backend/tests/test_push.py`, `backend/alembic/versions/3fcbd6117404_add_push_subscriptions_table.py`, `frontend/static/sw.js`
 
+- [x] **디자인 기본기 + 시각적 위계 강화 (Phase 7 이후 추가 요청, CTO_AUDIT_REPORT.md 범위 밖의 사용자 후속 요청)** (2026-07-23)
+  - 사용자가 "웹디자인 암묵적 룰/공식이 잘 지켜져 있지 않은 것 같다"고 지적 — grep으로 실제 확인해보니 사실이었음(추측이 아니라 수치로 확인):
+    - 타이포그래피: `--text-*` 토큰이 Phase 5에 만들어졌지만 본문급(11~14px)에만 적용되고, 제목류는 17/18/19/20/21/22/25/28/36px 등 9개 값이 전부 하드코딩(스케일 없음). 게다가 정수 검색(`[0-9]+px`)에 안 걸리는 **소수점 값**(11.5/12.5/13.5/14.5px)이 20건 추가로 숨어있었음 — 기존 정수 스텝 사이를 임의로 반씩 쪼갠 값들.
+    - 간격: Phase 5-13에서 만든 `--space-*` 토큰이 **실사용 0건**이었음(정의만 해두고 안 씀) — 105개 padding/margin/gap 선언이 전부 9px/7px/5px/3px 같은 4의 배수가 아닌 임의값.
+    - border-radius: 7/6/5/20/8/1/16/10/9/4px 등이 뒤섞여 있었고, 이미 만들어둔 `--radius-sm/md/lg` 토큰은 정의만 되고 거의 안 쓰이는 상태.
+    - 시각적 위계: 건강 스코어("99")가 대시보드에서 가장 중요한 숫자인데도 인라인 스타일로 22px만 지정되어 있어, 부수적인 통계값(28px)보다도 작게 표시되고 있었음 — "가장 먼저 봐야 할 숫자"가 눈에 안 띄는 실질적 결함.
+  - **범위 협의**: AskUserQuestion으로 "기본기만" / "기본기+위계 강화" / "일단 보고만 판단" 중 선택받음 → **"기본기 + 시각적 위계 강화"** 선택.
+  1. **타이포그래피 스케일 확장** — `theme.css`에 `--text-md(16)/--text-lg(18)/--text-xl(20)/--text-2xl(24)/--text-3xl(28)/--text-4xl(36)/--text-hero(48)` 추가(기존 11~14px 스텝에 이어짐). 9개 제목 하드코딩 값 + 20건의 소수점 값을 전부 역할별로 토큰에 매핑(예: 카드 h2와 모달 h3처럼 같은 "구성요소 제목" 역할은 하나의 토큰으로 통일). `.score-card .score-num`은 `--text-hero(48px)`로 대폭 키우고, 기존에 이 크기를 덮어쓰던 인라인 `style="font-size:22px"`를 JS 템플릿에서 제거.
+  2. **간격을 4pt 그리드로 스냅** — 정규식 스크립트로 index.html 212건 + admin.html 114건의 padding/margin/gap 리터럴을 전부 `--space-*` 토큰으로 치환(0이 아닌 값 기준, 이미 토큰인 것은 건드리지 않음). 60/80/84px 같은 큰 값이 40px로 뭉개지는 초기 버그를 발견해 `--space-12(48)/--space-14(56)/--space-16(64)/--space-20(80)`을 추가로 정의해 해결(스케일이 40에서 끊겨 있던 게 원인).
+  3. **border-radius 3단계 스케일 + pill 정리** — `--radius-xs(4)` / `--radius-pill(999px)`를 신규 추가해 기존 `--radius-sm(8)/--radius-md(12)/--radius-lg(16)`과 합쳐 5단계로 완성. 폼 컨트롤/버튼류(7·6·5·9px)는 전부 `--radius-sm`, 카드/모달류(12·10px)는 `--radius-md`, 뱃지/칩/토글 파일류(20·16px)는 `--radius-pill`, 얇은 진행바(4px)는 `--radius-xs`로 통일.
+  4. **시각적 위계 강화** — (a) 건강 스코어 카드에 `linear-gradient(180deg, var(--teal-soft), var(--card) 70%)` 배경 워시 + `border-color:var(--teal)` + `box-shadow:var(--shadow-md)`를 추가해 나머지 흰 배경 히어로 카드들과 확실히 구분되게 함(라이트/다크 전부 기존 테마 토큰만 사용해 별도 다크 대응 불필요 — 자동으로 반전됨). (b) `.hero-row` 아래쪽 여백을 카드 간 기본 간격(20px)보다 넓게(24px) 둬서 "오늘의 상태" 블록이 그 아래 "오늘의 기록" 입력 폼과 시각적으로 분리된 하나의 장(chapter)처럼 읽히게 함(근접성 게슈탈트 원칙).
+  - 검증: 매 단계(타이포→간격→radius→위계강화)마다 Playwright로 라이트/다크 스크린샷 확인, 최종적으로 `grep`으로 font-size/border-radius/padding·margin·gap 전부에 하드코딩 리터럴이 **0건**임을 재확인. `pytest -q` 52 passed(백엔드 무변경). 임시 관리자 계정으로 admin.html도 확인, 테스트 계정 삭제 후 DB 50명/62건 기준선 복귀 확인.
+  - **신규 파일**: 없음(theme.css/index.html/admin.html만 수정)
+
 ## 7. 다음 작업
 
 1. (제안) 관리자 대시보드에도 사용자 화면처럼 시각화가 있으니, 향후 필요시 이 Playwright 스크린샷 검증 방식을 `/run-skill-generator`로 프로젝트 스킬화하는 것을 고려 — 매번 임시 Node 프로젝트를 새로 만들 필요 없어짐
-2. AWS Lightsail 배포 단계로 진행 (8번 섹션 참고) — **CTO_AUDIT_REPORT.md 기반 Phase 1~7 작업 전부 완료.**
+2. AWS Lightsail 배포 단계로 진행 (8번 섹션 참고) — **CTO_AUDIT_REPORT.md 기반 Phase 1~7 작업 + 디자인 기본기 보강까지 전부 완료.**
 3. **다음 액션**: 실제 배포(AWS Lightsail, HTTPS, `COOKIE_SECURE=true`, VAPID 키 운영값 재발급, `POST /push/send-reminder` cron 등록 검토) — 이 프로젝트가 지금까지 명시적으로 범위 밖으로 남겨둔 마지막 단계.
 
 ## 8. 이후 계획 (미착수)

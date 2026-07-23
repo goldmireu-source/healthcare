@@ -25,15 +25,22 @@
   --muted:#5C6B67;
   --shadow-sm:0 2px 8px rgba(16,27,24,.07);
   --shadow-md:0 8px 24px rgba(16,27,24,.10);
-  --radius-sm:8px; --radius-md:12px; --radius-lg:16px;
+  --radius-xs:4px; --radius-sm:8px; --radius-md:12px; --radius-lg:16px; --radius-pill:999px;
 
-  /* 간격/타이포그래피 스케일 - index.html/admin.html 전반에 흩어져 있던 하드코딩
-     px 값을 점진적으로 이 토큰으로 옮기는 중이다(한 번에 전부 바꾸면 화면 하나하나
-     회귀 확인이 어려워 우선 가장 많이 반복되는 값부터). 본문 기준은 --text-base(14px). */
+  /* 간격 스케일 - 전부 4px의 배수(흔히 쓰는 "4/8pt 그리드" 관례). index.html/
+     admin.html 전반의 padding/margin/gap을 여기 값으로 스냅해 임의의 9px/7px/5px
+     같은 값이 뒤섞이지 않게 한다. */
   --space-1:4px; --space-2:8px; --space-3:12px; --space-4:16px;
-  --space-5:20px; --space-6:24px; --space-8:32px;
+  --space-5:20px; --space-6:24px; --space-7:28px; --space-8:32px; --space-10:40px;
+  --space-12:48px; --space-14:56px; --space-16:64px; --space-20:80px;
+
+  /* 타이포그래피 스케일 - 본문(--text-base:14px)을 기준으로 위로는 대략 1.15~1.3배씩
+     커지는 단계를 둬서 제목 크기가 "그때그때 정한 숫자"가 아니라 정해진 몇 단계
+     중 하나가 되게 한다. --text-hero는 대시보드에서 사용자가 가장 먼저 봐야 할
+     단 하나의 숫자(건강 스코어)에만 쓰는 히어로 사이즈. */
   --text-2xs:10px; --text-xs:11px; --text-sm:12px; --text-sm-plus:13px;
-  --text-base:14px; --text-md:18px; --text-lg:22px; --text-xl:28px;
+  --text-base:14px; --text-md:16px; --text-lg:18px; --text-xl:20px;
+  --text-2xl:24px; --text-3xl:28px; --text-4xl:36px; --text-hero:48px;
   color-scheme:light;
 }
 @media (prefers-color-scheme: dark){
