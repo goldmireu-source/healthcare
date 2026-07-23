@@ -23,6 +23,7 @@
     color:var(--ink);
     font-family:'Pretendard Variable','Pretendard',-apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;
     line-height:1.5;
+    word-break:keep-all;
     transition:background .15s ease, color .15s ease;
   }
   input, select, textarea{background:var(--card-2);color:var(--ink);border-color:var(--line);}
@@ -101,6 +102,8 @@
     color:var(--muted);font-family:inherit;line-height:1;
   }
   .theme-toggle button.active{background:var(--card);color:var(--ink);box-shadow:var(--shadow-sm);font-weight:600;}
+  .theme-toggle .tt-icon{display:none;font-size:var(--text-md);line-height:1;}
+  .theme-toggle .tt-label{display:inline;}
 
   .view{display:none;}
   .view.active{display:block;}
@@ -412,7 +415,7 @@
       border-right:none;border-top:1px solid var(--line);z-index:80;
     }
     .sidebar .brand{display:none;}
-    .side-nav{flex-direction:row;width:100%;justify-content:space-around;}
+    nav.side-nav{flex-direction:row;width:100%;justify-content:space-around;}
     .nav-item{
       border-left:none;padding:var(--space-2) var(--space-3);white-space:nowrap;flex-direction:column;gap:var(--space-1);font-size:var(--text-sm);
       border-radius:var(--radius-sm);
@@ -430,6 +433,19 @@
     .summary-grid{grid-template-columns:1fr;}
     .quick-actions{flex-direction:column;}
     .quick-actions .btn{width:100%;}
+
+    .topbar{flex-wrap:nowrap;gap:var(--space-2);}
+    .topbar h1{font-size:var(--text-lg);flex-shrink:0;}
+    .user-switch{flex-wrap:nowrap;gap:var(--space-1);min-width:0;justify-content:flex-end;}
+    #whoami-text{display:none;}
+    .theme-toggle{padding:2px;gap:1px;flex-shrink:0;}
+    .theme-toggle button{padding:var(--space-1) var(--space-2);}
+    .theme-toggle .tt-icon{display:inline;}
+    .theme-toggle .tt-label{display:none;}
+    .user-switch button{padding:var(--space-1) var(--space-2);font-size:var(--text-sm);flex-shrink:0;white-space:nowrap;}
+
+    footer{font-size:var(--text-sm);margin:var(--space-6) 0 0;padding:0 var(--space-2);}
+    body.logged-in footer{padding-bottom:calc(var(--space-20) + env(safe-area-inset-bottom));}
   }
 </style>
 </head>
@@ -623,9 +639,9 @@
       <h1 id="view-title">기록</h1>
       <div class="user-switch" id="whoami-box">
         <div class="theme-toggle" id="theme-toggle" role="group" aria-label="테마 선택">
-          <button type="button" data-theme-choice="light" onclick="setThemeChoice('light')" aria-pressed="false">라이트</button>
-          <button type="button" data-theme-choice="system" onclick="setThemeChoice('system')" aria-pressed="false">시스템</button>
-          <button type="button" data-theme-choice="dark" onclick="setThemeChoice('dark')" aria-pressed="false">다크</button>
+          <button type="button" data-theme-choice="light" onclick="setThemeChoice('light')" aria-pressed="false" aria-label="라이트 테마"><span class="tt-icon" aria-hidden="true">&#9728;</span><span class="tt-label">라이트</span></button>
+          <button type="button" data-theme-choice="system" onclick="setThemeChoice('system')" aria-pressed="false" aria-label="시스템 테마"><span class="tt-icon" aria-hidden="true">&#9881;</span><span class="tt-label">시스템</span></button>
+          <button type="button" data-theme-choice="dark" onclick="setThemeChoice('dark')" aria-pressed="false" aria-label="다크 테마"><span class="tt-icon" aria-hidden="true">&#127769;</span><span class="tt-label">다크</span></button>
         </div>
         <span id="whoami-text"></span>
         <button onclick="openAccountSettings()">계정 설정</button>
@@ -1058,6 +1074,7 @@ async function submitDeleteAccount(){
 function showAuthScreen(){
   document.getElementById('auth-wrap').style.display = 'block';
   document.getElementById('dashboard-shell').style.display = 'none';
+  document.body.classList.remove('logged-in');
   username = null;
 }
 // apiGet/apiSend(shared.js)가 401을 받으면 이 화면으로 되돌린다
@@ -1068,6 +1085,7 @@ function showApp(user){
   currentUser = user;
   document.getElementById('auth-wrap').style.display = 'none';
   document.getElementById('dashboard-shell').style.display = 'flex';
+  document.body.classList.add('logged-in');
   document.getElementById('whoami-text').textContent = `${user.username}님`;
   switchView('records');
   if(justSignedUp){
