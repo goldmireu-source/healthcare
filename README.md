@@ -291,7 +291,17 @@ http://localhost:8000 (웹 화면) 또는 http://localhost:8000/docs (API 문서
 
 ## 배포 접속 URL
 
-(배포 완료 후 추가 예정)
+- **https://healthcare.kro.kr/** — AWS Lightsail(서울 리전)에 배포, Let's Encrypt(certbot)로 실제 HTTPS 적용, HTTP는 자동으로 HTTPS로 리다이렉트
+- API 문서: https://healthcare.kro.kr/docs
+- 관리자 대시보드: https://healthcare.kro.kr/app/admin.html
+
+### 배포 구성 메모
+
+- 서버에서 직접 `docker build`를 하지 않고(인스턴스 메모리가 매우 작아 빌드 중 OOM 발생) **로컬에서 이미지를 빌드해 `docker save | gzip` → `scp` → `docker load`로 전달**하는 방식을 씀. 앞으로 재배포할 때도 이 방식을 권장.
+- `nginx`가 80/443을 받아 컨테이너의 `127.0.0.1:8001`(→ 컨테이너 내부 8000)로 리버스 프록시. 컨테이너 자체는 `127.0.0.1`에만 바인딩해 nginx를 거치지 않은 직접 접근을 막음.
+- SQLite 데이터는 호스트의 `~/healthcare-data`를 `/app/data`로 바인드 마운트해 컨테이너를 재생성해도 유지됨.
+- DB 백업은 `backup_db.py`가 매일 새벽 3시 cron으로 실행되어 `~/healthcare-backups`에 최근 14개 보관.
+- 이 서버에는 이 프로젝트와 무관한 기존 컨테이너(`my-web`, 포트 8080)가 같이 떠 있음 — 배포 작업 중 건드리지 않았음.
 
 ## 참고
 

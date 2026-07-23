@@ -384,18 +384,25 @@ healthcare/
   - 검증: Playwright로 실제 카드 높이를 다시 측정해 빈 공간이 줄었는지 확인, 라이트/다크 스크린샷으로 "가입 추이" 차트가 카드를 꽉 채우는지 육안 확인, 라벨 잘림이 해소됐는지 확인. `pytest -q` 52 passed(백엔드 무변경). 임시 관리자 계정 3개를 순차로 만들어 확인 후 전부 삭제, DB 50명/62건 기준선 복귀 확인.
   - **신규 파일**: 없음(index.html/admin.html만 수정)
 
+- [x] **AWS Lightsail 실배포** (2026-07-23) — https://healthcare.kro.kr/ (서울 리전, Ubuntu 22.04, 4.16Gi 스왑 추가 후 416Mi RAM에서 안정 운영)
+  1. **접속/사전 조사**: SSH(3.36.92.148, ubuntu, .pem 키)로 접속 확인. 기존에 이 프로젝트와 무관한 `my-web` 컨테이너(포트 8080)가 이미 떠 있는 것을 발견 — 건드리지 않고 별도 포트/설정으로 배포 진행.
+  2. **트러블슈팅 — apt 잠금**: `apt.systemd.daily`(우분투 자동 일일 업데이트)가 `apt-get check`에서 멈춰(9분+ 경과, R 상태로 실제 행) `/var/lib/dpkg/lock-frontend`를 계속 붙잡고 있어 `nginx`/`certbot` 설치가 막힘. 해당 프로세스를 강제 종료하고 락 파일 정리, 이후 재발 방지를 위해 `apt-daily.timer`/`apt-daily-upgrade.timer`를 mask 처리.
+  3. **트러블슈팅 — 방화벽**: 사용자가 Lightsail 콘솔에서 HTTPS(443) 규칙을 추가하는 과정에서 순간적으로 SSH(22)/HTTP(80)까지 같이 막힌 것으로 추정되는 전체 접속 불가 상태 발생 → 콘솔에서 규칙 재확인 후 복구.
+  4. **트러블슈팅 — 메모리 부족**: 인스턴스가 최소 사양(총 416Mi RAM, 스왑 0)이라 서버에서 직접 `docker build`(python 패키지 컴파일 포함)를 시도하니 메모리 고갈로 SSH 접속 자체가 간헐적으로 끊기고 빌드가 사실상 멈춤(load average 22+). **로컬(개발 환경)에서 이미지를 빌드해 `docker save | gzip`(105MB→77MB) → `scp` → 서버에서 `docker load`** 하는 방식으로 전환해 해결 — 로컬 빌드는 30초 만에 끝남. 서버에는 이후 안정성을 위해 스왑 1GB도 추가.
+  5. **트러블슈팅 — 시크릿 유출(중요)**: 로컬에서 빌드한 첫 이미지에 로컬 `backend/.env`(개인 OpenAI API 키 포함)와 `venv/` 전체가 그대로 들어가 있는 것을 배포 직전에 발견 — 원인은 `.dockerignore`의 `.env`/`venv/` 같은 bare 패턴이 Docker에서는 **컨텍스트 루트에서만 매치되고 `backend/.env`처럼 중첩된 경로는 매치하지 않는(.gitignore와 다른 동작) 것**이었음. `.dockerignore`에 `**/.env`, `**/venv/`, `**/*.pem` 등 이중 패턴을 추가해 실제로 제외되는지 이미지 안을 직접 열어(`docker run ... ls`) 재확인 후, 유출됐던 이미지/tar.gz는 로컬·서버 양쪽에서 즉시 삭제. 이미지 크기도 475MB→327MB로 줄어듦(venv 제외 효과). *(개인 API 키가 사설 인프라 밖으로 나간 적은 없지만, 만에 하나를 위해 로테이션을 고려할 만함 — 사용자에게 안내함.)*
+  6. **배포 구성**: `nginx`(80/443) → 컨테이너(`127.0.0.1:8001`, `--restart unless-stopped`) 리버스 프록시. SQLite 데이터는 `~/healthcare-data`를 `/app/data`로 바인드 마운트해 컨테이너 재생성에도 유지. 운영용 VAPID 키를 로컬 개발용과 별도로 새로 생성해 `.env`에 반영, `COOKIE_SECURE=true` 설정. `healthcare.kro.kr` 도메인은 사용자가 DNS A 레코드를 직접 설정.
+  7. **HTTPS**: DNS/방화벽 확인 후 `certbot --nginx`로 Let's Encrypt 인증서 발급 성공(2026-10-21 만료, 자동 갱신 등록됨), HTTP→HTTPS 리다이렉트 자동 구성.
+  8. **검증**: 실제 도메인으로 회원가입→로그인→기록 생성/조회 curl 검증 — 응답의 `Set-Cookie`에 `Secure` 속성이 실제로 붙는 것 확인(COOKIE_SECURE=true 반영 확인). `/app/admin.html` 로드 확인. 테스트 계정은 탈퇴로 정리. 기존 `my-web` 컨테이너가 배포 작업 내내 영향받지 않고 정상 응답하는지 재확인.
+  9. **백업 cron 등록**: `backup_db.py`(표준 라이브러리만 사용해 컨테이너 밖에서도 실행 가능)를 매일 새벽 3시 cron으로 등록, `~/healthcare-backups`에 최근 14개 보관.
+  - **신규 파일**: 없음(로컬 `.dockerignore`만 수정). 서버 쪽 산출물(nginx 설정, 인증서, cron, systemd mask)은 저장소 밖의 인프라 상태라 이 문서에 정리만 하고 별도 코드로 커밋하지 않음.
+
 ## 7. 다음 작업
 
 1. (제안) 관리자 대시보드에도 사용자 화면처럼 시각화가 있으니, 향후 필요시 이 Playwright 스크린샷 검증 방식을 `/run-skill-generator`로 프로젝트 스킬화하는 것을 고려 — 매번 임시 Node 프로젝트를 새로 만들 필요 없어짐
-2. AWS Lightsail 배포 단계로 진행 (8번 섹션 참고) — **CTO_AUDIT_REPORT.md 기반 Phase 1~7 작업 + 디자인 기본기/레이아웃 보강까지 전부 완료.**
-3. **다음 액션**: 실제 배포(AWS Lightsail, HTTPS, `COOKIE_SECURE=true`, VAPID 키 운영값 재발급, `POST /push/send-reminder` cron 등록 검토) — 이 프로젝트가 지금까지 명시적으로 범위 밖으로 남겨둔 마지막 단계.
+2. **배포 완료** — https://healthcare.kro.kr/ 에서 실제 운영 중. CTO_AUDIT_REPORT.md 기반 Phase 1~7 + 디자인 보강 + 실배포까지 이 프로젝트의 전체 작업 범위가 전부 완료됨.
+3. 남은 선택 사항: (a) 개인 OpenAI API 키가 잠깐 이미지에 들어갔던 사고 이력이 있어 원하면 키 로테이션 고려, (b) `POST /push/send-reminder`(리마인더 알림)를 정말 매일 자동 발송하고 싶다면 관리자 인증을 포함한 별도 cron 스크립트 설계 필요(지금은 관리자가 대시보드에서 수동 발송), (c) 인스턴스가 최소 사양(416Mi RAM)이라 트래픽이 늘면 Lightsail 플랜 업그레이드 검토.
 
 ## 8. 이후 계획 (미착수)
-
-- AWS Lightsail 테스트 서버에 배포 (계정/서버는 이미 생성되어 있음, 접속 정보는 작업 시점에 확인 필요)
-  - 배포 시 `COOKIE_SECURE=true` 환경변수 설정 권장 (HTTPS 적용 시)
-- 배포 후 README.md의 "배포 접속 URL" 항목 채우기
-- 최종 git push 및 제출 체크리스트 확인 (venv/data.json 미포함, README 완성 등)
 
 ### Phase E — 논의 필요한 다음 후보 (AUDIT_REPORT.md 기반, 지금은 구현하지 않음, 2026-07-22)
 
